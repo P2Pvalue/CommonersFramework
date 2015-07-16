@@ -5,19 +5,17 @@
 
 
 
-; GENERAL TO DOS / COMMENTS
+; GENERAL TO DOS / COMMENTS / also check word doc
+
 
 
 ; pull out hidden parameters at some point!
 
 
-; word doc?
+; bug?! - 9s and 1s not making a tasklink when they have none, or is there good reason for this - no time or wrong interest - make sure
 
 
-; bug?! - 9s and 1s not making a tasklink when they have none, or is there good reason for this - no time?
-
-
-; calibration - 1% need to most contributions? maybe add a measure of contribution as an agent variable and can check average etc?
+; calibration - 1% need to most contributions. maybe add a measure of actual contribution (time and number of projets/tasks) as an agent variable and can check average etc?
 
 
 ; currently 1s and 9s dont create projects? when and how do they do this? 1s create projects? 9s create projects?
@@ -29,7 +27,11 @@
 ; size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
 
 
+; size of community will affect a lot of rules? which?
+
+
 ; what should the position of product show when there is only one????
+
 
 ; exit rule - burn out/too old
 
@@ -37,35 +39,40 @@
 ; use volume in finding or staying with a product HOW? ie., consumption reduces volume in rivalrous products, 
 
 
+; volume just doubles - sensible? how might it go down? should it be called quality?
+
 
 ; make frienndship ties increase chance of connecting to a task/project - how? write out logic first
-
 
 
 ; include variability on contribution to current tasks/projects? - you contribute more if recent activity high, or friends in that task?
 
 
-
-; tasks/projects that are connnected? - task often come in groups and create groups of contributors
-
+; tasks/projects that are connnected? - task often come in groups and create groups of contributors - how would this be used?
 
 
-; data on case studies - do we want an initialisation for each community currently existing?
-
-; currentlt busy projects makes a new project, not more tasks, is this ok?
+; currentlt busy projects makes a new project, not more tasks, is this ok? tasks also have a small chance of making a new task in 'tasks-id'
 
 
-; 90% or 9 can also identify/create TASKS when they see issues?
+; 90% or 9 (and 1s?) can also identify/create TASKS when they see issues? - currently high activity leads to new projects - catch all - should it be tasks, or should it be broek down by contributor type
 
-; xcor of projects also affected by popularity of its adjoining product
 
+; xcor of projects also affected by popularity of its adjoining product?
 
 
 ; PROJECTS / TASKS only fully public when need additional contribution, when they are OK, they go into semi-private mode - IE, no new contributors once 'full up'?
 
+
 ; updating motivation - size of project - large more likely to be able to make money, smaller communities less likely to deliver on this need
 
 
+; currently completed tasks affect products, should it be projects?? probably
+
+
+
+; data
+
+; 2 + case studies - some initial conditions, type of community, and some patterns over time
 
 
 
@@ -79,6 +86,11 @@
 ;We further conduct the same analysis on affiliation networks and find that contributors tend to participate in projects of similar team sizes. 
 ;Second, we study the correlation between various social factors (e.g., closeness and betweenness centrality, clustering coefficient and 
 ;tie strength) and the productivity of the contributors in terms of the amount of contribution and commitment to OSS projects. 
+
+;power law degree distribution
+; small world characteristics
+; high degree and low degree do mix
+; contrubutors tend to find all projects of siilar team sizes
 
 
 
@@ -139,6 +151,8 @@ globals [
   #9-to-#1-count                        ; count of #9 turned into #1
   #1-to-#9-count                        ; count of #1s turned to #9
   #90-to-#9-count
+  
+  num-skills                            ; number of skill types for projects or contributors
   
   ; reward-mechanism                    ; chooser specifying which reward mechanism is currently being used
   
@@ -270,6 +284,7 @@ projects-own [
   recent-activity              ; score - count of current contributors to project's tasks
   time-project-with-no-contributors ; count ticks with no contributors to any of project's tasks
   age                          ; time task has been in community
+  my-product
 ]
 
 t4sks-own [
@@ -313,17 +328,17 @@ to setup
   if platform-features = TRUE and how-community-works-without-platform = "online open" 
    [ ;; colour lines to mark projects and products spaces
      ask patches with [pxcor = 17 OR pxcor = -5 OR pxcor = -14  OR pxcor = -4] [set pcolor white]
+     ;; set some globals to zero / reset-ticks
+     setup-globals
      ;; create agents
+     create-existing-product
      create-existing-projects
      if number-of-products = "one" [ set initial-products 1 ]
      if number-of-products = "a few" [ set initial-products random 5 + 1 ]  
      if number-of-products = "many" [ set initial-products random 100 ]      
-     create-existing-product
      create-#1
      create-#9
      create-#90                           
-     ;; set some globals to zero / reset-ticks
-     setup-globals
      reset-ticks
    ]
   
@@ -343,7 +358,7 @@ to go
   drop-tasks                      ;; contributors drop tasks if it is inactive
   make-and-lose-friends           ;; friendships formed and broken
   give-out-reward                 ;; tasks give out reward depending on reward mechanism
-  tasks-to-products               ;; completed tasks become products - SHOULD THIS BE PROJECTS
+  tasks-to-products               ;; completed tasks become products or improve existing ones - SHOULD THIS BE PROJECTS?
   tasks-identified                ;; creates new tasks from existing tasks, ie., find new ones by doing others
   tasks-finish                    ;; tasks finsih and 'die'
   projects-finish                 ;; projects 'die' if no contributors or tasks
@@ -395,10 +410,11 @@ to create-existing-projects
                              set size 0.7
                              set color green
                              set shape "circle" 
+                             
+                             
                              ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
                                                                             [ set on-platform? false ]
-                             ifelse random-float 1 < prop-tasks-mngt [ set typ3 "mngt" ] 
-                                                                     [set typ3 "prod" ]
+                             
                              set inter3st [inter3st] of myself
                              set reward-level random 100
                              ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
@@ -408,6 +424,9 @@ to create-existing-projects
                              set modularity random 20 + 1 
                              set age 0   
                              set my-project myself 
+                             t4sk-set-typ3
+                             
+                          
                             ]
     
     set my-tasks-projects t4sks with [ my-project = myself ]
@@ -422,6 +441,9 @@ to create-existing-projects
                                             set heading random 360
                                             fd 1
                                            ]
+    set my-product min-one-of products [distance myself]
+    create-projectproductlink-with my-product [set color red] 
+    
     ] ]
 end
 
@@ -435,13 +457,7 @@ to create-existing-product
     set shape "box"
     set volume random 100
     set age 0
-    if number-of-products = "one" [ set mon-project projects
-                                    create-projectproductlinks-with mon-project [set color red] ]
-    if number-of-products = "a few" [ set mon-project min-n-of 3 projects  [distance myself]
-                                    create-projectproductlinks-with mon-project [set color red] ]
-    if number-of-products = "many" [ set mon-project min-one-of projects [distance myself]
-                                    create-projectproductlink-with mon-project [set color red] ]
-    
+    set mon-project projectproductlink-neighbors
   ]
 end
 
@@ -454,7 +470,7 @@ to create-#1
                                      set color red 
                                      set my-time 1 + random 40 
                                      set time my-time
-                                     set skill random 100
+                                     set skill (n-of 3 (n-values num-skills [?]))
                                      set interest random num-interest-categories
                                      set motivation 1
                                      set using-platform? "true"
@@ -480,7 +496,7 @@ to create-#9
                                    set color blue
                                    set my-time 1 + random 20
                                    set time my-time
-                                   set skill random 50
+                                   set skill (n-of 3 (n-values num-skills [?]))
                                    let pref-prob random-float 1
                                    if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                    if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
@@ -559,6 +575,8 @@ to setup-globals
   set community-con-activity-t-2 0
   set community-con-activity-t-1 0
   set community-con-activity-t 0
+  
+  set num-skills 10
 end
 
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
@@ -602,17 +620,24 @@ to find-tasks
   
   ask #1s [ if time > 0 [ 
                           let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects-1s] of myself ) ] 
-                        
-                          if any? my-projects-tasks with [ ( inter3st < ( [ interest ] of myself + 15 ) ) and 
-                                                           ( inter3st > ( [ interest ] of myself - 15 ) )  ] [
-                              let new-task$ my-projects-tasks with [ ( inter3st < ( [ interest ] of myself + 15 ) and 
-                                                                       inter3st > ( [ interest ] of myself - 15 ) ) ]
-                              
-                          create-tasklinks-with new-task$ [set color 3] 
+
+
+                          if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                            
+                          [ let new-task$ my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                            create-tasklinks-with new-task$ [set color 3] ]
+                            
+                          if ( not any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ])
+                            
+                          [ 
+                          let new-task$-2 one-of my-projects-tasks  
+                          if new-task$-2 != nobody [                              
+                          create-tasklink-with new-task$-2 [set color 3] ] ] 
+                          
                           set my-tasks-1s tasklink-neighbors
                        ]
             ]
-        ]
+        
   
   
   ; 9s find tasks that are in the projects they have found, but have an interest close to them; 
@@ -620,19 +645,18 @@ to find-tasks
   
   ask #9s [ if time > 0 [ 
                           let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
-      
-                        
-                          if any? my-projects-tasks with [ ( inter3st < ( [ interest ] of myself + 5 ) ) and 
-                                                               ( inter3st > ( [ interest ] of myself - 5 ) )  ] [
-                              let new-task$ my-projects-tasks with [ ( inter3st < ( [ interest ] of myself + 5 ) and 
-                                                                       inter3st > ( [ interest ] of myself - 5 ) ) ]
-                          create-tasklinks-with new-task$ [set color 3] 
-                          set my-tasks tasklink-neighbors
+                          
+                          if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                            
+                          [ let new-task$ my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                            create-tasklinks-with new-task$ [set color 3] ]
+                     
+                            set my-tasks tasklink-neighbors
                        ]
             ]
         ]
   
-  ]
+  
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
@@ -805,8 +829,7 @@ to create-new-task
                  set shape "circle" 
                  ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
                                                                 [ set on-platform? false ]
-                 ifelse random-float 1 < prop-tasks-mngt [ set typ3 "mngt" ] 
-                                                         [ set typ3 "prod" ]       
+                 t4sk-set-typ3       
                  set inter3st [inter3st] of myself
                  set reward-level random 100
                  ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] [ set reward-type "objective" ]
@@ -865,8 +888,7 @@ to new-projects
                                 set shape "circle" 
                                 ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
                                                                                [ set on-platform? false ]
-                                ifelse random-float 1 < prop-tasks-mngt [ set typ3 "mngt" ] 
-                                                                        [ set typ3 "prod" ]
+                                t4sk-set-typ3
                                 set inter3st [inter3st] of myself
                                 set reward-level random 100
                                 ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
@@ -1005,7 +1027,7 @@ to entry
       set color blue
       set my-time 1 + random 20
       set time my-time
-      set skill random 50
+      set skill (n-of 3 (n-values num-skills [?]))
       let pref-prob random-float 1
       if pref-prob < 0.33 [ set typ3-preference "prod" ]
       if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
@@ -1046,7 +1068,7 @@ to entry
       set color blue
       set my-time 1 + random 20
       set time my-time
-      set skill random 50
+      set skill (n-of 3 (n-values num-skills [?]))
       let pref-prob random-float 1
       if pref-prob < 0.33 [ set typ3-preference "prod" ]
       if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
@@ -1143,8 +1165,7 @@ to new-tasks
     set shape "circle" 
     ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
                                                    [ set on-platform? false ]
-    ifelse random-float 1 < prop-tasks-mngt [ set typ3 "mngt" ] 
-                                            [ set typ3 "prod" ]
+    t4sk-set-typ3
     set inter3st ( [ interest ] of myself)
     set reward-level random 100
     ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
@@ -1179,7 +1200,7 @@ to change-breed
                                 set color blue
                                 set my-time 1 + random 20
                                 set time my-time
-                                set skill random 50
+                                set skill (n-of 3 (n-values num-skills [?]))
                                 set using-platform? "true"
                                 let pref-prob random-float 1
                                 if pref-prob < 0.33 [ set typ3-preference "prod" ]
@@ -1203,8 +1224,7 @@ to change-breed
                                                                            set shape "circle" 
                                                                            ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
                                                                                                                           [ set on-platform? false ]
-                                                                           ifelse random-float 1 < prop-tasks-mngt [ set typ3 "mngt" ] 
-                                                                                                                   [ set typ3 "prod" ]
+                                                                           t4sk-set-typ3
                                                                            set inter3st [inter3st] of myself
                                                                            set reward-level random 100
                                                                            ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
@@ -1243,7 +1263,7 @@ to change-breed
      set color red 
      set my-time 1 + random 40 
      set time my-time
-     set skill random 100
+     set skill (n-of 3 (n-values num-skills [?]))
      set interest random num-interest-categories
      set motivation 1
      set using-platform? "true"
@@ -1269,7 +1289,7 @@ to change-breed
      set color blue
      set my-time 1 + random 20
      set time my-time
-     set skill random 50
+     set skill (n-of 3 (n-values num-skills [?]))
      set using-platform? "true"
      let pref-prob random-float 1
      if pref-prob < 0.33 [ set typ3-preference "prod" ]
@@ -1330,21 +1350,21 @@ to update-product-position
     ;; update position - activity from 90 and 9 on their project
     ;; if product dies dont update - just drift away
     
-    if number-of-products = "one" [ ifelse mon-project != nobody [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
+    if number-of-products = "one" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
                                     mean [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
                                    if consumption-activity > 1.5 * mean [consumption-activity] of products OR 
                                     mean [ recent-activity ] of mon-project > 1.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ] 
                                  ]
      [ set xcor xcor + 1 ] ]
      
-      if number-of-products = "a few" [ ifelse mon-project != nobody [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
+      if number-of-products = "a few" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
                                     mean [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
                                    if consumption-activity > 1.5 * mean [consumption-activity] of products OR 
                                     mean [ recent-activity ] of mon-project > 1.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ] 
                                  ]
      [ set xcor xcor + 1 ] ]
       
-      if number-of-products = "many" [ ifelse mon-project != nobody [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
+      if number-of-products = "many" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
                                      [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
                                    if consumption-activity > 1.5 * mean [consumption-activity] of products OR 
                                      [ recent-activity ] of mon-project > 1.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ] 
@@ -1516,6 +1536,14 @@ to update-motivation
   if platform-features = FALSE and how-community-works-without-platform = "offline" []
   
 end
+
+to t4sk-set-typ3
+  if count t4sks with [ my-project = [ my-project] of myself ] = 0 [ set typ3 random (num-skills - 1) ]
+ 
+  if count t4sks with [ my-project = [ my-project] of myself ] > 0 [ ifelse random-float 1 > 0.5 [ set typ3 [ typ3 ] of one-of t4sks with [ my-project = [ my-project] of myself ]  ]
+                                                                                                 [ set typ3 random  (num-skills - 1) ] ]
+  
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 280
@@ -1587,7 +1615,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-6
+10
 1
 1
 NIL
@@ -1602,7 +1630,7 @@ initial-number-9s
 initial-number-9s
 0
 1000
-36
+90
 1
 1
 NIL
@@ -1617,7 +1645,7 @@ initial-tasks
 initial-tasks
 0
 100
-4
+10
 1
 1
 NIL
@@ -1875,7 +1903,7 @@ initial-products
 initial-products
 0
 100
-1
+2
 1
 1
 NIL
@@ -1890,7 +1918,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-360
+900
 50
 1
 NIL
@@ -2623,14 +2651,14 @@ Prod's Volume
 NIL
 NIL
 0.0
-100.0
+100000.0
 0.0
 10.0
 true
 false
 "" ""
 PENS
-"default" 10.0 1 -955883 true "" "histogram [volume] of products"
+"default" 1000.0 1 -955883 true "" "histogram [volume] of products"
 
 PLOT
 1602
@@ -3338,7 +3366,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-0
+1
 
 PLOT
 1545
