@@ -12,16 +12,9 @@
 ; pull out hidden parameters at some point!
 
 
-; bug?! - 9s and 1s not making a tasklink when they have none, or is there good reason for this - no time or wrong interest - make sure
 
 
 ; calibration - 1% need to most contributions. maybe add a measure of actual contribution (time and number of projets/tasks) as an agent variable and can check average etc?
-
-
-; currently 1s and 9s dont create projects? when and how do they do this? 1s create projects? 9s create projects?
-
-
-; 9 -> 1 if their project is very popular ? (once 9 can create a project!)
 
   
 ; size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
@@ -30,56 +23,66 @@
 ; size of community will affect a lot of rules? which?
 
 
-; what should the position of product show when there is only one????
+; exit rule - burn out/too old - implement once the thanks is used - and use this - long time and no thanks = 9 and 1s leave
 
 
-; exit rule - burn out/too old
+; volume just doubles in improve products - but this not used? - sensible? how might it go down? should it be called quality?
 
-
-; use volume in finding or staying with a product HOW? ie., consumption reduces volume in rivalrous products, 
-
-
-; volume just doubles - sensible? how might it go down? should it be called quality?
-
-
-; make frienndship ties increase chance of connecting to a task/project - how? write out logic first
-
-
-; include variability on contribution to current tasks/projects? - you contribute more if recent activity high, or friends in that task?
-
-
-; tasks/projects that are connnected? - task often come in groups and create groups of contributors - how would this be used?
-
-
-; currentlt busy projects makes a new project, not more tasks, is this ok? tasks also have a small chance of making a new task in 'tasks-id'
-
-
-; 90% or 9 (and 1s?) can also identify/create TASKS when they see issues? - currently high activity leads to new projects - catch all - should it be tasks, or should it be broek down by contributor type
-
-
-; xcor of projects also affected by popularity of its adjoining product?
-
-
-; PROJECTS / TASKS only fully public when need additional contribution, when they are OK, they go into semi-private mode - IE, no new contributors once 'full up'?
-
-
-; updating motivation - size of project - large more likely to be able to make money, smaller communities less likely to deliver on this need
-
-
-; currently completed tasks affect products, should it be projects?? probably
-
-
-
-
-; in madrid
 
 ; how 1s and 9s pick to drop tasks when they are in overtime - is it those that are least popular, or have a lot of time left, or i have fewer friends working with
 
+
 ; can only drop one project at a time - can i make it more?
+
 
 ; from madrid book - 68% of newcomers are never seen after first post, those that particapte in past are much more likley to return. those that dont post are like 99% dont return - p205 kraut et al building successful online comms 
 
+
 ; initialising agents with friends, history of contribution, anything else? use the ref below on networks to initilaise, initilaise history with a power law
+
+
+; update motivation - maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
+
+
+; update product position - should include activity on project as well as consumption (i.e as realted project gets activity, and as it is finished )
+
+
+; update project position - should be combination of - upvotes (by 1,9,90), contribution activity, and crowd-funding analogy (if a few tasks left)
+
+
+; 1s become 9s - not motivation but recent activity?
+
+
+; 9s to 1s - if high activity and probability
+
+
+; 90 becomes 9 change 
+
+
+; enter - remove 9s enter based on contribution activity
+
+
+; update calc recent activity to be a history type
+
+
+; projects finish - to be erased once tasks to products changed
+
+
+; tasks-to-products - changed to products to ...
+
+
+; give out reward!!! two mechanims - thanks and competitive
+
+
+; new 9s get friends via a mentor...
+
+
+; add friends working on a task increase chance of contributing to it
+
+
+; 1s and 9s to propose new projects
+
+
 
 
 ; data
@@ -375,7 +378,6 @@ to go
   find-projects                   ;; contributors find projects
   find-tasks                      ;; contributors find tasks
   contribute-to-tasks             ;; contributors regulate the number of tasks they have, and contribute
-  drop-tasks                      ;; contributors drop tasks if it is inactive
   drop-projects
   make-and-lose-friends           ;; friendships formed and broken
   give-out-reward                 ;; tasks give out reward depending on reward mechanism
@@ -386,6 +388,7 @@ to go
   calc-recent-activity            ;; projects calculate recent-activity
   update-project-position         ;; projects get closer or further from 9s depending on recent activity
   new-projects                    ;; if projects have high activity they might produce another project
+                                  ;; 1 and 9 can also propose projects
   consume-products                ;; 90s find product, consume. products calc consumption-activity, 
                                   ;; small chance of dying, small chance connection with consumer lost
   update-product-position         ;; product moves closer or further from 90s depening on popularity of it, 
@@ -748,11 +751,7 @@ to contribute-to-tasks
   
 end
 
-to drop-tasks
-  
-  ; if tasks have only one contributor they record this
-  
- ; ask t4sks with [ count tasklink-neighbors = 1 ] [ set time-only-one-contributor time-only-one-contributor + 1 ]
+to drop-projects
   
   
   ; 1s drop a project and its tasks if it is lonely and unpopular
@@ -795,25 +794,16 @@ to drop-tasks
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
   if platform-features = FALSE and how-community-works-without-platform = "offline" []
-  
-end
-
-to drop-projects
-  
-  ; drop projects if i have no tasks in them and a certain chance
-  
-  ask #9s [ 
-            if count ( turtle-set my-projects ) with [ not member? self  [  [my-project] of my-tasks ] of myself ] > 0 and random-float 1 < 0.2 [
-            let projects-to-drop ( turtle-set my-projects ) with [not member? self [ [my-project] of my-tasks ] of myself ]  
-            ;print who print my-projects print projects-to-drop
-            set my-projects remove one-of projects-to-drop my-projects
-            ;print my-projects
-             ]]
-    
-    
-  
-  
  
+  
+  ; 9s drop projects if i have no tasks in them and a certain chance
+  
+  ask #9s [ if count ( turtle-set my-projects ) with [ not member? self [ [ my-project ] of my-tasks ] of myself ] > 0 and random-float 1 < 0.2 
+            [ let projects-to-drop ( turtle-set my-projects ) with [not member? self [ [my-project] of my-tasks ] of myself ]  
+              set my-projects remove one-of projects-to-drop my-projects
+            ]
+           ]
+
 end
 
 to make-and-lose-friends
@@ -907,10 +897,12 @@ to tasks-to-products
 end
    
 to tasks-identified
+  
+    ;; if more people are working on a task - more likley to create further tasks
+    
    ask t4sks [ if count tasklink-neighbors > 0 [
       if chance-of-finding-new-task > random-float 1 [ create-new-task ] ] ] 
  
-  ;; if more people are working on a task - more likley to create further tasks?
   
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
@@ -978,12 +970,67 @@ end
 
 to new-projects
   
+  ; 1s and 9s to propose new projects with a small probability (1 is higher?)
+  
+  ask #1s [ if random-float 1 < 0.005 [ #1-or-#9-hatch-project print "1 hatched a project "] ]
+  
+  ask #9s [ if random-float 1 < 0.001 [ #1-or-#9-hatch-project print "9 hatched a project "] ]
+  
   ; projects can create other projects - if very active
   
   ; this will change when i update how recent activity is calc - ie., a history relative to itself
   
-  ask projects [ if recent-activity > mean [ recent-activity ] of projects AND random-float 1 < 0.01 [
-      hatch-projects 1 [
+  ask projects [ if recent-activity > mean [ recent-activity ] of projects AND random-float 1 < 0.03 [
+      project-hatch-a-project ] ]
+      
+  
+  
+  
+  if platform-features = FALSE and how-community-works-without-platform = "online open" []
+  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
+  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  
+end
+
+to #1-or-#9-hatch-project
+  hatch-projects 1 [
+        set count-new-projects count-new-projects + 1
+        set num-tasks random 10 + 2
+        set inter3st [ interest ] of myself  + random 3 - random 3
+        hatch-t4sks num-tasks [ set size 0.7
+                                set color green
+                                set shape "circle" 
+                                ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
+                                                                               [ set on-platform? false ]
+                                t4sk-set-typ3
+                                set inter3st [inter3st] of myself
+                                set reward-level random 100
+                                ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
+                                                                                           [ set reward-type "objective" ]
+                                set time-required random 1000
+                                set skill-required random 100
+                                set modularity random 20 + 1 
+                                set age 0 
+                                set my-project myself 
+                              ]
+     set my-tasks-projects t4sks with [ my-project = myself ]
+     set xcor 5
+     set ycor -25 + inter3st 
+     set size 2.5
+     set color green - 2
+     set shape "target" 
+     set age 0 
+     ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
+                                             set ycor [ycor] of myself
+                                             set heading random 360
+                                             fd 1
+                                            ]
+    
+          ]
+end
+
+to project-hatch-a-project
+  hatch-projects 1 [
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
         set inter3st [inter3st ] of myself  + random 3 - random 3
@@ -1016,15 +1063,7 @@ to new-projects
                                              fd 1
                                             ]
     
-    ] ] ]
-  
-  ; projects can appear from 1s, 9s, or even 90s?
-  
-  
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
-  
+    ]
 end
 
 
@@ -1062,7 +1101,7 @@ to consume-products
     set consumption consumption + ( prop-consumed-each-time * ( sum [ volume ] of consumerlink-neighbors ) )
            ]
   
-  ; product is non-rivalrous, but a small chance it ceases to exist i
+  ; product sets consumption activity
   ask products [ if count my-consumerlinks > 0 [ 
                  set consumption-activity ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors )
                  set consumption-history lput ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) consumption-history
@@ -1199,7 +1238,7 @@ to entry
       set new-#9s-total new-#9s-total + 1 
       set new-#9-attracted-by-tasks new-#9-attracted-by-tasks + 1 ] ]
   
-  ; 1 how ? 
+  ; 1 how ? never?
   
   
   
@@ -1246,13 +1285,11 @@ to exit
        set #9-left-drop-cons #9-left-drop-cons + 1
        die ] ]
 
-  ;; #90s leave if no product i like for a while
-  
-  ;; add probability to this???
+  ;; #90s leave if no product i like and chance
   
   ask #90s [ if count my-consumerlinks = 0 [ set time-without-products time-without-products + 1 ]
              if ( not any? products with [ inter3st = [ interest ] of myself ] ) and 
-                ( time-without-products = #90s-time-without-products-to-consider-leaving ) [
+                random-float 1 < 0.05 [
                     set #90s-left #90s-left + 1
                     die ]
            ]
@@ -1269,34 +1306,6 @@ to exit
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
   if platform-features = FALSE and how-community-works-without-platform = "offline" []
-end
-
-to new-tasks
-  
-  ;;NB not currently used
-  ;; #1s randomly hatch new tasks
-  
-  ask #1s [ if random-float 1 < chance-of-new-task [ hatch-t4sks 1 [
-    set xcor random 10 - random 10
-    set ycor random 10 - random 10
-    fd random 10
-    set size 0.7
-    set color green
-    set shape "circle" 
-    ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
-                                                   [ set on-platform? false ]
-    t4sk-set-typ3
-    set inter3st ( [ interest ] of myself)
-    set reward-level random 100
-    ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
-                                                               [ set reward-type "objective" ]
-    set time-required random 1000
-    set skill-required random 100
-    set modularity random 40 
-    set age 0
-    set new-tasks-count new-tasks-count + 1 ]
-  ]]
-  
 end
 
 to change-breed
@@ -1454,7 +1463,7 @@ end
 
 to update-project-position
   
-  ; project gets closer to right if in 
+
   
   ; change to be like product movement...
   
@@ -1483,7 +1492,8 @@ end
 
 to update-product-position
   
-  ; product should move towards users, ie.. is more appealing, and will get high consumption activity score, if...1) it has more users than it did in the past, 2) its related project has high activity
+  ; product should move towards users, ie.. is more appealing, and will get high consumption activity score, 
+  ;if...1) it has more users than it did in the past, 2) its related project has high activity (use volume or imporve products for this)
   
   ; some projects never finish, but do have a product, which is continually chanign as the project is worked on - to be implemented?
   
@@ -2031,7 +2041,7 @@ initial-products
 initial-products
 0
 100
-4
+48
 1
 1
 NIL
@@ -3494,7 +3504,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-1
+2
 
 PLOT
 1545
