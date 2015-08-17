@@ -327,6 +327,7 @@ products-own [
   age                          ; time product has been in community
   mon-project                  ; project product is associated with
   time-with-no-consumers       ; count ticks with no consumers
+  consumption-history          ; list of recent consumerlinks per tick
 ]
 
 patches-own [
@@ -478,6 +479,7 @@ to create-existing-product
     set volume random 100
     set age 0
     set mon-project projectproductlink-neighbors
+    set consumption-history []
   ]
 end
 
@@ -723,7 +725,7 @@ to contribute-to-tasks
                 set time-contributed-by-9s time-contributed-by-9s + ( my-time - time ) ]
              
              set contribution-history-9s lput count my-tasklinks contribution-history-9s 
-             set contribution-history-9s but-first contribution-history-9s
+             if length contribution-history-9s = 11 [ set contribution-history-9s but-first contribution-history-9s ]
              
              set my-total-contribution-9s my-total-contribution-9s + count my-tasklinks
              
@@ -953,7 +955,7 @@ to new-projects
   
   ; projects can create other projects - if very active
   
-  ask projects [ if recent-activity > 2 * mean [ recent-activity ] of projects AND random-float 1 < 0.01 [
+  ask projects [ if recent-activity > mean [ recent-activity ] of projects AND random-float 1 < 0.01 [
       hatch-projects 1 [
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
@@ -1014,6 +1016,7 @@ to birth-a-product
                                             set volume random 100
                                             set age 0
                                             set mon-project [ my-project ] of myself 
+                                            set consumption-history []
                                             create-projectproductlink-with mon-project [ set color red ]
                                             set new-products-count new-products-count + 1
                                            ] ]
@@ -1024,8 +1027,8 @@ to consume-products
   
   ask #90s [ if count consumerlink-neighbors < 3 and count products > 0 [ 
              let new-products products with [ not member? self [ consumerlink-neighbors ] of myself ]
-             if random-float 1 < 0.01 OR count consumerlink-neighbors = 0 
-                [ create-consumerlink-with min-one-of new-products [ distance myself ] ] ] ]
+             if count new-products > 0 AND ( random-float 1 < 0.01 OR count consumerlink-neighbors = 0 )
+                [ create-consumerlink-with min-one-of new-products [ distance myself ] ] ] ] 
   
   ;; #90s consume
   ask #90s [
@@ -1033,8 +1036,11 @@ to consume-products
            ]
   
   ; product is non-rivalrous, but a small chance it ceases to exist i
-  ask products [ set consumption-activity ( count my-consumerlinks )
-                 ;if random-float 1 < 0.01 [ die ] ]
+  ask products [ if count my-consumerlinks > 0 [ 
+                 set consumption-activity ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors )
+                 set consumption-history lput ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) consumption-history
+                 if length consumption-history = 11 [ set consumption-history but-first consumption-history ] ]
+
   ]
   
   ; random breaks in consumerlinks
@@ -1181,7 +1187,7 @@ to exit
    ;; #9s exit if no tasks with my interest for a while 
    
   ask #9s [ if count my-tasklinks = 0 [ set time-with-no-links time-with-no-links + 1]
-            if not any? t4sks with [ inter3st = [ interest ] of myself ] and ( time-with-no-links = #9s-time-with-no-links-to-consider-leaving ) [ 
+            if not any? t4sks with [ inter3st = [ interest ] of myself ] and random-float 1 < 0.01 [ 
               set #9s-left #9s-left + 1
               set #9-left-no-interest #9-left-no-interest + 1
               die ] 
@@ -1424,6 +1430,8 @@ end
 
 to update-product-position
   
+  ; product should move towards users, ie.. is more appealing, and will get high consumption activity score, if...1) it has more users than it did in the past, 2) its related project has high activity
+  
   ; some projects never finish, but do have a product, which is continually chanign as the project is worked on - to be implemented?
   
   ask products [
@@ -1431,28 +1439,10 @@ to update-product-position
     ;; update position - activity from 90 and 9 on their project
     ;; if product dies dont update - just drift away
     
-    if number-of-products = "one" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
-                                    mean [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
-                                   if consumption-activity > mean [consumption-activity] of products OR 
-                                    mean [ recent-activity ] of mon-project > mean [recent-activity] of projects [ set xcor xcor - 1 ] 
-                                 ]
-     [ set xcor xcor + 1 ] ]
-     
-      if number-of-products = "a few" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
-                                    mean [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
-                                   if consumption-activity > mean [consumption-activity] of products OR 
-                                    mean [ recent-activity ] of mon-project > mean [recent-activity] of projects [ set xcor xcor - 1 ] 
-                                 ]
-     [ set xcor xcor + 1 ] ]
-      
-      if number-of-products = "many" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
-                                     [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
-                                   if consumption-activity > mean [consumption-activity] of products OR 
-                                     [ recent-activity ] of mon-project > mean [recent-activity] of projects [ set xcor xcor - 1 ] 
-                                 ]
-     [ set xcor xcor + 1 ] ]
-     
-     
+   
+      ; artefact? had to delay calculation until consumption hstory has 3 times
+      if length consumption-history > 3 [ let history-difference mean sublist consumption-history (length consumption-history - 3) (length consumption-history ) - mean consumption-history
+      if random-float 1 < 0.1 [ set xcor ( xcor - history-difference / mean consumption-history * 10 ) ]]
       
     if xcor < -14 [ set xcor -14 ]
     if xcor > -6 [ set xcor -6 ]
@@ -1496,7 +1486,7 @@ end
 to update-community-activity
   
   let total-prod-activity sum [recent-activity] of projects
-  let total-cons-activity sum [consumption-activity] of products
+  let total-cons-activity sum [consumption-activity] of products 
   
   set community-prod-activity-t-10 community-prod-activity-t-9
   set community-prod-activity-t-9 community-prod-activity-t-8
@@ -1984,7 +1974,7 @@ initial-products
 initial-products
 0
 100
-5
+2
 1
 1
 NIL
@@ -1999,7 +1989,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-350
+900
 50
 1
 NIL
