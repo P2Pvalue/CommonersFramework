@@ -29,9 +29,6 @@
 ; volume just doubles in improve products - but this not used? - sensible? how might it go down? should it be called quality?
 
 
-; how 1s and 9s pick to drop tasks when they are in overtime - is it those that are least popular, or have a lot of time left, or i have fewer friends working with
-
-
 ; can only drop one project at a time - can i make it more?
 
 
@@ -708,8 +705,13 @@ to contribute-to-tasks
   ; update time availability, if no time left, drop tasks
  
    ask #1s [ set time my-time - sum [ modularity ] of tasklink-neighbors
-             if time < 0 and count my-tasklinks > 1  [ set #1-dropped-a-task #1-dropped-a-task + 2
-                                                       ask n-of 2 my-tasklinks [die] ]        
+             if time < 0 and count my-tasklinks > 1  [ 
+                let chance random-float 1
+                if chance < 0.33 [ ask link-with ( min-one-of tasklink-neighbors [ xcor ] ) [die] ]
+                if chance >= 0.33 and chance < 0.66 [ ask link-with ( max-one-of tasklink-neighbors [ time-required ] ) [die] ]
+                if chance >= 0.66 [ ask link-with ( min-one-of tasklink-neighbors [ count tasklink-neighbors with [ one-of friendlink-neighbors = [ myself ] of myself  ] ] ) [die] ]
+                set #1-dropped-a-task #1-dropped-a-task + 2
+                                                       ]        
              
              if count my-tasklinks > 0 [
              set my-tasks-1s tasklink-neighbors
@@ -1015,7 +1017,7 @@ to #1-or-#9-hatch-project
                               ]
      set my-tasks-projects t4sks with [ my-project = myself ]
      set xcor 5
-     set ycor -25 + inter3st 
+     ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
      set size 2.5
      set color green - 2
      set shape "target" 
@@ -1052,7 +1054,7 @@ to project-hatch-a-project
                               ]
      set my-tasks-projects t4sks with [ my-project = myself ]
      set xcor [xcor] of myself
-     set ycor -25 + inter3st 
+     ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
      set size 2.5
      set color green - 2
      set shape "target" 
@@ -1505,7 +1507,7 @@ to update-product-position
    
       ; artefact? had to delay calculation until consumption hstory has 3 times
       if length consumption-history > 3 [ let history-difference mean sublist consumption-history (length consumption-history - 3) (length consumption-history ) - mean consumption-history
-      if random-float 1 < 0.1 [ set xcor ( xcor - history-difference / mean consumption-history * 10 ) ]]
+      if random-float 1 < 0.1 [ set xcor max list ( xcor - history-difference / mean consumption-history * 10 ) ( -14 ) ]]
       
     if xcor < -14 [ set xcor -14 ]
     if xcor > -6 [ set xcor -6 ]
@@ -2041,7 +2043,7 @@ initial-products
 initial-products
 0
 100
-48
+53
 1
 1
 NIL
@@ -3620,7 +3622,7 @@ NIL
 0.0
 100.0
 0.0
-50.0
+10.0
 true
 false
 "" ""
