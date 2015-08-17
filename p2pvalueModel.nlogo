@@ -643,6 +643,8 @@ end
 
 to find-tasks
   
+  ; add friends working on a task increase chance of contributing to it
+  
   if platform-features = TRUE [
     
   
@@ -815,6 +817,14 @@ to drop-projects
 end
 
 to make-and-lose-friends
+  
+  
+  ; tapi point - some 1s have a role of being new 9s into the community (mentor) - ie., linking them to other 9s with similar interest and or skill
+  
+  ; on entry 9 has some chance they have a mentor, and then the mentor does the above
+  
+  ; initilistion start with some friends
+  
   ask #1s [ if count tasklink-neighbors > 0 [ let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks-1s
                                               create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red] 
                                               set my-friends-1s friendlink-neighbors
@@ -838,6 +848,14 @@ to make-and-lose-friends
 end
 
 to give-out-reward
+  
+  ; two types - competitive and thanks
+  
+  ; competitive is quantitative - get reward when task is complete, reward is then used in deciding whether to contribute again etc, 
+  
+  ; thanks - increases feeling of belonging, directed from anyone (1,9,90) to a contributor, but value is higher from 1 than 9 etc, also public thanks is better than private
+ 
+  
   if reward-mechanism = "default" [ ask t4sks [ if time-required <= 0 [ 
       if reward-type = "group" [ ask tasklink-neighbors [ set reward reward + random-normal ([ reward-level ] of myself) 20 ] ]
       if reward-type = "objective" [ ask tasklink-neighbors [ set reward reward + [ reward-level ] of myself ]] 
@@ -869,16 +887,18 @@ end
 
 to tasks-to-products
   
+  ; this should be projects not tasks - ie., you get new products or improved products when a project is fisnihed.
+  
   if number-of-products = "one" [ ask t4sks [ if time-required <= 0 [   improve-current-products  ]] ]
   
   if number-of-products = "a few" [ ask t4sks [ if time-required <= 0 and count products > 4 [  improve-current-products   ]
-                                                if time-required <= 0 and count products < 5 [  if typ3 = "prod" [ birth-a-product ] 
-                                                                                                if typ3 = "mngt" [ improve-current-products ] 
+                                                if time-required <= 0 and count products < 5 [  ifelse random-float 1 < 0.5 [ birth-a-product ] [ improve-current-products ] 
+
                                                                                               ]
                                               ]
                                   ]
   
-  if number-of-products = "many" [ ask t4sks [ if time-required <= 0 [  if typ3 = "prod" [ birth-a-product ] if typ3 = "mngt" [ improve-current-products ] ]] ]
+  if number-of-products = "many" [ ask t4sks [ if time-required <= 0 [  ifelse random-float 1 < 0.5 [ birth-a-product ] [ improve-current-products ] ]] ]
   
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
@@ -924,6 +944,8 @@ to projects-finish
   
   ;; projects can linger without activity - may come back but unlikely - offline less likley to hang around
   
+  ; this should be erased once - tasks-to-products - is changed to projects-to-products
+  
   ask projects [
     if num-tasks = 0 [ set time-project-with-no-tasks time-project-with-no-tasks + 1 ]
     if time-project-with-no-tasks > 20 [ ask turtle-set my-tasks-projects [ die ]                                     
@@ -947,6 +969,9 @@ to projects-finish
 end
 
 to calc-recent-activity
+  
+  ; use similar format to history used elsewhere - recent contribution activity
+  
   ask projects [ set my-tasks-projects t4sks with [ my-project = myself ]
                  set recent-activity sum [ count tasklink-neighbors ] of my-tasks-projects ] 
 end
@@ -954,6 +979,8 @@ end
 to new-projects
   
   ; projects can create other projects - if very active
+  
+  ; this will change when i update how recent activity is calc - ie., a history relative to itself
   
   ask projects [ if recent-activity > mean [ recent-activity ] of projects AND random-float 1 < 0.01 [
       hatch-projects 1 [
@@ -1058,6 +1085,8 @@ end
 to entry
   ; 90 enter if see high recent consumption activity
   
+  ; these have changed necause of consumption histories - check to see if can change these again
+  
   if (( community-con-activity-t-2 + 
         community-con-activity-t-1 + 
         community-con-activity-t ) / 3 )
@@ -1126,7 +1155,9 @@ to entry
       set new-#9s-total new-#9s-total + 1
       set new-#9-attracted-by-#90s new-#9-attracted-by-#90s + 1 ] ]
  
-     ;; 9s enter if recent prod rise
+     ;; 9s enter if recent prod rise 
+     
+     ;; - this is more dodgey...maybe remove...
      
       if (( community-prod-activity-t-2 + 
          community-prod-activity-t-1 + 
@@ -1195,6 +1226,8 @@ to exit
   
   ;; 9s exit if consumption has dropped - ie., 90s have left, 
   
+  ; update using consumption history
+  
   ask #9s [
     if ((( community-con-activity-t-2 + 
         community-con-activity-t-1 + 
@@ -1214,6 +1247,8 @@ to exit
        die ] ]
 
   ;; #90s leave if no product i like for a while
+  
+  ;; add probability to this???
   
   ask #90s [ if count my-consumerlinks = 0 [ set time-without-products time-without-products + 1 ]
              if ( not any? products with [ inter3st = [ interest ] of myself ] ) and 
@@ -1269,6 +1304,9 @@ to change-breed
   
   
  ; 90 become 9 if they make a new project when products have interest near them, but not quite right, and have high consumption and high time
+ 
+ ; in the tool - with a small chance X 90 find a task (with similar interest and same skills they have ) and start to contribute...
+ ; also change chance 90s check the list, 
  
  ask #90s [ if any? products with [ ( inter3st < [ interest ] of myself + 5 ) and
                                     ( inter3st > [ interest ] of myself - 5 ) and
@@ -1340,6 +1378,8 @@ to change-breed
 
 
   ; #9 become #1 if they have high reward, or have been around a long time
+  
+  ; need to include recent activity here, and a probabiloty to stop aretfact
  
  ask #9s [ if ( reward > reward-for-9s-to-become-1s ) and ( time-in-community > time-for-9s-to-become-1s  ) [ 
      set breed #1s
@@ -1366,6 +1406,10 @@ to change-breed
      ]]
  
  ; #1s become #9s if motivation low
+ 
+ ; update to inlcud recent activity history...
+ 
+ ; 1s also want to feel supported by communuty - thanks a proxy for this, also number of friends, 
  
  ask #1s [ if ( motivation < motivation-low-for-1s-to-become-9s ) and ( my-time < time-low-for-1s-to-become-9s ) [
      set breed #9s
@@ -1395,6 +1439,8 @@ end
 
 to improve-current-products
   
+  ;; this needs to move the product - improved product will get closer to 90s etc
+  
   ifelse number-of-products = "many" [ ask products with [ mon-project = [ my-project ] of myself ] [ set volume volume + volume ] ]
                                      [ ask products with [ member? [ my-project ] of myself mon-project ] [ set volume volume + volume ] ]
   
@@ -1409,6 +1455,13 @@ end
 to update-project-position
   
   ; project gets closer to right if in 
+  
+  ; change to be like product movement...
+  
+  ; this should be akin to how the list of projects in the platform is ordered - up votes (90,9,1 give support), crowd-funding, and acitivity, , important that change in both is relative to itself and speed of change, not to others (like reddit, twitter trending), 
+  ; crowd funding analogy also - if project has just a few number of needs left to be done, it will be higher, ie., if, relative to total needs in the project, you have a few unfulfilled, the project will rise in the list.
+  
+  ; have on/off switches and weights for each - crowd funding, up votes, activity, effect on position.
   
   ask projects [ if recent-activity < 0.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ]
                  if recent-activity > 1.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
@@ -1541,6 +1594,10 @@ to all-age
 end
 
 to update-motivation
+  
+  ;; maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
+  
+  
   ask #1s [
     
     ; desire for money goes up with time in community and my-time
@@ -1974,7 +2031,7 @@ initial-products
 initial-products
 0
 100
-2
+4
 1
 1
 NIL
