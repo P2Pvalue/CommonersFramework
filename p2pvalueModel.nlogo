@@ -29,9 +29,6 @@
 ; exit rule - burn out/too old - implement once the thanks is used - and use this - long time and no thanks = 9 and 1s leave
 
 
-; volume just doubles in improve products - but this not used? - sensible? how might it go down? should it be called quality?
-
-
 ; can only drop one project at a time - can i make it more?
 
 
@@ -39,9 +36,6 @@
 
 
 ; update motivation - maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
-
-
-; update product position - should include activity on project as well as consumption (i.e as realted project gets activity, and as it is finished )
 
 
 ; update project position - should be combination of - upvotes (by 1,9,90), contribution activity, and crowd-funding analogy (if a few tasks left)
@@ -148,6 +142,8 @@ globals [
   
   #9s-left                              ; count of #9 who have left communuity
   #90s-left                             ; count of #90s who have left community
+  
+  #90s-left-no-product
   
   new-#9s-total                         ; count of new #9 entered the community
   new-#90s-total                        ; count of new #90s entered the community
@@ -1144,8 +1140,8 @@ to consume-products
   
   ; product sets consumption activity
   ask products [ if count my-consumerlinks > 0 [ 
-                 set consumption-activity ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors )
-                 set consumption-history lput ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) consumption-history
+                 set consumption-activity ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) * ( volume / mean [ volume ] of products ) )
+                 set consumption-history lput ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) * ( volume / mean [ volume ] of products ) ) consumption-history
                  if length consumption-history = 11 [ set consumption-history but-first consumption-history ] ]
 
   ]
@@ -1330,8 +1326,9 @@ to exit
   
   ask #90s [ if count my-consumerlinks = 0 [ set time-without-products time-without-products + 1 ]
              if ( not any? products with [ inter3st = [ interest ] of myself ] ) and 
-                random-float 1 < 0.05 [
+                random-float 1 < 0.01 [
                     set #90s-left #90s-left + 1
+                    set #90s-left-no-product #90s-left-no-product + 1 
                     die ]
            ]
   
@@ -2085,7 +2082,7 @@ initial-products
 initial-products
 0
 100
-94
+4
 1
 1
 NIL
@@ -2982,10 +2979,10 @@ PENS
 "2 years" 1.0 0 -8431303 true "" "plot (( count #1s with [ time-in-community > 104 ] ) + ( count #9s with [ time-in-community > 104 ]) + ( count #90s with [ time-in-community > 104 ] )) / ( count #1s + count #9s + count #90s )"
 
 PLOT
-2010
-417
-2254
-537
+1985
+265
+2229
+385
 Why #9s Leave
 NIL
 NIL
@@ -3004,10 +3001,10 @@ PENS
 "Cons Dop" 1.0 0 -7500403 true "" "plot #9-left-drop-cons"
 
 PLOT
-2010
-708
-2255
-845
+1985
+700
+2230
+837
 Motivation
 NIL
 NIL
@@ -3023,10 +3020,10 @@ PENS
 "#9s" 1.0 0 -13345367 true "" "if count #9s > 0 [plot mean [motivation] of #9s ]"
 
 PLOT
-2010
-237
-2254
-416
+1985
+85
+2229
+264
 Why #1s Left 
 NIL
 NIL
@@ -3187,10 +3184,10 @@ switching breed parameters
 1
 
 PLOT
-2010
-535
-2256
-708
+1985
+527
+2231
+700
 Why #9s Enter?
 NIL
 NIL
@@ -3246,10 +3243,10 @@ TEXTBOX
 1
 
 TEXTBOX
-2023
-204
-2252
-224
+1998
+52
+2227
+72
 ---OUTPUT: WHY EXIT/ENTER---
 14
 0.0
@@ -3548,7 +3545,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-2
+1
 
 PLOT
 1545
@@ -3671,6 +3668,24 @@ false
 PENS
 "#9s" 1.0 1 -13791810 true "" "histogram [ my-total-contribution-9s ] of #9s"
 "#1s" 1.0 1 -2139308 true "" "histogram [ my-total-contribution-1s ] of #1s"
+
+PLOT
+1985
+385
+2230
+535
+Why #90s Leave?
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"No product they liked" 1.0 0 -16777216 true "" "plot #90s-left-no-product"
 
 @#$#@#$#@
 ## WHAT IS IT?
