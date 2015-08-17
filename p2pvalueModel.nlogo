@@ -75,6 +75,8 @@
 
 ; how 1s and 9s pick to drop tasks when they are in overtime - is it those that are least popular, or have a lot of time left, or i have fewer friends working with
 
+; can only drop one project at a time - can i make it more?
+
 
 
 ; data
@@ -756,11 +758,17 @@ to drop-projects
   
   ; drop projects if i have no tasks in them and a certain chance
   
-  ask #9s [ if any? my-projects with [ not member? my-tasks-projects [ my-tasks ] of myself ] [ 
-            let projects-to-drop my-projects with [ not member? my-tasks-projects [ my-tasks ] of myself ] 
-            remove projects-to-drop my-projects  ]
+  ask #9s [ 
+            if count ( turtle-set my-projects ) with [ not member? self  [  [my-project] of my-tasks ] of myself ] > 0 and random-float 1 < 0.2 [
+            let projects-to-drop ( turtle-set my-projects ) with [not member? self [ [my-project] of my-tasks ] of myself ]  
+            ;print who print my-projects print projects-to-drop
+            set my-projects remove one-of projects-to-drop my-projects
+            ;print my-projects
+             ]]
     
-    ]
+    
+  
+  
  
 end
 
@@ -1930,7 +1938,7 @@ initial-products
 initial-products
 0
 100
-2
+1
 1
 1
 NIL
