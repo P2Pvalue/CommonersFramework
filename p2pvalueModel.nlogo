@@ -9,12 +9,15 @@
 
 
 
-; pull out hidden parameters at some point!
+; pull out hidden parameters and remove dead sliders
+
+; make sure all differences in behaviour by scenarios are represented
+
+; make sure main scenarios for experiments are all controllable - slider, switch etc
 
 
 
-
-; calibration - 1% need to most contributions. maybe add a measure of actual contribution (time and number of projets/tasks) as an agent variable and can check average etc?
+; calibration - 1% need to make most contributions.
 
   
 ; size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
@@ -23,16 +26,14 @@
 ; size of community will affect a lot of rules? which?
 
 
-; double check transfer of all variables when change breed
+
+; double check transfer of all variables when change breed and new agent appears - do they make sense (ie., should just forget friends or projects)
 
 
-; exit rule - burn out/too old - implement once the thanks is used - and use this - long time and no thanks = 9 and 1s leave
+; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave
 
 
 ; can only drop one project at a time - can i make it more?
-
-
-; from madrid book - 68% of newcomers are never seen after first post, those that particapte in past are much more likley to return. those that dont post are like 99% dont return - p205 kraut et al building successful online comms 
 
 
 ; update motivation - maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
@@ -42,9 +43,6 @@
 
 
 ; 1s become 9s - not motivation but recent activity?
-
-
-; 9s to 1s - if high activity and probability
 
 
 ; 90 becomes 9 change 
@@ -71,7 +69,6 @@
 ; add friends working on a task increase chance of contributing to it
 
 
-; 1s and 9s to propose new projects
 
 
 
@@ -81,7 +78,7 @@
 ; 2 + case studies - some initial conditions, type of community, and some patterns over time
 
 
-
+; from madrid book - 68% of newcomers are never seen after first post, those that particapte in past are much more likley to return. those that dont post are like 99% dont return - p205 kraut et al building successful online comms 
 
 
 ;; from http://link.springer.com/chapter/10.1007/978-3-319-19003-7_4
@@ -517,7 +514,7 @@ to create-#1
                                      create-tasklinks-with new-task$ [set color 3] ]
                                      set my-tasks-1s tasklink-neighbors
                                      set time my-time - sum [ modularity ] of tasklink-neighbors
-                                     set contribution-history-1s (list n-values 10 [ round random-exponential 0.7 ] )
+                                     set contribution-history-1s (n-values 10 [ round random-exponential 0.7 ] )
                                      set my-total-contribution-1s count my-tasklinks
                                      let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks-1s
                                      create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red] 
@@ -553,7 +550,7 @@ to create-#9
                                    create-tasklinks-with new-task$ [set color 3] ]
                                    set my-tasks tasklink-neighbors
                                    set time my-time - sum [ modularity ] of tasklink-neighbors
-                                   set contribution-history-9s (list n-values 10 [ round random-exponential 0.6 ] )
+                                   set contribution-history-9s (n-values 10 [ round random-exponential 0.6 ] )
                                    set my-total-contribution-9s count my-tasklinks
                                    let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks
                                    create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue] 
@@ -747,7 +744,7 @@ to contribute-to-tasks
              set time-contributed-by-1s time-contributed-by-1s + ( my-time - time )]
              
              set contribution-history-1s lput count my-tasklinks contribution-history-1s 
-             if length contribution-history-1s = 11 [ set contribution-history-1s but-first contribution-history-1s ]
+             if length contribution-history-1s > 10 [ set contribution-history-1s but-first contribution-history-1s ]
              
              set my-total-contribution-1s my-total-contribution-1s + count my-tasklinks
    ]
@@ -766,8 +763,9 @@ to contribute-to-tasks
                 set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors
                 set time-contributed-by-9s time-contributed-by-9s + ( my-time - time ) ]
              
+
              set contribution-history-9s lput count my-tasklinks contribution-history-9s 
-             if length contribution-history-9s = 11 [ set contribution-history-9s but-first contribution-history-9s ]
+             if length contribution-history-9s > 10 [ set contribution-history-9s but-first contribution-history-9s ]
              
              set my-total-contribution-9s my-total-contribution-9s + count my-tasklinks
              
@@ -1423,12 +1421,12 @@ to change-breed
                                 
                                ]]
 
-
-  ; #9 become #1 if they have high reward, or have been around a long time
   
-  ; need to include recent activity here, and a probabiloty to stop aretfact
+
  
- ask #9s [ if ( reward > reward-for-9s-to-become-1s ) and ( time-in-community > time-for-9s-to-become-1s  ) [ 
+ ask #9s [ if length contribution-history-9s > 3 [ 
+           let history-difference mean sublist contribution-history-9s (length contribution-history-9s - 3) (length contribution-history-9s ) - mean contribution-history-9s 
+           if ( history-difference > 0 ) and ( random-float 1 < 0.01  )   [ 
      set breed #1s
      set xcor 18
      set ycor -25 + interest 
@@ -1452,7 +1450,7 @@ to change-breed
      set my-projects-1s [my-projects] of self
      set my-friends-1s [my-friends] of self
      set #9-to-#1-count #9-to-#1-count + 1 
-     ]]
+     ]] ]
  
  ; #1s become #9s if motivation low
  
@@ -2082,7 +2080,7 @@ initial-products
 initial-products
 0
 100
-4
+1
 1
 1
 NIL
@@ -3545,7 +3543,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-1
+0
 
 PLOT
 1545
