@@ -77,6 +77,9 @@
 
 ; can only drop one project at a time - can i make it more?
 
+; from madrid book - 68% of newcomers are never seen after first post, those that particapte in past are much more likley to return. those that dont post are like 99% dont return - p205 kraut et al building successful online comms 
+
+; initialising agents with friends, history of contribution, anything else? use the ref below on networks to initilaise, initilaise history with a power law
 
 
 ; data
@@ -96,10 +99,12 @@
 ;Second, we study the correlation between various social factors (e.g., closeness and betweenness centrality, clustering coefficient and 
 ;tie strength) and the productivity of the contributors in terms of the amount of contribution and commitment to OSS projects. 
 
-;power law degree distribution
+; power law degree distribution
 ; small world characteristics
 ; high degree and low degree do mix
 ; contrubutors tend to find all projects of siilar team sizes
+
+; use for initialisation, and for validation
 
 
 
@@ -195,6 +200,9 @@ globals [
   #1-dropped-a-task
   #9-dropped-a-task
   
+  #1-dropped-a-project
+  #9-dropped-a-project
+  
   community-prod-activity-t-10          ; history of community production activity
   community-prod-activity-t-9 
   community-prod-activity-t-8 
@@ -276,6 +284,8 @@ undirected-link-breed [projectproductlinks projectproductlink]
   reward                       ; count reward received by agent
   time-in-community            ; count ticks/weeks spent in community
   time-with-no-links           ; count ticks #9 has had no tasks
+  contribution-history-9s      ; list with contribution in previous N ticks
+  my-total-contribution-9s     ; count of previous contributions
 ]
 
 #90s-own [
@@ -340,11 +350,11 @@ to setup
      ;; set some globals to zero / reset-ticks
      setup-globals
      ;; create agents
-     create-existing-product
-     create-existing-projects
      if number-of-products = "one" [ set initial-products 1 ]
      if number-of-products = "a few" [ set initial-products random 5 + 1 ]  
-     if number-of-products = "many" [ set initial-products random 100 ]      
+     if number-of-products = "many" [ set initial-products random 100 ] 
+     create-existing-product
+     create-existing-projects     
      create-#1
      create-#9
      create-#90                           
@@ -518,6 +528,7 @@ to create-#9
                                    set desire-for-learning random-float 1
                                    set reward 0 
                                    set my-projects (list (nobody)) 
+                                   set contribution-history-9s (list (0))
                                   ]
                                 ]
 end
@@ -667,7 +678,10 @@ to find-tasks
                           if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
                             
                           [ let new-task$ my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
-                            create-tasklinks-with new-task$ [set color 3] ]
+                            ; this increases chance of contribution with previous contributions - could make more sophisticated to weight more recent contributions
+                            if ( random-float 1 < ( 0.05 + ( 0.01 * sum contribution-history-9s ) ) ) 
+                               [ create-tasklink-with one-of new-task$ [set color 3] ] ]
+                            ; one-of used here to represent occasional contribution - you dont contribute/connect to all tasks that you could
                      
                             set my-tasks tasklink-neighbors
                        ]
@@ -689,20 +703,30 @@ to contribute-to-tasks
    ask #1s [ set time my-time - sum [ modularity ] of tasklink-neighbors
              if time < 0 and count my-tasklinks > 1  [ set #1-dropped-a-task #1-dropped-a-task + 2
                                                        ask n-of 2 my-tasklinks [die] ]        
+             
+             if count my-tasklinks > 0 [
              set my-tasks-1s tasklink-neighbors
              
              set contributions-made-by-1s contributions-made-by-1s + count tasklink-neighbors
              set time-contributed-by-1s time-contributed-by-1s + ( my-time - time )
     
-            ]
+            ]]
   
    ask #9s [ set time my-time - sum [ modularity ] of tasklink-neighbors
              if time < 0 and count my-tasklinks > 1  [ set #9-dropped-a-task #9-dropped-a-task + 2
                                                        ask n-of 2 my-tasklinks [die] ]        
-             set my-tasks tasklink-neighbors
              
-             set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors
-             set time-contributed-by-9s time-contributed-by-9s + ( my-time - time )
+             if count my-tasklinks > 0 [
+                set my-tasks tasklink-neighbors
+             
+                set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors
+                set time-contributed-by-9s time-contributed-by-9s + ( my-time - time ) ]
+             
+             set contribution-history-9s lput count my-tasklinks contribution-history-9s 
+             set contribution-history-9s but-first contribution-history-9s
+             
+             set my-total-contribution-9s my-total-contribution-9s + count my-tasklinks
+             
     
             ]
              
@@ -724,27 +748,43 @@ to drop-tasks
   
   ; if tasks have only one contributor they record this
   
-  ask t4sks with [ count tasklink-neighbors = 1 ] [ set time-only-one-contributor time-only-one-contributor + 1 ]
+ ; ask t4sks with [ count tasklink-neighbors = 1 ] [ set time-only-one-contributor time-only-one-contributor + 1 ]
   
   
-  ; 1s drop a task if they have been the only contributor
+  ; 1s drop a project and its tasks if it is lonely and unpopular
   
   ask #1s [ 
-    if any? my-tasks-1s with [ time-only-one-contributor > 5 ]
-        [ let lonely-tasks my-tasks-1s with [ time-only-one-contributor > 5  ]
-          ask lonely-tasks [ set #1-dropped-a-task #1-dropped-a-task + (count my-tasklinks ) 
-                             ask my-tasklinks [die ] ]
-          set my-tasks-1s tasklink-neighbors ] ]
+    if any? ( turtle-set my-projects-1s ) with [ all? my-tasks-projects [ ( turtle-set tasklink-neighbors = turtle-set myself ) OR ( turtle-set tasklink-neighbors = nobody )  ]] and random-float 1 < 0.01 [
+      
+      let lonely-projects ( turtle-set my-projects-1s ) with [ all? my-tasks-projects [ ( turtle-set tasklink-neighbors = turtle-set myself OR turtle-set tasklink-neighbors = nobody )  ]]
+      let lonely-unpopular-project one-of lonely-projects with [ random-float 1 < ( [ xcor ] of myself - xcor / 17 - (- 4) )  ] ; 17 and -4 used as these are current project postion limits
+      let lonely-unpopular-tasks [ my-tasks-projects ] of lonely-unpopular-project
+      
+      set my-projects-1s remove lonely-unpopular-project my-projects-1s
+      set #1-dropped-a-project #1-dropped-a-project + 1
+      ask lonely-unpopular-tasks [ ask my-tasklinks [die] ]
+      set my-tasks-1s tasklink-neighbors
+      set #1-dropped-a-task #1-dropped-a-task + (count lonely-unpopular-tasks )
+      ]]
+       
+       
+   
   
-  ; 9s drop a task if they have been the only contributor
+  ; 9s drop a project and its tasks if it is lonely and unpopular
   
   ask #9s [ 
-    if any? my-tasks with [ time-only-one-contributor > 5 ]
-        [ let lonely-tasks my-tasks with [ time-only-one-contributor > 5  ]
-          ask lonely-tasks [ set #9-dropped-a-task #9-dropped-a-task +  (count my-tasklinks )
-                             ask my-tasklinks [die ] ]
-          set my-tasks tasklink-neighbors 
-           ] ]
+    if any? ( turtle-set my-projects ) with [ all? my-tasks-projects [ ( turtle-set tasklink-neighbors = turtle-set myself ) OR ( turtle-set tasklink-neighbors = nobody )  ]] and random-float 1 < 0.1 [
+      
+      let lonely-projects ( turtle-set my-projects ) with [ all? my-tasks-projects [ ( turtle-set tasklink-neighbors = turtle-set myself OR turtle-set tasklink-neighbors = nobody )  ]]
+      let lonely-unpopular-project one-of lonely-projects with [ random-float 1 < ( [ xcor ] of myself - xcor / 17 - (- 4) )  ] ; 17 and -4 used as these are current project postion limits
+      let lonely-unpopular-tasks [ my-tasks-projects ] of lonely-unpopular-project
+      
+      set my-projects remove lonely-unpopular-project my-projects
+      set #9-dropped-a-project #9-dropped-a-project + 1
+      ask lonely-unpopular-tasks [ ask my-tasklinks [die] ]
+      set my-tasks tasklink-neighbors
+      set #9-dropped-a-task #9-dropped-a-task + (count lonely-unpopular-tasks )
+      ]]
   
   
   
@@ -983,8 +1023,9 @@ to consume-products
   ;; #90s link to products they want to consume - non-rivalrous
   
   ask #90s [ if count consumerlink-neighbors < 3 and count products > 0 [ 
-             let new-products products with [ not member? self consumerlink-neighbors ]
-             create-consumerlink-with min-one-of new-products [ distance myself ] ] ]
+             let new-products products with [ not member? self [ consumerlink-neighbors ] of myself ]
+             if random-float 1 < 0.01 OR count consumerlink-neighbors = 0 
+                [ create-consumerlink-with min-one-of new-products [ distance myself ] ] ] ]
   
   ;; #90s consume
   ask #90s [
@@ -993,7 +1034,8 @@ to consume-products
   
   ; product is non-rivalrous, but a small chance it ceases to exist i
   ask products [ set consumption-activity ( count my-consumerlinks )
-                 if random-float 1 < 0.01 [ die ] ]
+                 ;if random-float 1 < 0.01 [ die ] ]
+  ]
   
   ; random breaks in consumerlinks
   ask consumerlinks [ if random-float 1 < 0.1 [die] ]
@@ -1074,6 +1116,7 @@ to entry
       set desire-for-learning random-float 1
       set reward 0 
       set my-projects (list (nobody))
+      set contribution-history-9s (list (0))
       set new-#9s-total new-#9s-total + 1
       set new-#9-attracted-by-#90s new-#9-attracted-by-#90s + 1 ] ]
  
@@ -1115,6 +1158,7 @@ to entry
       set desire-for-learning random-float 1
       set reward 0 
       set my-projects (list (nobody))
+      set contribution-history-9s (list (0))
       set new-#9s-total new-#9s-total + 1 
       set new-#9-attracted-by-tasks new-#9-attracted-by-tasks + 1 ] ]
   
@@ -1247,6 +1291,7 @@ to change-breed
                                 set desire-for-learning random-float 1
                                 set reward 0 
                                 set my-projects (list (nobody)) 
+                                set contribution-history-9s (list (0))
                                 
                                 set #90-to-#9-count #90-to-#9-count + 1
                                 
@@ -1336,6 +1381,7 @@ to change-breed
      set desire-for-learning random-float 1
      set reward 0 
      set my-projects (list (nobody)) 
+     set contribution-history-9s (list (0))
                                 
      set #1-to-#9-count #1-to-#9-count + 1 
      ]]
@@ -1387,22 +1433,22 @@ to update-product-position
     
     if number-of-products = "one" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
                                     mean [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
-                                   if consumption-activity > 1.5 * mean [consumption-activity] of products OR 
-                                    mean [ recent-activity ] of mon-project > 1.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ] 
+                                   if consumption-activity > mean [consumption-activity] of products OR 
+                                    mean [ recent-activity ] of mon-project > mean [recent-activity] of projects [ set xcor xcor - 1 ] 
                                  ]
      [ set xcor xcor + 1 ] ]
      
       if number-of-products = "a few" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
                                     mean [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
-                                   if consumption-activity > 1.5 * mean [consumption-activity] of products OR 
-                                    mean [ recent-activity ] of mon-project > 1.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ] 
+                                   if consumption-activity > mean [consumption-activity] of products OR 
+                                    mean [ recent-activity ] of mon-project > mean [recent-activity] of projects [ set xcor xcor - 1 ] 
                                  ]
      [ set xcor xcor + 1 ] ]
       
       if number-of-products = "many" [ ifelse count turtle-set mon-project > 0 [ if consumption-activity < 0.5 * mean [consumption-activity] of products OR 
                                      [ recent-activity ] of mon-project < 0.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
-                                   if consumption-activity > 1.5 * mean [consumption-activity] of products OR 
-                                     [ recent-activity ] of mon-project > 1.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ] 
+                                   if consumption-activity > mean [consumption-activity] of products OR 
+                                     [ recent-activity ] of mon-project > mean [recent-activity] of projects [ set xcor xcor - 1 ] 
                                  ]
      [ set xcor xcor + 1 ] ]
      
@@ -1480,10 +1526,10 @@ end
 
 to products-die
   
-  ask products [ if count my-consumerlinks = 0 [ set time-with-no-consumers time-with-no-consumers + 1 ]
-                 if time-with-no-consumers > 10 [ 
+  ask products [ if count my-consumerlinks = 0 [ 
+                 if random-float 1 < 0.01 [ 
                    set product-had-no-consumer-so-left product-had-no-consumer-so-left + 1 
-                   die ] ]
+                   die ] ] ]
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
@@ -1938,7 +1984,7 @@ initial-products
 initial-products
 0
 100
-1
+5
 1
 1
 NIL
@@ -1953,7 +1999,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-900
+350
 50
 1
 NIL
@@ -3408,7 +3454,7 @@ PLOT
 230
 1885
 380
-Dropped Tasks
+Dropped Projects&Tasks
 NIL
 NIL
 0.0
@@ -3419,8 +3465,10 @@ true
 true
 "" ""
 PENS
-"#1s" 1.0 0 -5298144 true "" "plot #1-dropped-a-task"
-"#9s" 1.0 0 -14070903 true "" "plot #9-dropped-a-task"
+"1 task" 1.0 0 -5298144 true "" "plot #1-dropped-a-task"
+"9 task" 1.0 0 -14070903 true "" "plot #9-dropped-a-task"
+"1 project" 1.0 0 -1069655 true "" "plot #1-dropped-a-project"
+"9 project" 1.0 0 -5325092 true "" "plot #9-dropped-a-project"
 
 PLOT
 2260
@@ -3488,6 +3536,39 @@ PENS
 "#90->#9" 1.0 0 -16777216 true "" "plot #90-to-#9-count"
 "#9->#1" 1.0 0 -7500403 true "" "plot #9-to-#1-count"
 "#1->#9" 1.0 0 -2674135 true "" "plot #1-to-#9-count"
+
+SLIDER
+45
+1500
+365
+1533
+chance-of-9-contribution
+chance-of-9-contribution
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+PLOT
+1545
+535
+1885
+685
+ContributionsHisto
+NIL
+NIL
+0.0
+100.0
+0.0
+50.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -13791810 true "" "histogram [ my-total-contribution-9s ] of #9s"
 
 @#$#@#$#@
 ## WHAT IS IT?
