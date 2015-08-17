@@ -9,15 +9,15 @@
 
 
 
-; pull out hidden parameters and remove dead sliders
+; pull out hidden parameters (i.e., hard coded numbers) and remove dead sliders from interface
 
-; make sure all differences in behaviour by scenarios are represented
+; make sure all differences in behaviour by scenarios (tool on and off, type of community) are represented
 
 ; make sure main scenarios for experiments are all controllable - slider, switch etc
 
 
 
-; calibration - 1% need to make most contributions.
+; calibration check - 1% need to make most contributions.
 
   
 ; size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
@@ -27,7 +27,7 @@
 
 
 
-; double check transfer of all variables when change breed and new agent appears - do they make sense (ie., should just forget friends or projects)
+; double check transfer of agent variables when change breed and new agent appears - do they make sense (ie., should not just forget friends or projects)
 
 
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave
@@ -42,10 +42,7 @@
 ; update project position - should be combination of - upvotes (by 1,9,90), contribution activity, and crowd-funding analogy (if a few tasks left)
 
 
-; 1s become 9s - not motivation but recent activity?
-
-
-; 90 becomes 9 change 
+; 90 becomes 9 change as per comments below
 
 
 ; enter - remove 9s enter based on contribution activity
@@ -57,10 +54,10 @@
 ; projects finish - to be erased once tasks to products changed
 
 
-; tasks-to-products - changed to products to ...
+; tasks-to-products - changed to porjects-to-products ...ie., projects finishing has an affect on products
 
 
-; give out reward!!! two mechanims - thanks and competitive
+; give-out-reward, update -  two mechanims - thanks and competitive - implement
 
 
 ; new 9s get friends via a mentor...
@@ -1452,13 +1449,13 @@ to change-breed
      set #9-to-#1-count #9-to-#1-count + 1 
      ]] ]
  
- ; #1s become #9s if motivation low
+ ; #1s become #9s recent activity low plus a probability..
  
- ; update to inlcud recent activity history...
+ ; could add- 1s also want to feel supported by communuty - thanks a proxy for this?, also number of friends, 
  
- ; 1s also want to feel supported by communuty - thanks a proxy for this, also number of friends, 
- 
- ask #1s [ if ( motivation < motivation-low-for-1s-to-become-9s ) and ( my-time < time-low-for-1s-to-become-9s ) [
+ ask #1s [ if length contribution-history-1s > 3 [ 
+           let history-difference mean sublist contribution-history-1s (length contribution-history-1s - 3) (length contribution-history-1s ) - mean contribution-history-1s 
+           if ( history-difference < 0 ) and ( random-float 1 < 0.01  ) [
      set breed #9s
      set xcor ( random 6 ) + 19
      set ycor -25 + interest
@@ -1482,7 +1479,7 @@ to change-breed
      set my-friends [my-friends-1s] of self
                                 
      set #1-to-#9-count #1-to-#9-count + 1 
-     ]]
+     ]]]
 end
 
 to improve-current-products
@@ -2080,7 +2077,7 @@ initial-products
 initial-products
 0
 100
-1
+46
 1
 1
 NIL
@@ -3543,7 +3540,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-0
+2
 
 PLOT
 1545
