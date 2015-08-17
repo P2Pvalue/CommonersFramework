@@ -70,6 +70,13 @@
 
 
 
+
+; in madrid
+
+; how 1s and 9s pick to drop tasks when they are in overtime - is it those that are least popular, or have a lot of time left, or i have fewer friends working with
+
+
+
 ; data
 
 ; 2 + case studies - some initial conditions, type of community, and some patterns over time
@@ -356,6 +363,7 @@ to go
   find-tasks                      ;; contributors find tasks
   contribute-to-tasks             ;; contributors regulate the number of tasks they have, and contribute
   drop-tasks                      ;; contributors drop tasks if it is inactive
+  drop-projects
   make-and-lose-friends           ;; friendships formed and broken
   give-out-reward                 ;; tasks give out reward depending on reward mechanism
   tasks-to-products               ;; completed tasks become products or improve existing ones - SHOULD THIS BE PROJECTS?
@@ -601,7 +609,15 @@ to find-projects
   
   ask #9s [ if time > 0 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                           let new-project min-one-of other-projects [ distance myself ] 
-                          if other-projects != nobody [ set my-projects lput new-project my-projects ] ] ]
+                          if other-projects != nobody and new-project != nobody [ 
+                                                         if random-float 1 < 
+                                                            ( 0.2 / 
+                                                              ( ( [ distance myself ] of new-project ) / 
+                                                               ( [ distance myself ] of max-one-of projects [ distance myself ] ) 
+                                                              )
+                                                            )
+                                                               
+                                                                [ set my-projects lput new-project my-projects ] ] ] ]
                         ] 
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
@@ -667,15 +683,14 @@ end
 to contribute-to-tasks
   
   ; update time availability, if no time left, drop tasks
-  
-  
+ 
    ask #1s [ set time my-time - sum [ modularity ] of tasklink-neighbors
              if time < 0 and count my-tasklinks > 1  [ set #1-dropped-a-task #1-dropped-a-task + 2
                                                        ask n-of 2 my-tasklinks [die] ]        
              set my-tasks-1s tasklink-neighbors
              
              set contributions-made-by-1s contributions-made-by-1s + count tasklink-neighbors
-             set time-contributed-by-1s time-contributed-by-1s + ( 40 - time )
+             set time-contributed-by-1s time-contributed-by-1s + ( my-time - time )
     
             ]
   
@@ -685,7 +700,7 @@ to contribute-to-tasks
              set my-tasks tasklink-neighbors
              
              set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors
-             set time-contributed-by-9s time-contributed-by-9s + ( 20 - time )
+             set time-contributed-by-9s time-contributed-by-9s + ( my-time - time )
     
             ]
              
@@ -735,6 +750,18 @@ to drop-tasks
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
   if platform-features = FALSE and how-community-works-without-platform = "offline" []
   
+end
+
+to drop-projects
+  
+  ; drop projects if i have no tasks in them and a certain chance
+  
+  ask #9s [ if any? my-projects with [ not member? my-tasks-projects [ my-tasks ] of myself ] [ 
+            let projects-to-drop my-projects with [ not member? my-tasks-projects [ my-tasks ] of myself ] 
+            remove projects-to-drop my-projects  ]
+    
+    ]
+ 
 end
 
 to make-and-lose-friends
