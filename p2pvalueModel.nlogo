@@ -23,6 +23,9 @@
 ; size of community will affect a lot of rules? which?
 
 
+; double check transfer of all variables when change breed
+
+
 ; exit rule - burn out/too old - implement once the thanks is used - and use this - long time and no thanks = 9 and 1s leave
 
 
@@ -33,9 +36,6 @@
 
 
 ; from madrid book - 68% of newcomers are never seen after first post, those that particapte in past are much more likley to return. those that dont post are like 99% dont return - p205 kraut et al building successful online comms 
-
-
-; initialising agents with friends, history of contribution, anything else? use the ref below on networks to initilaise, initilaise history with a power law
 
 
 ; update motivation - maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
@@ -253,6 +253,9 @@ undirected-link-breed [projectproductlinks projectproductlink]
   my-projects-1s               ; list (actual list) of projects 1 attached to
   my-tasks-1s                  ; list (agentset) of tasks currently contributing to
   my-friends-1s                ; list (agentset) of other 9s currently friends with
+  my-projects                  ; 
+  my-tasks                     ; these 3 used when changing breeds
+  my-friends                   ; 
   my-time                      ; static time availability for community - random 40
   time                         ; current spare time available (not being used on tasks already)
   skill                        ; skill score - random 100
@@ -265,12 +268,18 @@ undirected-link-breed [projectproductlinks projectproductlink]
   desire-for-learning          ; score - decreases as time in comm goes up, higher scroe more likely to stay in community
   reward                       ; count reward received by agent
   time-in-community            ; count ticks/weeks spent in community
+  contribution-history-1s      ; list with contribution in previous N ticks
+  contribution-history-9s      ; used when changing breed
+  my-total-contribution-1s     ; count of previous contributions
 ]
 
 #9s-own [
   my-projects                  ; list (actual list) of projects 9 attached to
   my-tasks                     ; list (agentset) of tasks currently contributing to
   my-friends                   ; list (agentset) of other 9s currently friends with
+  my-projects-1s               ; 
+  my-tasks-1s                  ; used when changing breeds
+  my-friends-1s                ; 
   my-time                      ; static time availability for community - random 40
   time                         ; current spare time available (not being used on tasks already)
   skill                        ; skill score - random 100
@@ -285,6 +294,7 @@ undirected-link-breed [projectproductlinks projectproductlink]
   time-in-community            ; count ticks/weeks spent in community
   time-with-no-links           ; count ticks #9 has had no tasks
   contribution-history-9s      ; list with contribution in previous N ticks
+  contribution-history-1s      ; used when changing breeds
   my-total-contribution-9s     ; count of previous contributions
 ]
 
@@ -504,7 +514,18 @@ to create-#1
                                      set desire-for-collaboration random-float 1
                                      set desire-for-learning random-float 1
                                      set reward 0 
-                                     set my-projects-1s (list (nobody))
+                                     set my-projects-1s (list (min-one-of projects [ distance myself ]))
+                                     let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects-1s] of myself ) ] 
+                                     if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ] [
+                                     let new-task$ my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                                     create-tasklinks-with new-task$ [set color 3] ]
+                                     set my-tasks-1s tasklink-neighbors
+                                     set time my-time - sum [ modularity ] of tasklink-neighbors
+                                     set contribution-history-1s (list n-values 10 [ round random-exponential 0.7 ] )
+                                     set my-total-contribution-1s count my-tasklinks
+                                     let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks-1s
+                                     create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red] 
+                                     set my-friends-1s friendlink-neighbors
                                     ]
                                   ]
 end
@@ -529,8 +550,18 @@ to create-#9
                                    set desire-for-collaboration random-float 1
                                    set desire-for-learning random-float 1
                                    set reward 0 
-                                   set my-projects (list (nobody)) 
-                                   set contribution-history-9s (list (0))
+                                   set my-projects (list (min-one-of projects [ distance myself ]))
+                                   let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
+                                   if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ] [
+                                   let new-task$ my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                                   create-tasklinks-with new-task$ [set color 3] ]
+                                   set my-tasks tasklink-neighbors
+                                   set time my-time - sum [ modularity ] of tasklink-neighbors
+                                   set contribution-history-9s (list n-values 10 [ round random-exponential 0.6 ] )
+                                   set my-total-contribution-9s count my-tasklinks
+                                   let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks
+                                   create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue] 
+                                   set my-friends friendlink-neighbors
                                   ]
                                 ]
 end
@@ -717,13 +748,21 @@ to contribute-to-tasks
              set my-tasks-1s tasklink-neighbors
              
              set contributions-made-by-1s contributions-made-by-1s + count tasklink-neighbors
-             set time-contributed-by-1s time-contributed-by-1s + ( my-time - time )
-    
-            ]]
+             set time-contributed-by-1s time-contributed-by-1s + ( my-time - time )]
+             
+             set contribution-history-1s lput count my-tasklinks contribution-history-1s 
+             if length contribution-history-1s = 11 [ set contribution-history-1s but-first contribution-history-1s ]
+             
+             set my-total-contribution-1s my-total-contribution-1s + count my-tasklinks
+   ]
   
    ask #9s [ set time my-time - sum [ modularity ] of tasklink-neighbors
-             if time < 0 and count my-tasklinks > 1  [ set #9-dropped-a-task #9-dropped-a-task + 2
-                                                       ask n-of 2 my-tasklinks [die] ]        
+             if time < 0 and count my-tasklinks > 1  [ 
+                let chance random-float 1
+                if chance < 0.33 [ ask link-with ( min-one-of tasklink-neighbors [ xcor ] ) [die] ]
+                if chance >= 0.33 and chance < 0.66 [ ask link-with ( max-one-of tasklink-neighbors [ time-required ] ) [die] ]
+                if chance >= 0.66 [ ask link-with ( min-one-of tasklink-neighbors [ count tasklink-neighbors with [ one-of friendlink-neighbors = [ myself ] of myself  ] ] ) [die] ] 
+                                                     ]        
              
              if count my-tasklinks > 0 [
                 set my-tasks tasklink-neighbors
@@ -998,7 +1037,7 @@ to #1-or-#9-hatch-project
   hatch-projects 1 [
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
-        set inter3st [ interest ] of myself  + random 3 - random 3
+        ifelse inter3st > 3 [ set inter3st [interest ] of myself  + random 3 - random 3 ] [ set inter3st [interest ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
                                 set shape "circle" 
@@ -1035,7 +1074,7 @@ to project-hatch-a-project
   hatch-projects 1 [
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
-        set inter3st [inter3st ] of myself  + random 3 - random 3
+        ifelse inter3st > 3 [ set inter3st [inter3st ] of myself  + random 3 - random 3 ] [ set inter3st [inter3st ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
                                 set shape "circle" 
@@ -1400,8 +1439,8 @@ to change-breed
      set color red 
      set my-time 1 + random 40 
      set time my-time
-     set skill (n-of 3 (n-values num-skills [?]))
-     set interest random num-interest-categories
+     ; set skill (n-of 3 (n-values num-skills [?]))
+     ; set interest random num-interest-categories
      set motivation 1
      set using-platform? "true"
      let pref-prob random-float 1
@@ -1411,8 +1450,10 @@ to change-breed
      set desire-for-money random-float 1
      set desire-for-collaboration random-float 1
      set desire-for-learning random-float 1
-     set reward 0 
-     set my-projects-1s (list (nobody))
+     ; set reward 0 
+     set contribution-history-1s [ contribution-history-9s ] of self 
+     set my-projects-1s [my-projects] of self
+     set my-friends-1s [my-friends] of self
      set #9-to-#1-count #9-to-#1-count + 1 
      ]]
  
@@ -1430,7 +1471,7 @@ to change-breed
      set color blue
      set my-time 1 + random 20
      set time my-time
-     set skill (n-of 3 (n-values num-skills [?]))
+     ;set skill (n-of 3 (n-values num-skills [?]))
      set using-platform? "true"
      let pref-prob random-float 1
      if pref-prob < 0.33 [ set typ3-preference "prod" ]
@@ -1440,9 +1481,10 @@ to change-breed
      set desire-for-money random-float 1
      set desire-for-collaboration random-float 1
      set desire-for-learning random-float 1
-     set reward 0 
-     set my-projects (list (nobody)) 
-     set contribution-history-9s (list (0))
+     ; set reward 0 
+     set my-projects [my-projects-1s] of self
+     set contribution-history-9s [contribution-history-1s] of self
+     set my-friends [my-friends-1s] of self
                                 
      set #1-to-#9-count #1-to-#9-count + 1 
      ]]
@@ -2043,7 +2085,7 @@ initial-products
 initial-products
 0
 100
-53
+94
 1
 1
 NIL
@@ -3627,7 +3669,8 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -13791810 true "" "histogram [ my-total-contribution-9s ] of #9s"
+"#9s" 1.0 1 -13791810 true "" "histogram [ my-total-contribution-9s ] of #9s"
+"#1s" 1.0 1 -2139308 true "" "histogram [ my-total-contribution-1s ] of #1s"
 
 @#$#@#$#@
 ## WHAT IS IT?
