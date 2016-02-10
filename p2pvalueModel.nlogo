@@ -34,9 +34,6 @@
 ; thanks mechanism - ; give-out-reward, update -  two mechanims - 'thanks' and competitive - implement
 
 
-; update project position - should be combination of - upvotes (by 1,9,90), contribution activity, and crowd-funding analogy (if a few tasks left)
-
-
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
 
 
@@ -248,7 +245,8 @@ undirected-link-breed [projectproductlinks projectproductlink]
   interest                     ; interest score - random num-interest-categories
   typ3-preference              ; type of tasks preferred - prod, mngt, or both 
   using-platform?              ; yes/no - is the #1 using the platform?
-  reward                       ; count reward received by agent
+  points                       ; count quant reward/point received by agent
+  thanks                       ; on or off have they received any thanks
   time-in-community            ; count ticks/weeks spent in community
   contribution-history-1s      ; list with contribution in previous N ticks
   contribution-history-9s      ; used when changing breed
@@ -268,7 +266,8 @@ undirected-link-breed [projectproductlinks projectproductlink]
   interest                     ; interest score - random num-interest-categories
   typ3-preference              ; prod, mngt, or both
   using-platform?              ; yes/no - is the #9 using the platform?
-  reward                       ; count reward received by agent
+  points                       ; count reward received by agent
+  thanks
   time-in-community            ; count ticks/weeks spent in community
   time-with-no-links           ; count ticks #9 has had no tasks
   contribution-history-9s      ; list with contribution in previous N ticks
@@ -293,6 +292,9 @@ projects-own [
   time-project-with-no-contributors ; count ticks with no contributors to any of project's tasks
   age                          ; time task has been in community
   my-product
+  likes                        ; used in position in list
+  likes-history
+  reward-type                  ; obj or group - how reward to each contributor is decided
 ]
 
 t4sks-own [
@@ -301,7 +303,6 @@ t4sks-own [
   typ3                         ; mngt/prod - type of task, management or actual product - only prod tasks produce a product for #90s
   inter3st                     ; interest score - random num-interest-categories
   reward-level                 ; amount of reward random 100
-  reward-type                  ; obj or group - how reward to each contributor is decided
   time-required                ; time required to complete tasks random 1000
   skill-required               ; minimum skill required to contribute to task - random 100
   modularity                   ; contribution required by task per tick
@@ -369,7 +370,6 @@ to go
   give-out-reward                 ;; tasks give out reward depending on reward mechanism
   finished-tasks-and-projects-to-products    ;; completed tasks become products or improve existing ones - SHOULD THIS BE PROJECTS?
   tasks-identified                ;; creates new tasks from existing tasks, ie., find new ones by doing others
-  tasks-finish                    ;; tasks finsih and 'die'
   projects-die                    ;; projects 'die' if no contributors or tasks
   calc-recent-activity            ;; projects calculate recent-activity
   update-project-position         ;; projects get closer or further from 9s depending on recent activity
@@ -412,6 +412,9 @@ to create-existing-projects
       set num-tasks random 10 + 2
       set inter3st random num-interest-categories
       set production-history []
+      set reward-level random 100
+      ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "subjective" ] 
+                                                                 [ set reward-type "objective" ]
       hatch-t4sks num-tasks [ 
                              set size 0.7
                              set color green
@@ -422,9 +425,7 @@ to create-existing-projects
                                                                             [ set on-platform? false ]
                              
                              set inter3st [inter3st] of myself
-                             set reward-level random 100
-                             ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
-                                                                                        [ set reward-type "objective" ]
+                             
                              set time-required random 1000
                              set skill-required random 100
                              set modularity random 20 + 1 
@@ -442,6 +443,7 @@ to create-existing-projects
     set color green - 2
     set shape "target" 
     set age 0 
+    set likes-history []
     ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
                                             set ycor [ycor] of myself
                                             set heading random 360
@@ -487,7 +489,7 @@ to create-#1
                                      if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                      if pref-prob >= 0.66 [ set typ3-preference "both" ]  
-                                     set reward 0 
+                                     set points 0 
                                      set my-projects-1s (list (min-one-of projects [ distance myself ]))
                                      let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects-1s] of myself ) ] 
                                      if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ] [
@@ -519,7 +521,7 @@ to create-#9
                                    if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                    if pref-prob >= 0.66 [ set typ3-preference "both" ]
                                    set using-platform? "true"
-                                   set reward 0 
+                                   set points 0 
                                    set my-projects (list (min-one-of projects [ distance myself ]))
                                    let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
                                    if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ] [
@@ -870,35 +872,59 @@ to give-out-reward
   ; competitive is quantitative - get reward when task is complete, reward is then used in deciding whether to contribute again etc, 
   
   ; thanks - increases feeling of belonging, directed from anyone (1,9,90) to a contributor, but value is higher from 1 than 9 etc, also public thanks is better than private
- 
   
-  if reward-mechanism = "default" [ ask t4sks [ if time-required <= 0 [ 
-      if reward-type = "group" [ ask tasklink-neighbors [ set reward reward + random-normal ([ reward-level ] of myself) 20 ] ]
-      if reward-type = "objective" [ ask tasklink-neighbors [ set reward reward + [ reward-level ] of myself ]] 
-   ]]
+  ; thanks occur after the project is finished and the results can be seen. For quantitative/competitive this seams to be also the appropriate choice.
+ 
+ ;The expression of gratitude among community members create social ties (friendship in the model),
+; - To receive thanks create belonging feeling
+ ;- Thanks mechanism (unlike quantitative/competitive) allows to appreciate non visible work, such as cleaning an space after a party. However...
+ ;- ... Non visible contributions are less frequently appreciated than visible ones
+
+;Our hypothesis is that competitive/quantitative approach is gender biased towards male participants while thanks is not
+
+; We also identified different thanks mechanisms that are not exclusive: personal thanks (person to person) or public thanks (a person thanks another in a place that is visible to the community).
+  
+  
+  if reward-mechanism = "'thanks' only" [
+    
+    ask projects [ if num-tasks = 0 and random-float 1 < 0.8 [ ask [ tasklink-neighbors ] of my-tasks-projects [ set thanks "received" ] ] ] 
+    
+    ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
+    
+    ask #9s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
+    
+    ask #90s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
+  
   ]
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
   
-end
- 
-to tasks-finish
+  if reward-mechanism = "'points' only" [ 
+    ask projects [ if num-tasks = 0 [ 
   
-  ask t4sks [ if time-required <= 0 
-    [ set tasks-completed tasks-completed + 1 
-      ask turtle-set my-project [ set num-tasks num-tasks - 1 ]
-      die 
-    ]
-            ]
-  ask t4sks [ if my-project = nobody [die] ]
+      if reward-type = "subjective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
+      if reward-type = "objective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + [ reward-level ] of myself ] ] ]  ] ] 
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
   
+  
+  if reward-mechanism = "both" [ 
+    
+    ask projects [ if num-tasks = 0 [ ask [ tasklink-neighbors ] of my-tasks-projects [ set thanks "received" ] ] ]
+    
+    ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
+    
+    ask #9s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
+    
+    ask #90s [ if random-float 1 < 0.1 [ set thanks "not received" ] ] 
+
+    ask projects [ if num-tasks = 0 [ 
+  
+      if reward-type = "subjective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
+      if reward-type = "objective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + [ reward-level ] of myself ] ] ]  ] ]
+  
+  
+  
+
 end
 
 to finished-tasks-and-projects-to-products
@@ -913,7 +939,14 @@ to finished-tasks-and-projects-to-products
   
   ifelse number-of-products = "many" [ ask products with [ mon-project = [ my-project ] of myself ] [ set volume volume + volume ] ]
                                      [ ask products with [ mon-project != nobody and member? [ my-project ] of myself mon-project ] [ set volume volume + volume ] ]
-  ]]
+                                     
+  set tasks-completed tasks-completed + 1 
+  ask turtle-set my-project [ set num-tasks num-tasks - 1 ]
+  die 
+    ]
+            
+  if my-project = nobody [die] 
+  ]
   
   
   ;; a project is finshed it either improves its product, or creates a new one if it has no product
@@ -960,8 +993,6 @@ to create-new-task
                                                                 [ set on-platform? false ]
                  t4sk-set-typ3       
                  set inter3st [inter3st] of myself
-                 set reward-level random 100
-                 ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] [ set reward-type "objective" ]
                  set time-required random 1000
                  set skill-required random 100
                  set modularity random 20 + 1 
@@ -1031,6 +1062,9 @@ to #1-or-#9-hatch-project
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
         set production-history []
+        set reward-level random 100
+        ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "subjective" ] 
+                                                                   [ set reward-type "objective" ]
         ifelse inter3st > 3 [ set inter3st [interest ] of myself  + random 3 - random 3 ] [ set inter3st [interest ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
@@ -1039,9 +1073,6 @@ to #1-or-#9-hatch-project
                                                                                [ set on-platform? false ]
                                 t4sk-set-typ3
                                 set inter3st [inter3st] of myself
-                                set reward-level random 100
-                                ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
-                                                                                           [ set reward-type "objective" ]
                                 set time-required random 1000
                                 set skill-required random 100
                                 set modularity random 20 + 1 
@@ -1055,6 +1086,7 @@ to #1-or-#9-hatch-project
      set color green - 2
      set shape "target" 
      set age 0 
+     set likes-history []
      ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
                                              set ycor [ycor] of myself
                                              set heading random 360
@@ -1074,6 +1106,9 @@ to project-hatch-a-project
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
         set production-history []
+        set reward-level random 100
+        ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "subjective" ] 
+                                                                   [ set reward-type "objective" ]
         ifelse inter3st > 3 [ set inter3st [inter3st ] of myself  + random 3 - random 3 ] [ set inter3st [inter3st ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
@@ -1082,9 +1117,6 @@ to project-hatch-a-project
                                                                                [ set on-platform? false ]
                                 t4sk-set-typ3
                                 set inter3st [inter3st] of myself
-                                set reward-level random 100
-                                ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
-                                                                                           [ set reward-type "objective" ]
                                 set time-required random 1000
                                 set skill-required random 100
                                 set modularity random 20 + 1 
@@ -1098,6 +1130,7 @@ to project-hatch-a-project
      set color green - 2
      set shape "target" 
      set age 0 
+     set likes-history []
      ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
                                              set ycor [ycor] of myself
                                              set heading random 360
@@ -1237,7 +1270,7 @@ to entry
       if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
       if pref-prob >= 0.66 [ set typ3-preference "both" ]
       set using-platform? "true"
-      set reward 0 
+      set points 0 
       set my-projects (list (nobody))
       set my-tasks tasklink-neighbors
       
@@ -1345,7 +1378,7 @@ to change-breed
                                 if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                 if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                 if pref-prob >= 0.66 [ set typ3-preference "both" ]
-                                set reward 0 
+                                set points 0 
                                 
                                 create-tasklink-with task-i-found [set color 3]
                                 set my-tasks tasklink-neighbors
@@ -1435,11 +1468,67 @@ to update-project-position
   
   ; have on/off switches and weights for each - crowd funding, up votes, activity, effect on position.
   
-  ask projects [ if production-activity < 0.5 * mean [production-activity] of projects [ set xcor xcor - 1 ]
-                 if production-activity > 1.5 * mean [production-activity] of projects [ set xcor xcor + 1 ]
-                 if xcor < -4 [ set xcor -4 ]
-                 if xcor > 17 [ set xcor 17 ]
+  ask projects [ 
+  
+  ; recent contributor activity input to position
+  ; production-history - gives number of contributor links divided by average distance for last 10 ticks
+  
+  ; increases in recent prod history will push up position
+   
+   if length production-history > 3 and mean production-history > 0  [ let history-difference mean sublist production-history (length production-history - 3) (length production-history ) - mean production-history
+      if random-float 1 < 0.1 [ set xcor max list ( xcor + history-difference / ( mean production-history * 10) ) ( -4 ) ]]
   ]
+      
+      
+  ; upvotes input
+  ; with a probablity 1,9,90 give votes to projects with similar interest to theirs (but dont worry about skill etc)  
+  ; this is then used to push up position if recent history if likes is up
+      
+  ask #1s [ let projects-i-like projects with [ inter3st < [ interest ] of myself + 3 and
+                                                inter3st > [ interest ] of myself - 3 ] 
+            
+            if any? projects-i-like and random-float 1 < 0.1 [ ask projects-i-like [ set likes likes + 1 ] ] ]
+  
+  ask #9s [ let projects-i-like projects with [ inter3st < [ interest ] of myself + 3 and
+                                                inter3st > [ interest ] of myself - 3 ] 
+            
+            if any? projects-i-like and random-float 1 < 0.1 [ ask projects-i-like [ set likes likes + 1 ] ] ]
+              
+  ask #90s [ let projects-i-like projects with [ inter3st < [ interest ] of myself + 3 and
+                                                inter3st > [ interest ] of myself - 3 ] 
+            
+            if any? projects-i-like and random-float 1 < 0.1 [ ask projects-i-like [ set likes likes + 1 ] ] ]
+      
+  
+  ask projects [ 
+                 set likes-history lput likes likes-history 
+                 if length likes-history = 11 [ set likes-history but-first likes-history ] 
+  
+      if length likes-history > 3 and mean likes-history > 0  [ let history-difference mean sublist likes-history (length likes-history - 3) (length likes-history ) - mean likes-history
+      if random-float 1 < 0.1 [ set xcor max list ( xcor + history-difference / mean likes-history * 10 ) ( -4 ) ]] 
+      
+      
+      
+  ; crowd-funding input - i.e, if few tasks left - get pushed up the list
+  
+  if num-tasks < 3 [ set xcor xcor + 0.1 ]
+  
+      
+      
+      ; regulate position
+     
+      if xcor < -4 [ set xcor -4 ]
+      if xcor > 17 [ set xcor 17 ]
+
+  
+]
+  
+  
+;  ask projects [ if production-activity < 0.5 * mean [production-activity] of projects [ set xcor xcor - 1 ]
+ ;                if production-activity > 1.5 * mean [production-activity] of projects [ set xcor xcor + 1 ]
+ ;                if xcor < -4 [ set xcor -4 ]
+ ;                if xcor > 17 [ set xcor 17 ]
+ ; ]
   
   ask t4sks [ set xcor [ xcor ] of my-project
               set ycor [ ycor ] of my-project
@@ -1915,7 +2004,7 @@ initial-products
 initial-products
 0
 100
-2
+4
 1
 1
 NIL
@@ -3226,7 +3315,7 @@ CHOOSER
 260
 reward-mechanism
 reward-mechanism
-"default" "a" "b"
+"'thanks' only" "'points' only" "both"
 0
 
 PLOT
