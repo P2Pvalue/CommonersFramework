@@ -424,6 +424,11 @@ to create-lone-tasks
                                     ]
 end
 
+to-report set-using-platform
+  ;; is true iff platform-features is TRUE and if a random number between 0 and 1 is below the proportion of people using the platform
+  report platform-features and (random-float 1 < proportion-using-platform)
+end
+
 to create-#1
   create-#1s initial-number-1s [ set interest random num-interest-categories
                                  set xcor 18
@@ -433,11 +438,7 @@ to create-#1
                                  set my-time 1 + random 40
                                  set time my-time
                                  set skill (n-of 3 (n-values num-skills [?]))
-                                 ifelse platform-features = TRUE
-                                       [ ifelse random-float 1 < proportion-using-platform [ set using-platform? TRUE ]
-                                                                                           [ set using-platform? FALSE ]
-                                       ]
-                                       [ set using-platform? FALSE ]
+                                 set using-platform? set-using-platform
                                  set points 0
                                  set thanks "not received"
                                  set my-projects-1s (list (min-one-of projects [ distance myself ]) )
@@ -470,11 +471,7 @@ to create-#9
                                  set my-time 1 + random 20
                                  set time my-time
                                  set skill (n-of 3 (n-values num-skills [?]))
-                                 ifelse platform-features = TRUE
-                                       [ ifelse random-float 1 < proportion-using-platform [ set using-platform? TRUE ]
-                                                                                           [ set using-platform? FALSE ]
-                                       ]
-                                       [ set using-platform? FALSE ]
+                                 set using-platform? set-using-platform
                                  set points 0
                                  set thanks "not received"
                                  set my-projects (list (min-one-of projects [ distance myself ]))
@@ -512,11 +509,7 @@ to create-#90
                                     set size 1
                                     set color yellow
                                     set consumption 0
-                                    ifelse platform-features = TRUE
-                                          [ ifelse random-float 1 < proportion-using-platform [ set using-platform? TRUE ]
-                                                                                              [ set using-platform? FALSE ]
-                                          ]
-                                          [ set using-platform? FALSE ]
+                                    set using-platform? set-using-platform
                                     create-consumerlink-with min-one-of products [ distance myself ]
                                     ask consumerlink-neighbors [ if count my-consumerlinks > 0
                                            [ set consumption-activity ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) *
@@ -1348,12 +1341,7 @@ to entry
                                                                            set size 1
                                                                            set color yellow
                                                                            set consumption 0
-                                                                           ifelse platform-features = TRUE
-                                                                                  [ ifelse random-float 1 < proportion-using-platform
-                                                                                       [ set using-platform? TRUE ]
-                                                                                       [ set using-platform? FALSE ]
-                                                                                 ]
-                                                                                 [ set using-platform? FALSE ]
+                                                                           set using-platform? set-using-platform
                                                                            set new-#90s-total new-#90s-total + 1
                                                                          ]
                       ]
@@ -1367,12 +1355,7 @@ to entry
                                                                           set size 1
                                                                           set color yellow
                                                                           set consumption 0
-                                                                          ifelse platform-features = TRUE
-                                                                                 [ ifelse random-float 1 < proportion-using-platform
-                                                                                      [ set using-platform? TRUE ]
-                                                                                      [ set using-platform? FALSE ]
-                                                                                ]
-                                                                                [ set using-platform? FALSE ]
+                                                                          set using-platform? set-using-platform
                                                                           set new-#90s-total new-#90s-total + 1
                                                                           set new-#90s-chance new-#90s-chance + 1
                                                                          ]
@@ -1403,12 +1386,7 @@ to entry
                                                               set my-time 1 + random 20
                                                               set time my-time
                                                               set skill (n-of 3 (n-values num-skills [?]))
-                                                              ifelse platform-features = TRUE
-                                                                    [ ifelse random-float 1 < proportion-using-platform
-                                                                          [ set using-platform? TRUE ]
-                                                                          [ set using-platform? FALSE ]
-                                                                    ]
-                                                                    [ set using-platform? FALSE ]
+                                                              set using-platform? set-using-platform
                                                               set points 0
                                                               set thanks "not received"
                                                               set my-projects (list (nobody))
