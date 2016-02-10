@@ -40,11 +40,6 @@
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
 
 
-; WHEN A PROJECT FINISHES AND HATCHES A PRODUCT - SHOULD IT NOT CONTINUE TO MAINTAIN THAT PRODUCT?
-
-
-; add friends working on a task increase chance of contributing to it
-
 
 
 
@@ -346,7 +341,7 @@ to setup
      setup-globals
      ;; create agents
      if number-of-products = "one" [ set initial-products 1 ]
-     if number-of-products = "a few" [ set initial-products random 5 + 1 ]  
+     if number-of-products = "a few" [ set initial-products random 5 + 2 ]  
      if number-of-products = "many" [ set initial-products random 100 ] 
      create-existing-product
      create-existing-projects     
@@ -689,14 +684,27 @@ to find-tasks
                             
                           [ let new-task$ my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
                             ; this increases chance of contribution with previous contributions - could make more sophisticated to weight more recent contributions
-                            if ( random-float 1 < ( 0.05 + ( 0.01 * sum contribution-history-9s ) ) ) 
+                            
+                            ; if friends are on tasks I favour them and have high chance of contributing, if no friends i just pick randomly
+
+                           let contributors-to-new-task turtle-set [ tasklink-neighbors ] of new-task$
+                           
+                           let contributors-to-new-tasks-that-are-my-friend contributors-to-new-task with [ member? myself friendlink-neighbors ]
+
+                           ifelse any? contributors-to-new-tasks-that-are-my-friend 
+                            
+                              [   
+                                if ( random-float 1 < ( 0.1 + ( 0.01 * sum contribution-history-9s ) ) ) 
+                               [ create-tasklink-with one-of turtle-set [ tasklink-neighbors ] of contributors-to-new-tasks-that-are-my-friend [set color 3] ] ]
+                              
+                              [ if ( random-float 1 < ( 0.05 + ( 0.01 * sum contribution-history-9s ) ) ) 
                                [ create-tasklink-with one-of new-task$ [set color 3] ] ]
                             ; one-of used here to represent occasional contribution - you dont contribute/connect to all tasks that you could
                      
                             set my-tasks tasklink-neighbors
                        ]
             ]
-        ]
+        ] ]
   
   
   
@@ -718,12 +726,11 @@ to contribute-to-tasks
                 if chance >= 0.66 [ ask link-with ( min-one-of tasklink-neighbors [ count tasklink-neighbors with [ one-of friendlink-neighbors = [ myself ] of myself  ] ] ) [die] ]
                 set #1-dropped-a-task #1-dropped-a-task + 2
                                                        ]        
-             
              if count my-tasklinks > 0 [
              set my-tasks-1s tasklink-neighbors
              
              set contributions-made-by-1s contributions-made-by-1s + count tasklink-neighbors
-             set time-contributed-by-1s time-contributed-by-1s + ( my-time - time )]
+             set time-contributed-by-1s time-contributed-by-1s + ( my-time - time ) ]
              
              set contribution-history-1s lput count my-tasklinks contribution-history-1s 
              if length contribution-history-1s > 10 [ set contribution-history-1s but-first contribution-history-1s ]
@@ -741,9 +748,9 @@ to contribute-to-tasks
              
              if count my-tasklinks > 0 [
                 set my-tasks tasklink-neighbors
-             
+    
                 set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors
-                set time-contributed-by-9s time-contributed-by-9s + ( my-time - time ) ]
+                set time-contributed-by-9s time-contributed-by-9s + ( my-time - time ) ] 
              
 
              set contribution-history-9s lput count my-tasklinks contribution-history-9s 
@@ -755,6 +762,8 @@ to contribute-to-tasks
             ]
              
   ; contribute - task reduce their time by their contriubutors * modularity 
+  
+  ; NEEDS TO REFLECT NOT ALL LINK NEIGHBOURS WILL CONTRIBUTE!!!
   
   ask t4sks [ set time-required time-required - (modularity * count tasklink-neighbors) 
             ]
@@ -1230,6 +1239,7 @@ to entry
       set using-platform? "true"
       set reward 0 
       set my-projects (list (nobody))
+      set my-tasks tasklink-neighbors
       
       ;; mentor and then get 3 friends via them
       
@@ -1635,7 +1645,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-9
+10
 1
 1
 NIL
@@ -1905,7 +1915,7 @@ initial-products
 initial-products
 0
 100
-3
+2
 1
 1
 NIL
