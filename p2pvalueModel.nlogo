@@ -13,6 +13,7 @@
 
 ; make sure all differences in behaviour by scenarios (tool on and off, type of community, different thanks mechanism) are represented
 
+
 ; tidy code - check for unused variables etc
 
 
@@ -35,10 +36,15 @@
 
 ; higher value if thanks from 1...
 
+; generally thanks mechanism needs to be checked - and make sure it affects everything it should - thanks is not always, and is typically directed.
+
 ; thanks creates friendhsip?
 
 ; size of comm may effect rules? - e.g., size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
 ; others?
+
+; update new projects use of history / activity  
+
 
 
 
@@ -91,6 +97,29 @@
 ; contrubutors tend to find all projects of siilar team sizes
 
 ; use for initialisation, and for validation
+
+
+
+; data to come from antonio
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1831,7 +1860,7 @@ SLIDER
 15
 870
 287
-904
+903
 prop-of-projects-reward-subjective
 prop-of-projects-reward-subjective
 0
@@ -1960,7 +1989,7 @@ initial-products
 initial-products
 0
 100
-77
+5
 1
 1
 NIL
@@ -2058,7 +2087,7 @@ SLIDER
 16
 945
 289
-979
+978
 prop-consumed-each-time
 prop-consumed-each-time
 0
@@ -2073,7 +2102,7 @@ SLIDER
 15
 834
 288
-868
+867
 num-interest-categories
 num-interest-categories
 0
@@ -2785,7 +2814,7 @@ SLIDER
 15
 908
 288
-942
+941
 chance-of-finding-new-task
 chance-of-finding-new-task
 0
@@ -2991,7 +3020,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-2
+1
 
 PLOT
 1445
@@ -3157,7 +3186,7 @@ MONITOR
 1326
 306
 1396
-352
+351
 #90->#9
 #90-to-#9-count
 0
@@ -3168,7 +3197,7 @@ MONITOR
 1192
 306
 1257
-352
+351
 #9->#1
 #9-to-#1-count
 0
@@ -3179,7 +3208,7 @@ MONITOR
 1062
 305
 1125
-351
+350
 #1->#9
 #1-to-#9-count
 0
