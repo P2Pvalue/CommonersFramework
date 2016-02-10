@@ -15,6 +15,7 @@
 
 
 ; tidy code - check for unused variables etc
+;           - go through checking code and redoing comments
 
 
 
@@ -25,12 +26,21 @@
 
 
 
-; how is points and thanks used? currently only thanks in burnout...should it be added to other exits? and likelihood of contributions?
 
-; add in when 1/9/90 created - are they on platform or not - 
 
 ; for each relevant go procedure - have a rule for when not on platform - i.e, ask X on platform - do this, ask X not on platform do that
 ; for those not on platform - have an offline and online version of rules when not using platform - speak to antonio about this?
+
+;  done - working OK?? - Find projects - the whole idea of distance and ordering of projects will be not relevant, i think we could have this more random, and in online communities people can find things reasonably well, though not as well as with the platform, and in offline communities, they only see things very close to them
+;
+;  Give out reward - need some kind of basic reward mechanism?
+;  
+;  change breed - 90 less likely to become 9 by perusing the platform
+;  
+;  update 90s 9s and 1s position - less relevant for 9s and 1s, but same for 90s
+;
+;  update project position - more random?
+
 
 ; predictability of reward influences choice of task/project?
 
@@ -204,6 +214,8 @@ globals [
   
   product-had-no-consumer-so-left       ; count of reasons why product 'died'
   
+  products-out-competed
+  
   contributions-made-by-1s                    ; count of indiviudal contributions made
   time-contributed-by-1s                     ; count of hours contributed
   contributions-made-by-9s                    ; count of indiviudal contributions made
@@ -256,6 +268,7 @@ undirected-link-breed [tasklinks tasklink]
 undirected-link-breed [friendlinks friendlink]
 undirected-link-breed [consumerlinks consumerlink]
 undirected-link-breed [projectproductlinks projectproductlink]
+undirected-link-breed [projectlinks projectlink]
 
 ; Agent parameters by type; Agent parameters by type; Agent parameters by type; Agent parameters by type
 ; Agent parameters by type; Agent parameters by type; Agent parameters by type; Agent parameters by type
@@ -280,6 +293,7 @@ undirected-link-breed [projectproductlinks projectproductlink]
   contribution-history-1s      ; list with contribution in previous N ticks
   contribution-history-9s      ; used when changing breed
   my-total-contribution-1s     ; count of previous contributions
+  feel-loved
 ]
 
 #9s-own [
@@ -302,6 +316,7 @@ undirected-link-breed [projectproductlinks projectproductlink]
   contribution-history-9s      ; list with contribution in previous N ticks
   contribution-history-1s      ; used when changing breeds
   my-total-contribution-9s     ; count of previous contributions
+  feel-loved
 ]
 
 #90s-own [
@@ -309,6 +324,7 @@ undirected-link-breed [projectproductlinks projectproductlink]
   consumption                  ; count level of volume consumed from products
   time-in-community            ; count ticks/weeks spent in community      
   time-without-products        ; count ticks with no product to consume
+  using-platform?              ; yes/no - is the #90 using the platform?
 ]
 
 projects-own [
@@ -363,9 +379,7 @@ projectproductlinks-own [ ageL ]
 
 to setup
   clear-all
-  
-  if platform-features = TRUE
-   [ ;; colour lines to mark projects and products spaces
+   ;; colour lines to mark projects and products spaces
      ask patches with [pxcor = 17 OR pxcor = -5 OR pxcor = -14  OR pxcor = -4] [set pcolor white]
      ;; set some globals to zero / reset-ticks
      setup-globals
@@ -377,15 +391,10 @@ to setup
      create-existing-projects     
      create-#1
      create-#9
-     create-#90                           
+     create-#90    
+     ask projects [ set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects ]                       
      reset-ticks
-   ]
-  
-  if platform-features = TRUE and community-type = "online closed" []
-  if platform-features = TRUE and community-type = "offline" []
-  if platform-features = FALSE and community-type = "online open" []
-  if platform-features = FALSE and community-type = "online closed" []
-  if platform-features = FALSE and community-type = "offline" []
+   
   
  
 end
@@ -429,6 +438,8 @@ to go
   if ( time-with-no-products = 26 ) [ print "stop no products" print ticks stop ]
   if ( time-with-no-tasks = 26 ) [ print "stop no tasks" print ticks stop ]
   
+  ; ask #1s [ if count turtle-set my-projects-1s > 0 [ create-projectlink-with one-of turtle-set my-projects-1s [ set color yellow ] ] ]
+  
   tick
 end
 
@@ -436,8 +447,7 @@ end
 ;Setup Procedures;Setup Procedures;Setup Procedures;Setup Procedures;Setup Procedures;Setup Procedures
 ;Setup Procedures;Setup Procedures;Setup Procedures;Setup Procedures;Setup Procedures;Setup Procedures
 
-to create-existing-projects
-  if platform-features = TRUE [ 
+to create-existing-projects 
     create-projects initial-projects [ 
       set num-tasks random 10 + 2
       set inter3st random num-interest-categories
@@ -480,7 +490,7 @@ to create-existing-projects
     
     ask products with [ mon-project = 0 ] [ set mon-project [] ] 
     
-    ] ]
+    ] 
 end
 
 to create-existing-product
@@ -499,7 +509,6 @@ to create-existing-product
 end
 
 to create-#1
-    if platform-features = TRUE [ 
       create-#1s initial-number-1s [ set interest random num-interest-categories
                                      set xcor 18
                                      set ycor -25 + interest 
@@ -508,8 +517,8 @@ to create-#1
                                      set my-time 1 + random 40 
                                      set time my-time
                                      set skill (n-of 3 (n-values num-skills [?]))
-                                     set interest random num-interest-categories
-                                     set using-platform? "true"
+                                     ifelse platform-features = TRUE [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ][ set using-platform? "false" ] ]
+                                                                       [ set using-platform? "false" ]
                                      let pref-prob random-float 1
                                      if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
@@ -529,11 +538,10 @@ to create-#1
                                      create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red] 
                                      set my-friends-1s friendlink-neighbors
                                     ]
-                                  ]
+                                  
 end
 
 to create-#9
-  if platform-features = TRUE [ 
     create-#9s initial-number-9s [ set interest random num-interest-categories
                                    set xcor ( random 6 ) + 19
                                    set ycor -25 + interest 
@@ -546,7 +554,8 @@ to create-#9
                                    if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                    if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                    if pref-prob >= 0.66 [ set typ3-preference "both" ]
-                                   set using-platform? "true"
+                                   ifelse platform-features = TRUE [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ][ set using-platform? "false" ] ]
+                                                                     [ set using-platform? "false" ]
                                    set points 0 
                                    set thanks "not received"
                                    set my-projects (list (min-one-of projects [ distance myself ]))
@@ -562,7 +571,7 @@ to create-#9
                                    create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue] 
                                    set my-friends friendlink-neighbors
                                   ]
-                                ]
+                                
 end
 
 to create-#90
@@ -576,6 +585,8 @@ to create-#90
     set size 1
     set color yellow
     set consumption 0
+    ifelse platform-features = TRUE [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ][ set using-platform? "false" ] ]
+                                      [ set using-platform? "false" ]
     
     create-consumerlink-with min-one-of products [ distance myself ]
     
@@ -646,18 +657,19 @@ end
 
 to find-projects
   
-  if platform-features = TRUE [
+
+  ; WITH PLATFORM
   
   ; 1s find projects - the 1 closest to them, if they have time...
   
-  ask #1s [ if time > 0 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+  ask #1s [ if using-platform? = "true" and time > 0 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
                           let new-project min-one-of other-projects [ distance myself ] 
                           if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ] ] ]
                         
   ; 9s find projects that are nearer the 'top of the list' but still close to them - ie., interest is nearby, and more to right
   ; and add them to a list
   
-  ask #9s [ if time > 0 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
+  ask #9s [ if using-platform? = "true" and time > 0 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                           let new-project min-one-of other-projects [ distance myself ] 
                           if other-projects != nobody and new-project != nobody [ 
                                                          if random-float 1 < 
@@ -668,27 +680,66 @@ to find-projects
                                                             )
                                                                
                                                                 [ set my-projects lput new-project my-projects ] ] ] ]
-                        ] 
   
-  if platform-features = FALSE and community-type = "online " []
-
-  if platform-features = FALSE and community-type = "offline" []
+  ; WITHOUT PLATFORM AND ONLINE
   
+  ; 1s find projects - the closest to them but with some error/noise
+  
+  ask #1s [ if using-platform? = "false" and community-type = "online" and time > 0 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+                          let new-project min-one-of other-projects [ distance myself + random 5 - 2.5 ] 
+                          if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ] ] ]
+                        
+  ; 9s find projects that are near them but with error/noise
+  
+  ask #9s [ if using-platform? = "false" and community-type = "online" and time > 0 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
+                          let new-project min-one-of other-projects [ distance myself + random 10 - 5 ] 
+                          if other-projects != nobody and new-project != nobody [ 
+                                                         if random-float 1 < 
+                                                            ( 0.2 / 
+                                                              ( ( [ distance myself ] of new-project ) / 
+                                                               ( [ distance myself ] of max-one-of projects [ distance myself ] ) 
+                                                              )
+                                                            )
+                                                               
+                                                                [ set my-projects lput new-project my-projects ] ] ] ]
+  
+  ; WITHOUT PLATFORM AND OFFLINE
+  
+  ; 1s find projects randomly
+  
+  ask #1s [ if using-platform? = "false" and community-type = "offline" and time > 0 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+                        
+                           if any? other-projects and random-float 1 < 0.2 
+ 
+                                [ let new-project one-of other-projects
+                                  set my-projects-1s lput new-project my-projects-1s ]
+   
+                       ] ] 
+      
+  
+                        
+  ; 9s find projects randomly
+  
+  ask #9s [ if using-platform? = "false" and community-type = "offline" and time > 0 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
+                           
+                           if any? other-projects and random-float 1 < 0.2 
+ 
+                                [ let new-project one-of other-projects
+                                  set my-projects lput new-project my-projects ]
+   
+                       ] ] 
 end
 
 to find-tasks
   
-  ; add friends working on a task increase chance of contributing to it
   
-  if platform-features = TRUE [
     
   
   ; 1s find tasks that are in the projects they have found, they are more tolerant of different interest; 
-  ; ie., if they have found a project far from them they wont actually contribute to tasks
+
   
   ask #1s [ if time > 0 [ 
                           let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects-1s] of myself ) ] 
-
 
                           if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
                             
@@ -711,7 +762,10 @@ to find-tasks
   ; 9s find tasks that are in the projects they have found, but have an interest close to them; 
   ; ie., if they have found a project far from them they wont actually contribute to tasks
   
-  ask #9s [ if time > 0 [ 
+  ask #9s [ if time > 0 [ if reward-mechanism = "'thanks' only" [ ifelse thanks = "received" [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
+                          if reward-mechanism = "'points' only" [ ifelse points > mean [ points ] of #9s [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
+                          if reward-mechanism = "both" [ ifelse ( thanks = "received" ) OR ( points > mean [ points ] of #9s ) [ set feel-loved 0.005 ] [ set feel-loved 0 ]   ]
+                          
                           let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
                           
                           if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
@@ -728,28 +782,25 @@ to find-tasks
                            ifelse any? contributors-to-new-tasks-that-are-my-friend 
                             
                               [   
-                                if ( random-float 1 < ( 0.1 + ( 0.01 * sum contribution-history-9s ) ) ) 
+                                if ( random-float 1 < ( 0.1 + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
                                [ create-tasklink-with one-of turtle-set [ tasklink-neighbors ] of contributors-to-new-tasks-that-are-my-friend [set color 3] ] ]
                               
-                              [ if ( random-float 1 < ( 0.05 + ( 0.01 * sum contribution-history-9s ) ) ) 
+                              [ if ( random-float 1 < ( 0.05 + ( 0.01 * sum contribution-history-9s + feel-loved ) ) ) 
                                [ create-tasklink-with one-of new-task$ [set color 3] ] ]
                             ; one-of used here to represent occasional contribution - you dont contribute/connect to all tasks that you could
                      
                             set my-tasks tasklink-neighbors
                        ]
             ]
-        ] ]
+        ] 
   
   
-  if platform-features = FALSE and community-type = "online " []
-
-  if platform-features = FALSE and community-type = "offline" []
   
 end
 
 to contribute-to-tasks
   
-  if platform-features = TRUE [
+
   
   ; update time availability, if no time left, drop tasks
  
@@ -810,11 +861,8 @@ to contribute-to-tasks
   
   ask projects [ set my-tasks-projects t4sks with [ my-project = myself ]
                  set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects ]
-]
-  
-  if platform-features = FALSE and community-type = "online " []
 
-  if platform-features = FALSE and community-type = "offline" []
+  
   
 end
 
@@ -1105,6 +1153,7 @@ to #1-or-#9-hatch-project
                                 set my-project myself 
                               ]
      set my-tasks-projects t4sks with [ my-project = myself ]
+     set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects
      set xcor 5
      ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
      set size 2.5
@@ -1147,6 +1196,7 @@ to project-hatch-a-project
                                 set my-project myself 
                               ]
      set my-tasks-projects t4sks with [ my-project = myself ]
+     set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects
      set xcor [xcor] of myself
      ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
      set size 2.5
@@ -1177,7 +1227,7 @@ to birth-a-product
                                             set volume random 100
                                             set age 0
                                             set mon-project (list (myself))
-                                            set consumption-history []
+                                            set consumption-history (n-values 10 [ random count [ current-contributors ] of myself * random 20 ])
                                             create-projectproductlink-with one-of mon-project [ set color red ]
                                             set new-products-count new-products-count + 1
                                            ] ]
@@ -1191,7 +1241,7 @@ to birth-a-product
                                             set volume random 100
                                             set age 0
                                             set mon-project (list (myself)) 
-                                            set consumption-history []
+                                            set consumption-history (n-values 10 [ random count [ current-contributors ] of myself * random 20  ])
                                             create-projectproductlink-with one-of mon-project [ set color red ]
                                             set new-products-count new-products-count + 1
                                            ]]
@@ -1205,7 +1255,7 @@ to birth-a-product
                                             set volume random 100
                                             set age 0
                                             set mon-project (list (myself))
-                                            set consumption-history []
+                                            set consumption-history (n-values 10 [ random count [ current-contributors ] of myself * random 20  ])
                                             create-projectproductlink-with one-of mon-project [ set color red ]
                                             set new-products-count new-products-count + 1
                                            ] ]
@@ -1271,6 +1321,8 @@ to entry
       set size 1
       set color yellow
       set consumption 0
+      ifelse platform-features = TRUE [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ][ set using-platform? "false" ] ]
+                                        [ set using-platform? "false" ]
       set new-#90s-total new-#90s-total + 1
   ]]]
   
@@ -1305,7 +1357,8 @@ to entry
       if pref-prob < 0.33 [ set typ3-preference "prod" ]
       if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
       if pref-prob >= 0.66 [ set typ3-preference "both" ]
-      set using-platform? "true"
+      ifelse platform-features = TRUE [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ][ set using-platform? "false" ] ]
+                                        [ set using-platform? "false" ]
       set points 0 
       set thanks "not received"
       set my-projects (list (nobody))
@@ -1334,14 +1387,17 @@ end
 
 to exit
   
-  ; possible reasons?
-  ; community feels too big and busy - 'i wont make a difference'
-  ; why do people burn out
   
    ;; #9s exit if no tasks with my interest for a while 
    
-  ask #9s [ if count my-tasklinks = 0 [ set time-with-no-links time-with-no-links + 1]
-            if not any? t4sks with [ inter3st = [ interest ] of myself ] and random-float 1 < 0.01 [ 
+  
+   
+  ask #9s [ if reward-mechanism = "'thanks' only" [ ifelse thanks = "received" [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
+            if reward-mechanism = "'points' only" [ ifelse points > mean [ points ] of #9s [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
+            if reward-mechanism = "both" [ ifelse ( thanks = "received" ) OR ( points > mean [ points ] of #9s ) [ set feel-loved 0.005 ] [ set feel-loved 0 ]   ]
+    
+            if count my-tasklinks = 0 [ set time-with-no-links time-with-no-links + 1]
+            if not any? t4sks with [ inter3st = [ interest ] of myself ] and random-float 1 < ( 0.01 - feel-loved ) [ 
               set #9s-left #9s-left + 1
               set #9-left-no-interest #9-left-no-interest + 1
               die ] 
@@ -1362,7 +1418,7 @@ to exit
         community-con-activity-t-5 +
         community-con-activity-t-4 +
         community-con-activity-t-3 
-         ) / 8 ) ) and random-float 1 < 0.01 
+         ) / 8 ) ) and random-float 1 < ( 0.01 - feel-loved )
      [ set #9s-left #9s-left + 1
        set #9-left-drop-cons #9-left-drop-cons + 1
        die ] ]
@@ -1377,19 +1433,46 @@ to exit
                     die ]
            ]
   
-  ;; #1s and #9s leave if motivation very low - this should now be like burnout described above - if thanks low...
+  ;; #1s and #9s leave if motivation very low - this should now be like burnout described above - if thanks or points low...and v small chance
   
-  if reward-mechanism = "'thanks' only" or reward-mechanism = "both" [
+  if reward-mechanism = "'thanks' only" [
     
-   ask #1s [ if thanks = "not received" and random-float 1 < 0.001 [  set #1s-left #1s-left + 1
+   ask #1s [ if thanks = "not received" and random-float 1 < 0.001 [ set #1s-left #1s-left + 1
                                                                      set #1-left-burnout #1-left-burnout + 1
                                                                      die ]]
    
-   ask #9s [ if thanks = "not received" and random-float 1 < 0.0005 [  set #9s-left #9s-left + 1
-                                                                     set #9-left-burnout #9-left-burnout + 1
-                                                                     die ]]
+   ask #9s [ if thanks = "not received" and random-float 1 < 0.0005 [ set #9s-left #9s-left + 1
+                                                                      set #9-left-burnout #9-left-burnout + 1
+                                                                      die ]]
   
   ]
+  
+  if reward-mechanism = "'points' only" [
+    
+   ask #1s [ if points < mean [points] of #1s and random-float 1 < 0.001 [ set #1s-left #1s-left + 1
+                                                                           set #1-left-burnout #1-left-burnout + 1
+                                                                           die ]]
+   
+   ask #9s [ if points < mean [points] of #9s and random-float 1 < 0.0005 [ set #9s-left #9s-left + 1
+                                                                            set #9-left-burnout #9-left-burnout + 1
+                                                                            die ]]
+  
+  ]
+  
+  if reward-mechanism = "both" [
+    
+   ask #1s [ if thanks = "not received" OR points < mean [points] of #1s [
+                if random-float 1 < 0.001 [ set #1s-left #1s-left + 1
+                                            set #1-left-burnout #1-left-burnout + 1
+                                            die ]]]
+   
+   ask #9s [ if thanks = "not received" OR points < mean [points] of #9s [
+                if random-float 1 < 0.0005 [ set #9s-left #9s-left + 1
+                                             set #9-left-burnout #9-left-burnout + 1
+                                             die ]]]
+  
+  ]
+  
   
   if platform-features = FALSE and community-type = "online open" []
   if platform-features = FALSE and community-type = "online closed" []
@@ -1418,7 +1501,6 @@ to change-breed
                                 set my-time 1 + random 20
                                 set time my-time
                                 set skill (n-of 3 (n-values num-skills [?]))
-                                set using-platform? "true"
                                 let pref-prob random-float 1
                                 if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                 if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
@@ -1455,7 +1537,6 @@ to change-breed
      set time my-time
      ; set skill (n-of 3 (n-values num-skills [?]))
      ; set interest random num-interest-categories
-     set using-platform? "true"
      let pref-prob random-float 1
      if pref-prob < 0.33 [ set typ3-preference "prod" ]
      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
@@ -1463,6 +1544,7 @@ to change-breed
      ; set reward 0 
      set contribution-history-1s [ contribution-history-9s ] of self 
      set my-projects-1s [my-projects] of self
+     set my-tasks-1s [ my-tasks ] of self
      set my-friends-1s [my-friends] of self
      set #9-to-#1-count #9-to-#1-count + 1 
      ]] ]
@@ -1482,13 +1564,13 @@ to change-breed
      set my-time 1 + random 20
      set time my-time
      ;set skill (n-of 3 (n-values num-skills [?]))
-     set using-platform? "true"
      let pref-prob random-float 1
      if pref-prob < 0.33 [ set typ3-preference "prod" ]
      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
      if pref-prob >= 0.66 [ set typ3-preference "both" ]
      ; set reward 0 
      set my-projects [my-projects-1s] of self
+     set my-tasks [ my-tasks-1s ] of self
      set contribution-history-9s [contribution-history-1s] of self
      set my-friends [my-friends-1s] of self
                                 
@@ -1682,6 +1764,13 @@ to products-die
                    set product-had-no-consumer-so-left product-had-no-consumer-so-left + 1 
                    die ] ] ]
   
+  
+  ;; products die if there should be only one and there are two!
+  
+  if number-of-products = "one" and count products > 1 and random-float 1 < 0.5 [ ask min-one-of products [ sum consumption-history ] [
+                                                         set products-out-competed products-out-competed + 1 
+                                                         die ]]
+  
   if platform-features = FALSE and community-type = "online open" []
   if platform-features = FALSE and community-type = "online closed" []
   if platform-features = FALSE and community-type = "offline" []
@@ -1779,7 +1868,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-10
+5
 1
 1
 NIL
@@ -1794,7 +1883,7 @@ initial-number-9s
 initial-number-9s
 0
 1000
-90
+45
 1
 1
 NIL
@@ -1809,7 +1898,7 @@ initial-tasks
 initial-tasks
 0
 100
-10
+5
 1
 1
 NIL
@@ -1989,7 +2078,7 @@ initial-products
 initial-products
 0
 100
-5
+1
 1
 1
 NIL
@@ -2004,7 +2093,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-900
+450
 50
 1
 NIL
@@ -3010,7 +3099,7 @@ CHOOSER
 community-type
 community-type
 "online" "offline"
-0
+1
 
 CHOOSER
 20
@@ -3020,7 +3109,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-1
+0
 
 PLOT
 1445
@@ -3069,7 +3158,7 @@ SWITCH
 193
 platform-features
 platform-features
-0
+1
 1
 -1000
 
@@ -3211,6 +3300,36 @@ MONITOR
 350
 #1->#9
 #1-to-#9-count
+0
+1
+11
+
+PLOT
+1805
+700
+2065
+850
+PointsHisto
+NIL
+NIL
+0.0
+200.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"#9s" 1.0 1 -13345367 true "" "histogram [points] of #9s"
+"#1s" 1.0 1 -2674135 true "" "histogram [points] of #1s"
+
+MONITOR
+2125
+630
+2287
+675
+NIL
+products-out-competed
 0
 1
 11
