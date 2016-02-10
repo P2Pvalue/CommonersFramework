@@ -950,7 +950,7 @@ to finish-tasks
                                           [ ask products with [ mon-project = [ my-project ] of myself ] 
                                                 [ set volume volume + volume ] 
                                           ]
-                                          [ ask products with [ mon-project != nobody and member? [ my-project ] of myself mon-project ] 
+                                          [ ask products with [  mon-project != nobody and mon-project != 0 and member? [ my-project ] of myself mon-project ] 
                                                 [ set volume volume + volume ] 
                                           ]
                                       set tasks-completed tasks-completed + 1 
@@ -1705,8 +1705,8 @@ end
 GRAPHICS-WINDOW
 319
 245
-752
-701
+708
+655
 25
 25
 7.4314
@@ -2187,7 +2187,7 @@ MONITOR
 399
 69
 479
-115
+114
 NIL
 count #9s
 0
@@ -2198,7 +2198,7 @@ MONITOR
 399
 115
 479
-161
+160
 NIL
 count #90s
 0
@@ -2209,7 +2209,7 @@ MONITOR
 576
 70
 668
-116
+115
 NIL
 count t4sks
 0
@@ -2220,7 +2220,7 @@ MONITOR
 576
 115
 669
-161
+160
 NIL
 count products
 0
@@ -2578,7 +2578,7 @@ MONITOR
 479
 70
 558
-116
+115
 % #9s
 ( count #9s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2589,7 +2589,7 @@ MONITOR
 479
 115
 558
-161
+160
 % #90s
 ( count #90s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2904,7 +2904,7 @@ MONITOR
 576
 25
 669
-71
+70
 NIL
 count projects
 17
@@ -2980,7 +2980,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-0
+1
 
 PLOT
 1902
@@ -3029,7 +3029,7 @@ SWITCH
 180
 platform-features
 platform-features
-0
+1
 1
 -1000
 
@@ -3319,7 +3319,7 @@ prob-9-decides-to-join-project
 prob-9-decides-to-join-project
 0.001
 1
-0.1
+0.5
 0.05
 1
 NIL
@@ -3434,7 +3434,7 @@ SLIDER
 20
 1280
 335
-1314
+1313
 chance-contributor-proposes-a-new-project
 chance-contributor-proposes-a-new-project
 0
@@ -3449,7 +3449,7 @@ SLIDER
 20
 1315
 305
-1349
+1348
 chance-a-project-hatches-a-project
 chance-a-project-hatches-a-project
 0
@@ -3464,7 +3464,7 @@ SLIDER
 20
 1349
 305
-1383
+1382
 chance-90-picks-another-product
 chance-90-picks-another-product
 0
@@ -3479,7 +3479,7 @@ SLIDER
 18
 1412
 303
-1446
+1445
 chance-consumer-link-breaks
 chance-consumer-link-breaks
 0
@@ -3494,12 +3494,12 @@ SLIDER
 390
 1186
 660
-1220
+1219
 new-9s-barrier
 new-9s-barrier
 0.5
 3
-0.5
+3
 0.1
 1
 NIL
@@ -3509,7 +3509,7 @@ SLIDER
 390
 1256
 660
-1290
+1289
 chance-9s-exit
 chance-9s-exit
 0
@@ -3524,7 +3524,7 @@ SLIDER
 390
 1291
 660
-1325
+1324
 chance-90s-exit
 chance-90s-exit
 0
@@ -3539,7 +3539,7 @@ SLIDER
 390
 1329
 660
-1363
+1362
 chance-1-burn-out
 chance-1-burn-out
 0
@@ -3554,7 +3554,7 @@ SLIDER
 380
 765
 605
-799
+798
 chance-9-become-1
 chance-9-become-1
 0
@@ -3569,12 +3569,12 @@ SLIDER
 378
 801
 608
-835
+834
 chance-1-become-9
 chance-1-become-9
 0
 1
-0.01
+0.1
 0.005
 1
 NIL
@@ -3584,7 +3584,7 @@ SLIDER
 385
 1063
 660
-1097
+1096
 chance-products-die
 chance-products-die
 0
@@ -3999,6 +3999,151 @@ NetLogo 5.1.0
     <enumeratedValueSet variable="community-type">
       <value value="&quot;online&quot;"/>
       <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.75"/>
+      <value value="1.5"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.01"/>
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="errorCheckingandCalibrating_2Sept_2" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="52"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.1"/>
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.5"/>
+      <value value="1.5"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-products-die">
       <value value="0.1"/>
