@@ -5,92 +5,10 @@
 
 
 
-; GENERAL TO DOS / COMMENTS / also check word doc
+; TO DOS
 
 
-
-
-
-
-; pull out parameters on thanks and points for calibration???
-
-
-
-
-
-; bug checking - 
-
-; did i add loneTasks everywhere it should be?
-
-
-
-
-; error checking behaviour space - look for errors in all scenarios using extreme values...
-
-; calibration behaviour space for advanced parameters
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-; DATA
-
-; 2 + case studies - some initial conditions, type of community, and some patterns over time
-
-
-; from madrid book - 68% of newcomers are never seen after first post, those that particapte in past are much more likley to return. those that dont post are like 99% dont return - p205 kraut et al building successful online comms 
-
-
-;; from http://link.springer.com/chapter/10.1007/978-3-319-19003-7_4
-
-;We, first, analyze the general structure of the social networks, e.g., graph distances and the degree distribution of the social networks. 
-;Our social network structure analysis confirms a power-law degree distribution and small-world characteristics. However, the degree mixing 
-;pattern shows that high degree nodes tend to connect more with low degree nodes suggesting a collaboration between experts and newbie developers. 
-;We further conduct the same analysis on affiliation networks and find that contributors tend to participate in projects of similar team sizes. 
-;Second, we study the correlation between various social factors (e.g., closeness and betweenness centrality, clustering coefficient and 
-;tie strength) and the productivity of the contributors in terms of the amount of contribution and commitment to OSS projects. 
-
-; power law degree distribution
-; small world characteristics
-; high degree and low degree do mix
-; contrubutors tend to find all projects of siilar team sizes
-
-; use for initialisation, and for validation
-
-; calibration check - 1% need to make most contributions.
-
-; data to come from antonio
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+; pull out hidden parameters on thanks and points for calibration???
 
 
 
@@ -201,7 +119,7 @@ globals [
   #1-dropped-a-project
   #9-dropped-a-project
   
-  chance-90-find-a-task                 ; chance a 90 sees a task that makes them decide to become a 9 
+  ; chance-90-find-a-task                 ; chance a 90 sees a task that makes them decide to become a 9 
                                         ; - higher with platform
   
   community-prod-activity-t-10          ; history of community production activity
@@ -381,6 +299,12 @@ to setup
    create-#90   
    
    ;; set current activity to avoid artefact
+   ask projects [ if count my-tasks-projects > 0 and count turtle-set [ tasklink-neighbors ] of my-tasks-projects > 0 
+                      [ let my-tasks-tasklinkneighbors turtle-set [ tasklink-neighbors ] of my-tasks-projects
+                        set production-activity  ( count link-set [ my-tasklinks ] of my-tasks-projects  /  
+                                                   mean [ distance myself ] of my-tasks-tasklinkneighbors )  
+                      ]
+                 ]
    let lonetasks-activity sum [ count my-lonetasklinks ] of loneTasks
    let total-prod-activity ( sum [production-activity] of projects + lonetasks-activity ) 
    set community-prod-activity-t total-prod-activity
@@ -432,6 +356,11 @@ to go
   if ( time-with-no-#9 = 26 ) [ print "stop no #9" print ticks stop ]
   if ( time-with-no-products = 26 ) [ print "stop no products" print ticks stop ]
   if ( time-with-no-tasks = 26 ) [ print "stop no tasks" print ticks stop ]
+  
+  ;; backstop if too big / slow
+  if count #1s > 200 [ print "huge community" stop ]
+  if count #9s > 10000 [ print "huge community" stop ]
+  if count #90s > 10000 [ print "huge community" stop ]
  
   tick
 end
@@ -487,12 +416,8 @@ to create-existing-projects
                                      set my-product min-one-of products [ distance myself ]
                                      create-projectproductlink-with my-product [ set color red ] 
                                      ask projectproductlink-neighbors [ set mon-project (list (projectproductlink-neighbors) ) ] 
-                                     ask products with [ mon-project = 0 ] [ set mon-project [] ]
-                                     if count my-tasks-projects > 0 and count turtle-set [ tasklink-neighbors ] of my-tasks-projects > 0 
-                                           [ let my-tasks-tasklinkneighbors turtle-set [ tasklink-neighbors ] of my-tasks-projects
-                                             set production-activity  ( count link-set [ my-tasklinks ] of my-tasks-projects  /  
-                                                    mean [ distance myself ] of my-tasks-tasklinkneighbors )  
-                                           ]
+                                     if any? products with [ mon-project = 0 ] [ ask products with [ mon-project = 0 ] [ set mon-project [] ] ]
+                                     
                                     ] 
 end
 
@@ -664,7 +589,7 @@ to setup-globals
   
   set num-skills 10
   
-  ifelse platform-features = TRUE [ set chance-90-find-a-task 0.001 ] [ set chance-90-find-a-task 0.0005 ]
+  if platform-features = FALSE [ set chance-90-find-a-task chance-90-find-a-task / 2 ]
 end
 
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
@@ -904,7 +829,8 @@ to contribute-to-tasks
                                          set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors + count lonetasklink-neighbors
                                          set time-contributed-by-9s time-contributed-by-9s + ( my-time - time ) 
                                        ] 
-             set contribution-history-9s lput ( count my-tasklinks + count my-lonetasklinks ) contribution-history-9s 
+             if contribution-history-9s = 0 [ set contribution-history-9s (list (0)) ] 
+             set contribution-history-9s lput ( count my-tasklinks + count my-lonetasklinks ) contribution-history-9s
              if length contribution-history-9s > 10 [ set contribution-history-9s but-first contribution-history-9s ]
              set my-total-contribution-9s my-total-contribution-9s + ( count my-tasklinks + count my-lonetasklinks )
            ]
@@ -1120,10 +1046,10 @@ to finish-tasks
   
   ask t4sks [ if time-required <= 0 [ ifelse number-of-products = "many" 
                                           [ ask products with [ mon-project = [ my-project ] of myself ] 
-                                                [ set volume volume + volume ] 
+                                                [ set volume volume + ( volume / 10 ) ] 
                                           ]
                                           [ ask products with [  mon-project != nobody and mon-project != 0 and member? [ my-project ] of myself mon-project ] 
-                                                [ set volume volume + volume ] 
+                                                [ set volume volume + ( volume / 10 ) ] 
                                           ]
                                       ;; points given out at end of task
                                       if reward-mechanism = "points" OR reward-mechanism = "both" 
@@ -1135,7 +1061,7 @@ to finish-tasks
               if my-project = nobody [die] 
             ]
   
-  ask loneTasks [ if time-required <= 0 [ ask my-product-L [ set volume volume + volume ] 
+  ask loneTasks [ if time-required <= 0 [ ask my-product-L [ set volume volume + ( volume / 10 ) ] 
                                           if reward-mechanism = "points" OR reward-mechanism = "both" 
                                                 [ ask lonetasklink-neighbors [ set points points + random ( [ modularity ] of myself * 3 )  ] ]
                                           set loneTasksFinished loneTasksFinished + 1 
@@ -1148,7 +1074,7 @@ to finished-projects
 
   ;; a project is finshed it either improves its product volume, or creates a new product if it is not connected to one
   
-  ask projects [ if num-tasks = 0 and my-product != nobody [ ask my-product [ set volume volume * 3 ]
+  ask projects [ if num-tasks = 0 and my-product != nobody [ ask my-product [ set volume volume + ( volume / 3 ) ]
                                                              set projects-finished projects-finished + 1
                                                              die ]
                  if num-tasks = 0 and my-product = nobody [ birth-a-product 
@@ -1306,7 +1232,7 @@ to project-hatch-a-project
                      set my-tasks-projects t4sks with [ my-project = myself ]
                      set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects
                      set xcor [xcor] of myself
-                     ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
+                     ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor 25 ]
                      set size 2.5
                      set color green - 2
                      set shape "target" 
@@ -1387,11 +1313,11 @@ to consume-products
   
   ;; #90s actually consume - non-rivalrous so do not deplete them
   
-  ask #90s [ set consumption consumption + ( prop-consumed-each-time * ( sum [ volume ] of consumerlink-neighbors ) ) ]
+  ; ask #90s [ set consumption consumption + ( prop-consumed-each-time * ( sum [ volume ] of consumerlink-neighbors ) ) ]
   
   ; product updates consumption activity
   
-  ask products [ if count my-consumerlinks > 0 
+  ask products [ if count my-consumerlinks > 0 and volume != "Infinity"
                        [ set consumption-activity ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) * 
                                                     ( volume / ( mean [ volume ] of products + 1 ) ) 
                                                   )
@@ -1500,10 +1426,11 @@ to entry
                                                               set my-projects (list (nobody))
                                                               set my-tasks tasklink-neighbors
                                                               ;; mentor and then get 3 friends via them
-                                                              let mentor min-one-of #1s [ distance myself ] 
-                                                              let mentors-friends count [ friendlink-neighbors ] of mentor
-                                                              create-friendlinks-with n-of ( mentors-friends / 2 ) 
-                                                                    [ friendlink-neighbors ] of mentor [set color blue set times-worked-together 1] 
+                                                              if count #1s > 0 [ let mentor min-one-of #1s [ distance myself ] 
+                                                                                 let mentors-friends count [ friendlink-neighbors ] of mentor
+                                                                                 create-friendlinks-with n-of ( mentors-friends / 2 ) 
+                                                                                       [ friendlink-neighbors ] of mentor [ set color blue set times-worked-together 1 ]
+                                                                                 ] 
                                                               set contribution-history-9s (list (0))
                                                               set new-#9s-total new-#9s-total + 1
                                                               set new-#9-attracted-by-#90s new-#9-attracted-by-#90s + 1 
@@ -1710,8 +1637,8 @@ to change-breed
                    set my-projects [my-projects-1s] of self
                    set my-tasks [ my-tasks-1s ] of self
                    set my-lone-tasks [ my-lone-tasks-1s ] of self
-                   set contribution-history-9s [contribution-history-1s] of self
-                   set my-total-contribution-9s [ my-total-contribution-1s ] of self
+                   set contribution-history-9s (list (0))
+                   set my-total-contribution-9s 0
                    set my-friends [my-friends-1s] of self
                    set #1-to-#9-count #1-to-#9-count + 1 
                   ]                                 ]
@@ -1851,6 +1778,9 @@ end
 to update-90s-and-9s-and-1s-positions
   
   ;; 9s and 90s get pulled close to their link-neighbours or similar
+  ;; made only every 5 weeks to speed up simulations - using links when lots was slowing it down
+  
+  if ticks mod 20 = 0 [ 
   
   ask #9s [ if count my-friendlinks > 0 
     [ let mean-friend-position mean [ycor] of friendlink-neighbors
@@ -1872,6 +1802,8 @@ to update-90s-and-9s-and-1s-positions
       if mean-friend-position > ycor AND random-float 1 > 0.8 [ set ycor ycor + 1 ] 
       if mean-friend-position < ycor AND random-float 1 > 0.8 [ set ycor ycor - 1 ] 
     ]     ] 
+  
+  ]
 end
 
 to update-community-activity
@@ -2022,7 +1954,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-3
+2
 1
 1
 NIL
@@ -2037,7 +1969,7 @@ initial-number-9s
 initial-number-9s
 0
 1000
-0
+3
 1
 1
 NIL
@@ -3191,7 +3123,7 @@ CHOOSER
 reward-mechanism
 reward-mechanism
 "none" "'thanks' only" "'points' only" "both"
-1
+3
 
 PLOT
 1307
@@ -3282,7 +3214,7 @@ SWITCH
 180
 platform-features
 platform-features
-1
+0
 1
 -1000
 
@@ -3363,7 +3295,7 @@ proportion-using-platform
 proportion-using-platform
 0
 1
-0
+1
 0.1
 1
 NIL
@@ -3389,7 +3321,7 @@ new-90s-barrier
 new-90s-barrier
 0
 5
-1.5
+1.3
 0.25
 1
 NIL
@@ -3647,7 +3579,7 @@ chance-forget-a-friend
 chance-forget-a-friend
 0
 1
-0.1
+0.75
 0.05
 1
 NIL
@@ -3752,7 +3684,7 @@ new-9s-barrier
 new-9s-barrier
 0.5
 3
-1
+1.5
 0.1
 1
 NIL
@@ -3767,7 +3699,7 @@ chance-9s-exit
 chance-9s-exit
 0
 1
-0.1
+0.01
 0.005
 1
 NIL
@@ -3782,7 +3714,7 @@ chance-90s-exit
 chance-90s-exit
 0
 1
-0.1
+0.09
 0.005
 1
 NIL
@@ -4015,7 +3947,7 @@ friendLinks
 NIL
 NIL
 0.0
-50.0
+100.0
 0.0
 10.0
 true
@@ -4036,6 +3968,21 @@ chance-new-loneTask
 1
 0.7
 0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+625
+795
+822
+828
+chance-90-find-a-task
+chance-90-find-a-task
+0
+1
+0.1
+1
 1
 NIL
 HORIZONTAL
@@ -4968,6 +4915,3403 @@ NetLogo 5.1.0
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingToOH_8sep_2" repetitions="20" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="328"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0010"/>
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingToOH_7sep_withPlatform_proper" repetitions="20" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="312"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 10 and count my-friendlinks &lt;= 20  ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 and count my-friendlinks &lt;= 30  ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 30  ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 10 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 10 and my-total-contribution-1s &lt;= 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 20 and my-total-contribution-1s &lt;= 30 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 30 and my-total-contribution-1s &lt;= 40 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 40 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 10 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 10 and my-total-contribution-9s &lt;= 20 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 20 and my-total-contribution-9s &lt;= 30 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 30 and my-total-contribution-9s &lt;= 40 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 40 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 ]</metric>
+    <metric>count #9s with [ contribution-history-9s = 0  ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.25"/>
+      <value value="0.5"/>
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingTo4Types_9Sep" repetitions="3" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+      <value value="1"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingTo4Types_10Sep_largeSteady" repetitions="10" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+      <value value="1"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingTo4Types_10Sep_largeSudden" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+      <value value="1"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingTo4Types_10Sep_smallSteady" repetitions="10" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+      <value value="1"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingTo4Types_10Sep_smallGrowCollapse" repetitions="10" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+      <value value="1"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingTo3BIGofflineTypes_18Sep" repetitions="2" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="450"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.5"/>
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="45"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingTo3SMALLofflineTypes_18Sep" repetitions="2" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.5"/>
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="offlineBaseline21sep" repetitions="2" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.5"/>
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="offline21sep_100collapse" repetitions="8" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="21sep_largeSteady_online" repetitions="30" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="21sep_largeSudden_online" repetitions="15" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="21Sep_smallSteady_online" repetitions="30" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="21Sep_smallGrowCollapse_online" repetitions="30" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="800"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="offline21sep_50collapse" repetitions="8" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="offline21sep_200steady" repetitions="8" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="offline21sep_50steady" repetitions="8" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="offline21sep_QuickDeath" repetitions="8" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="400"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 11 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 12 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 13 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 14 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 15 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 16 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 17 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 18 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 19 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 20 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s = 0 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 0 and my-total-contribution-1s &lt;= 50 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 50 and my-total-contribution-1s &lt;= 100 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 100 and my-total-contribution-1s &lt;= 150 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 150 and my-total-contribution-1s &lt;= 200 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 200 and my-total-contribution-1s &lt;= 250 ]</metric>
+    <metric>count #1s with [ my-total-contribution-1s &gt; 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s = 0 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 0 and my-total-contribution-9s &lt;= 50 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 50 and my-total-contribution-9s &lt;= 1000 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 100 and my-total-contribution-9s &lt;= 150 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 150 and my-total-contribution-9s &lt;= 200 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 200 and my-total-contribution-9s &lt;= 250 ]</metric>
+    <metric>count #9s with [ my-total-contribution-9s &gt; 250 ]</metric>
+    <metric>products-out-competed</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.075"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.09"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-find-a-task">
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
