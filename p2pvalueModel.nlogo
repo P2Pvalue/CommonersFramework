@@ -8,6 +8,28 @@
 ; GENERAL TO DOS / COMMENTS / also check word doc
 
 
+; FRIDAY TO DOS
+
+; weight friendship making - if i have made friends with someone, then i work with them again several times, it becomes less likely to be dropped...
+
+; tasks on their own - some tasks are off platform, and kind of float around on their own, harder to see
+
+; finding projects update - 1s make only very small error without platform(both online and offline), 9s much more likley to make error
+
+; reward mechanism - option for neither, points - dont use mean use median and maybe only look at type like mine, 
+
+; points have a history type rather than just relative to others
+
+; people can also be motivated by having low points, - i can catch up!! there is some probability that low points eithe rmotovates or demaorialises  you
+
+; points when tasks finish as well as projects
+
+; pull out parameters on thanks and points for calibration???
+
+
+
+
+
 
 
 ; error checking behaviour space - look for errors in all scenarios using extreme values...
@@ -1150,7 +1172,7 @@ to birth-a-product
                                                      set shape "box"
                                                      set volume random 100
                                                      set age 0
-                                                     set mon-project (list (myself)) 
+                                                     set mon-project (list (myself))
                                                      set consumption-history 
                                                            (n-values 10 [ random count [ current-contributors ] of myself * random 20  ])
                                                      create-projectproductlink-with one-of mon-project [ set color red ]
@@ -1194,10 +1216,10 @@ to consume-products
   
   ask products [ if count my-consumerlinks > 0 
                        [ set consumption-activity ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) * 
-                                                    ( volume / mean [ volume ] of products ) 
+                                                    ( volume / ( mean [ volume ] of products + 1 ) ) 
                                                   )
                          set consumption-history lput ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) * 
-                                                        ( volume / mean [ volume ] of products ) 
+                                                        ( volume / ( mean [ volume ] of products + 1 ) ) 
                                                       ) consumption-history
                          if length consumption-history = 11 [ set consumption-history but-first consumption-history ] 
                        ]
@@ -1850,10 +1872,10 @@ PENS
 "Exit#9s" 1.0 0 -14730904 true "" "if ticks > 0 [ plot #9s-left / ticks]"
 
 SLIDER
-15
-820
-287
-853
+20
+785
+292
+818
 prop-of-projects-reward-subjective
 prop-of-projects-reward-subjective
 0
@@ -2062,10 +2084,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [consumption] of #90s"
 
 SLIDER
-385
-1100
-658
-1133
+34
+1797
+307
+1830
 prop-consumed-each-time
 prop-consumed-each-time
 0
@@ -2077,10 +2099,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-16
-762
-289
-795
+21
+727
+294
+760
 num-interest-categories
 num-interest-categories
 0
@@ -2676,10 +2698,10 @@ PENS
 "#90s See Consumption " 1.0 0 -7500403 true "" "plot new-#90s-total"
 
 TEXTBOX
-272
-729
-592
-773
+125
+688
+445
+732
 ---ADVANCED PARAMETERS---
 14
 0.0
@@ -2744,7 +2766,7 @@ initial-projects
 initial-projects
 0
 50
-15
+20
 5
 1
 NIL
@@ -2771,10 +2793,10 @@ TEXTBOX
 1
 
 SLIDER
-385
-985
-658
-1018
+34
+1681
+307
+1714
 chance-of-finding-new-task
 chance-of-finding-new-task
 0
@@ -2980,7 +3002,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-1
+0
 
 PLOT
 1902
@@ -3110,7 +3132,7 @@ proportion-using-platform
 proportion-using-platform
 0
 1
-0.5
+0.6
 0.1
 1
 NIL
@@ -3128,15 +3150,15 @@ New #1s
 11
 
 SLIDER
-390
-1220
-660
-1253
+37
+1917
+307
+1950
 new-90s-barrier
 new-90s-barrier
 0
 5
-0.75
+1.5
 0.25
 1
 NIL
@@ -3281,25 +3303,25 @@ PENS
 "default" 5.0 1 -16777216 true "" "histogram [ time-with-no-links] of #9s"
 
 SLIDER
-380
-910
-655
-943
+27
+1607
+302
+1640
 mean-time-required
 mean-time-required
 10
 1000
-200
+300
 10
 1
 NIL
 HORIZONTAL
 
 SLIDER
-380
-875
-655
-908
+27
+1571
+302
+1604
 max-modularity
 max-modularity
 1
@@ -3311,25 +3333,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-880
-290
-913
+20
+845
+295
+878
 prob-9-decides-to-join-project
 prob-9-decides-to-join-project
-0.001
-1
+0.1
+0.6
 0.5
-0.05
+0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-15
-915
-292
-948
+20
+885
+297
+918
 prob-9-contributes-to-friends-task
 prob-9-contributes-to-friends-task
 0
@@ -3341,85 +3363,85 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-950
-295
-983
-prob-9-contributes-to-none-friend-task
-prob-9-contributes-to-none-friend-task
-0
-1
-0.05
-0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-15
-1010
-295
-1043
-prob-1-drop-lonely-project
-prob-1-drop-lonely-project
-0
-1
-0.01
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-15
-1045
-295
-1078
-prob-9-drop-a-lonely-or-no-tasks-project
-prob-9-drop-a-lonely-or-no-tasks-project
-0
-1
-0.05
-0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
 20
-1110
-295
-1143
-chance-forget-a-friend
-chance-forget-a-friend
-0
-1
-0.1
-0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-20
-1170
-295
-1203
-chance-forget-thanks
-chance-forget-thanks
-0
-1
-0.1
-0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-20
-1225
+920
 300
-1258
+953
+prob-9-contributes-to-none-friend-task
+prob-9-contributes-to-none-friend-task
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+975
+300
+1008
+prob-1-drop-lonely-project
+prob-1-drop-lonely-project
+0
+1
+0.01
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+1010
+300
+1043
+prob-9-drop-a-lonely-or-no-tasks-project
+prob-9-drop-a-lonely-or-no-tasks-project
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+25
+1075
+300
+1108
+chance-forget-a-friend
+chance-forget-a-friend
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+25
+1135
+300
+1168
+chance-forget-thanks
+chance-forget-thanks
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+25
+1190
+305
+1223
 chance-unpopular-project-dies
 chance-unpopular-project-dies
 0
@@ -3431,10 +3453,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-20
-1280
-335
-1313
+25
+1245
+340
+1278
 chance-contributor-proposes-a-new-project
 chance-contributor-proposes-a-new-project
 0
@@ -3446,10 +3468,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-20
-1315
-305
-1348
+25
+1280
+310
+1313
 chance-a-project-hatches-a-project
 chance-a-project-hatches-a-project
 0
@@ -3461,10 +3483,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-20
-1349
-305
-1382
+25
+1314
+310
+1347
 chance-90-picks-another-product
 chance-90-picks-another-product
 0
@@ -3476,10 +3498,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-18
-1412
-303
-1445
+23
+1377
+308
+1410
 chance-consumer-link-breaks
 chance-consumer-link-breaks
 0
@@ -3491,25 +3513,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-390
-1186
-660
-1219
+37
+1884
+307
+1917
 new-9s-barrier
 new-9s-barrier
 0.5
 3
-3
+1
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-390
-1256
-660
-1289
+37
+1954
+307
+1987
 chance-9s-exit
 chance-9s-exit
 0
@@ -3521,10 +3543,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-390
-1291
-660
-1324
+37
+1987
+307
+2020
 chance-90s-exit
 chance-90s-exit
 0
@@ -3536,10 +3558,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-390
-1329
-660
-1362
+37
+2024
+307
+2057
 chance-1-burn-out
 chance-1-burn-out
 0
@@ -3551,10 +3573,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-380
-765
-605
-798
+27
+1461
+252
+1494
 chance-9-become-1
 chance-9-become-1
 0
@@ -3566,10 +3588,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-378
-801
-608
-834
+27
+1497
+257
+1530
 chance-1-become-9
 chance-1-become-9
 0
@@ -3581,10 +3603,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-385
-1063
-660
-1096
+34
+1761
+309
+1794
 chance-products-die
 chance-products-die
 0
@@ -3594,6 +3616,146 @@ chance-products-die
 1
 NIL
 HORIZONTAL
+
+TEXTBOX
+328
+735
+495
+755
+keep at 50
+11
+0.0
+1
+
+TEXTBOX
+328
+793
+495
+822
+something to investiagte later perhaps
+11
+0.0
+1
+
+TEXTBOX
+322
+847
+489
+876
+seems to have little effect - leave at 0.5
+11
+0.0
+1
+
+TEXTBOX
+316
+908
+483
+928
+these two, to be investigated
+11
+0.0
+1
+
+TEXTBOX
+316
+996
+483
+1025
+these two also to be investigated
+11
+0.0
+1
+
+TEXTBOX
+320
+1115
+487
+1135
+to be investigated
+11
+0.0
+1
+
+TEXTBOX
+326
+1223
+493
+1243
+to be investigated
+11
+0.0
+1
+
+TEXTBOX
+320
+1305
+487
+1325
+to be investigated
+11
+0.0
+1
+
+TEXTBOX
+327
+1387
+494
+1407
+to be investigated
+11
+0.0
+1
+
+TEXTBOX
+267
+1500
+692
+1527
+should be kept higher than 0.01 otherwise 1s can grow in number, 0.1 seems ok - stops 1s from ever spiralling away
+11
+0.0
+1
+
+TEXTBOX
+264
+1460
+592
+1490
+0.1 seems to allow 1s to gorw high, 0.01 keeps 1s very low, perhaps in between is good - 0.4?
+11
+0.0
+1
+
+TEXTBOX
+318
+1594
+671
+1632
+to be investigated - mean time required - intuitivekly seems to need to be over 200 for projects not too just all disappear
+11
+0.0
+1
+
+TEXTBOX
+333
+1743
+500
+1763
+all 3 to be investigated
+11
+0.0
+1
+
+TEXTBOX
+323
+1892
+736
+1994
+new9s barrier - should be between 0.5 and 1.5, nearer 1.5\n\nnew90s barrier - circa 1.5 seems good, 3 and no growth, 0.75 and never no growth
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
