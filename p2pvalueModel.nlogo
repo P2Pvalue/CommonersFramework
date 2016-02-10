@@ -8,26 +8,19 @@
 ; GENERAL TO DOS / COMMENTS / also check word doc
 
 
-; FRIDAY TO DOS
 
-; weight friendship making - if i have made friends with someone, then i work with them again several times, it becomes less likely to be dropped...
 
-; tasks on their own - some tasks are off platform, and kind of float around on their own, harder to see
 
-; finding projects update - 1s make only very small error without platform(both online and offline), 9s much more likley to make error
-
-; reward mechanism - option for neither, points - dont use mean use median and maybe only look at type like mine, 
-
-; points have a history type rather than just relative to others
-
-; people can also be motivated by having low points, - i can catch up!! there is some probability that low points eithe rmotovates or demaorialises  you
-
-; points when tasks finish as well as projects
 
 ; pull out parameters on thanks and points for calibration???
 
 
 
+
+
+; bug checking - 
+
+; did i add loneTasks everywhere it should be?
 
 
 
@@ -156,6 +149,8 @@ globals [
   new-#9s-total                         ; count of new #9 entered the community
   new-#90s-total                        ; count of new #90s entered the community
   
+  new-#90s-chance
+  
   new-#1-count                          ; count of new #1s
   
   products-consumed                     ; count products consumed
@@ -186,6 +181,7 @@ globals [
     
   projects-died                         ; count of projects 'died'
   projects-finished                     ; count of projects finished
+  loneTasksFinished
   
   count-new-projects                    ; count new projects appearing
   
@@ -243,8 +239,10 @@ breed [#9s #9]
 breed [#90s #90]
 breed [projects project]
 breed [t4sks t4sk]
+breed [loneTasks loneTask]
 breed [products product]
 undirected-link-breed [tasklinks tasklink]
+undirected-link-breed [lonetasklinks lonetasklink]
 undirected-link-breed [friendlinks friendlink]
 undirected-link-breed [consumerlinks consumerlink]
 undirected-link-breed [projectproductlinks projectproductlink]
@@ -256,9 +254,11 @@ undirected-link-breed [projectproductlinks projectproductlink]
 #1s-own [
   my-projects-1s               ; list (actual list) of projects 1 attached to
   my-tasks-1s                  ; list (agentset) of tasks currently contributing to
+  my-lone-tasks-1s             ; list (agentset) of lonetasks currently contributing to
   my-friends-1s                ; list (agentset) of other 9s currently friends with
   my-projects                  ; 
-  my-tasks                     ; these 3 used when changing breeds
+  my-tasks                     ; these 4 used when changing breeds
+  my-lone-tasks
   my-friends                   ; 
   my-time                      ; static time availability for community - random 40
   time                         ; current spare time available (not being used on tasks already)
@@ -278,9 +278,11 @@ undirected-link-breed [projectproductlinks projectproductlink]
 #9s-own [
   my-projects                  ; list (actual list) of projects 9 attached to
   my-tasks                     ; list (agentset) of tasks currently contributing to
+  my-lone-tasks                ; list (agentset) of lone tasks currently contributing to
   my-friends                   ; list (agentset) of other 9s currently friends with
   my-projects-1s               ; 
   my-tasks-1s                  ; used when changing breeds
+  my-lone-tasks-1s
   my-friends-1s                ; 
   my-time                      ; static time availability for community - random 40
   time                         ; current spare time available (not being used on tasks already)
@@ -330,6 +332,15 @@ t4sks-own [
   age                          ; time task has been in community
 ]
 
+loneTasks-own [
+  typ3                         ; skil type required by task - one of ten
+  inter3st                     ; interest score - random num-interest-categories
+  time-required                ; time required to complete tasks random normal 50 10
+  modularity                   ; contribution required by task per tick
+  age 
+  my-product-L                 ; product task is associated with 
+]   
+
 products-own [
   inter3st                     ; interest score - random num-interest-categories
   volume                       ; volume of consumable value product has
@@ -340,7 +351,8 @@ products-own [
 ]
 
 tasklinks-own [ ageTL ]         ; all links have an age parameter
-friendlinks-own [ ageFL ]
+friendlinks-own [ ageFL
+                  times-worked-together ]
 consumerlinks-own [ ageCL ]
 projectproductlinks-own [ agePL ]
 
@@ -362,10 +374,18 @@ to setup
    if number-of-products = "a few" [ set initial-products random 5 + 2 ]  
    if number-of-products = "many" [ set initial-products random 100 ] 
    create-existing-product
-   create-existing-projects     
+   create-existing-projects 
+   create-lone-tasks    
    create-#1
    create-#9
-   create-#90    
+   create-#90   
+   
+   ;; set current activity to avoid artefact
+   let lonetasks-activity sum [ count my-lonetasklinks ] of loneTasks
+   let total-prod-activity ( sum [production-activity] of projects + lonetasks-activity ) 
+   set community-prod-activity-t total-prod-activity
+   let total-cons-activity sum [consumption-activity] of products
+   set community-con-activity-t total-cons-activity
    
    reset-ticks
 end
@@ -406,7 +426,7 @@ to go
   if count #9s = 0 [ set time-with-no-#9 time-with-no-#9 + 1 ]
   if count #90s = 0 [ set time-with-no-#90s time-with-no-#90s + 1 ]
   if count products = 0 [ set time-with-no-products time-with-no-products + 1 ]
-  if count t4sks = 0 [ set time-with-no-tasks time-with-no-tasks + 1 ]
+  if count t4sks + count loneTasks = 0 [ set time-with-no-tasks time-with-no-tasks + 1 ]
   if ( time-with-no-#90s = 26 ) [ print "stop no #90s" print ticks stop ]
   if ( time-with-no-#1s = 26 ) [ print "stop no #1s" print ticks stop ]
   if ( time-with-no-#9 = 26 ) [ print "stop no #9" print ticks stop ]
@@ -467,8 +487,28 @@ to create-existing-projects
                                      set my-product min-one-of products [ distance myself ]
                                      create-projectproductlink-with my-product [ set color red ] 
                                      ask projectproductlink-neighbors [ set mon-project (list (projectproductlink-neighbors) ) ] 
-                                     ask products with [ mon-project = 0 ] [ set mon-project [] ] 
+                                     ask products with [ mon-project = 0 ] [ set mon-project [] ]
+                                     if count my-tasks-projects > 0 and count turtle-set [ tasklink-neighbors ] of my-tasks-projects > 0 
+                                           [ let my-tasks-tasklinkneighbors turtle-set [ tasklink-neighbors ] of my-tasks-projects
+                                             set production-activity  ( count link-set [ my-tasklinks ] of my-tasks-projects  /  
+                                                    mean [ distance myself ] of my-tasks-tasklinkneighbors )  
+                                           ]
                                     ] 
+end
+
+to create-lone-tasks
+  create-loneTasks initial-projects [ set inter3st random num-interest-categories
+                                      set xcor 0
+                                      set ycor -25 + inter3st
+                                      set size 0.7
+                                      set color yellow
+                                      set shape "circle" 
+                                      set time-required random-normal mean-time-required ( mean-time-required / 4 )
+                                      set modularity random max-modularity + 1
+                                      set age 0   
+                                      set typ3 random (num-skills - 1)  
+                                      set my-product-L one-of products                                                 
+                                    ]
 end
 
 to create-#1
@@ -496,10 +536,14 @@ to create-#1
                                        ]
                                  set my-tasks-1s tasklink-neighbors
                                  set time my-time - sum [ modularity ] of tasklink-neighbors
+                                 if time > 0 [ create-lonetasklink-with min-one-of loneTasks [distance myself ] [set color 4] 
+                                               set my-lone-tasks-1s lonetasklink-neighbors
+                                             ]
                                  set contribution-history-1s (n-values 10 [ round random-exponential 0.7 ] )
                                  set my-total-contribution-1s count my-tasklinks
                                  let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks-1s
-                                 create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red] 
+                                 create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red
+                                                                                                           set times-worked-together 1] 
                                  set my-friends-1s friendlink-neighbors
                                ]
 end
@@ -529,10 +573,14 @@ to create-#9
                                      ]
                                  set my-tasks tasklink-neighbors
                                  set time my-time - sum [ modularity ] of tasklink-neighbors
+                                 if time > 0 [ create-lonetasklink-with min-one-of loneTasks [distance myself ] [set color 4] 
+                                               set my-lone-tasks lonetasklink-neighbors
+                                             ]
                                  set contribution-history-9s (n-values 10 [ round random-exponential 0.6 ] )
                                  set my-total-contribution-9s count my-tasklinks
                                  let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks
-                                 create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue] 
+                                 create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue
+                                                                                                           set times-worked-together 1] 
                                  set my-friends friendlink-neighbors
                                 ]
     ;; once 1s and 9s created - projects can set their current contributors
@@ -557,6 +605,11 @@ to create-#90
                                           ]
                                           [ set using-platform? "false" ]
                                     create-consumerlink-with min-one-of products [ distance myself ]
+                                    ask consumerlink-neighbors [ if count my-consumerlinks > 0 
+                                           [ set consumption-activity ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) * 
+                                                                        ( volume / ( mean [ volume ] of products + 1 ) ) 
+                                                                       )
+                                           ]                  ]
                                   ]
 end
 
@@ -583,6 +636,7 @@ to setup-globals
   set time-with-no-#90s 0
   set new-#9-attracted-by-#90s 0
   set projects-died  0
+  set loneTasksFinished 0
   set count-new-projects 0
   set product-had-no-consumer-so-left 0
   set community-prod-activity-t-10 0
@@ -652,7 +706,7 @@ to find-projects
   
   ask #1s [ if using-platform? = "false" and community-type = "online" and time > 0 
                 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
-                  let new-project min-one-of other-projects [ distance myself + random 5 - 2.5 ] 
+                  let new-project min-one-of other-projects [ distance myself + random 2 - 1 ] 
                   if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ] 
                  ] 
           ]
@@ -672,11 +726,11 @@ to find-projects
   
   
   
-  ; WITHOUT PLATFORM AND OFFLINE... 1s find projects randomly
+  ; WITHOUT PLATFORM AND OFFLINE... 1s find with a little more error - but still will get those with closest interest
   
   ask #1s [ if using-platform? = "false" and community-type = "offline" and time > 0 
                 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
-                  if any? other-projects and random-float 1 < 0.2 [ let new-project one-of other-projects
+                  if any? other-projects and random-float 1 < 0.2 [ let new-project min-one-of other-projects [ distance myself + random 5 - 2.5 ]
                                                                     set my-projects-1s lput new-project my-projects-1s 
                                                                   ]
                 ] 
@@ -715,17 +769,26 @@ to find-tasks
   ; joiing a task is the point of deciding to make an actual contribution - once you have joined it is assumed you will contribute
   
   ask #9s [ if time > 0 [ ; 9s first must calc their current feel-loved score to be used in decision            
+                          if reward-mechanism = "none" [ set feel-loved 0 ]
+                          
                           if reward-mechanism = "'thanks' only" [ if thanks = "not received" [ set feel-loved 0 ]
                                                                   if thanks = "received from #9" [ set feel-loved 0.005 ]
-                                                                  if thanks = "received from #1" [ set feel-loved 0.01 ]  ]
+                                                                  if thanks = "received from #1" [ set feel-loved 0.01 ]  
+                                                                ]
       
-                          if reward-mechanism = "'points' only" [ ifelse points > mean [ points ] of #9s [ set feel-loved 0.005 ] 
-                                                                                                         [ set feel-loved 0 ]  ]
+                          if reward-mechanism = "'points' only" [ set feel-loved 0
+                                                                  let personType random-float 1
+                                                                  if personType > 0.2 and points > median [ points ] of #9s [ set feel-loved 0.005 ] 
+                                                                  if personType < 0.2 and points < median [ points ] of #9s [ set feel-loved 0.005 ]  
+                                                                ]
                           
-                          if reward-mechanism = "both" [ if thanks = "not received" [ set feel-loved 0 ]
-                                                         if points > mean [ points ] of #9s [ set feel-loved 0.005 ]
+                          if reward-mechanism = "both" [ let personType random-float 1
+                                                         if thanks = "not received" [ set feel-loved 0 ]
+                                                         if personType > 0.2 and points > median [ points ] of #9s [ set feel-loved 0.005 ]
+                                                         if personType < 0.2 and points < median [ points ] of #9s [ set feel-loved 0.005 ]
                                                          if thanks = "received from #9" [ set feel-loved 0.005 ]
-                                                         if thanks = "received from #1" [ set feel-loved 0.01 ] ]
+                                                         if thanks = "received from #1" [ set feel-loved 0.01 ] 
+                                                        ]
                           
                           let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
                           if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]  
@@ -739,19 +802,51 @@ to find-tasks
                                   let contributors-to-new-task turtle-set [ tasklink-neighbors ] of new-task$
                                   let contributors-to-new-tasks-that-are-my-friend 
                                         contributors-to-new-task with [ member? myself friendlink-neighbors ]
-                                  ifelse any? contributors-to-new-tasks-that-are-my-friend 
+                                  ifelse any? contributors-to-new-tasks-that-are-my-friend and contribution-history-9s != 0
                                         [ if ( random-float 1 < ( prob-9-contributes-to-friends-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
                                               [ create-tasklink-with one-of turtle-set 
                                                     [ tasklink-neighbors ] of contributors-to-new-tasks-that-are-my-friend 
                                                          [set color 3] 
                                               ] 
                                         ]
-                                        [ if ( random-float 1 < ( prob-9-contributes-to-none-friend-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
-                                              [ create-tasklink-with one-of new-task$ [set color 3] ] 
+                                        [ if contribution-history-9s != 0 [ if ( random-float 1 < ( prob-9-contributes-to-none-friend-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
+                                              [ create-tasklink-with one-of new-task$ [set color 3] ] ]
                                         ]
                                   set my-tasks tasklink-neighbors
                                 ]
                         ]
+           ]
+  
+  ;; find lone tasks - 1s with easily online and with some error offline
+  ;; 9s with some error online and randomly for offline
+  
+  ask #1s [ if community-type = "online" and time > 0 
+                [ if any? loneTasks [ let new-loneTask min-one-of loneTasks [ distance myself ]
+                                      create-lonetasklink-with new-loneTask [set color 4] 
+                                      set my-lone-tasks-1s lonetasklink-neighbors
+                                    ] 
+                ]
+            if community-type = "offline" and time > 0 
+                [ if any? loneTasks [ let new-loneTask min-one-of loneTasks [ distance myself + random 5 - 2.5 ]
+                                      create-lonetasklink-with new-loneTask [set color 4] 
+                                      set my-lone-tasks-1s lonetasklink-neighbors
+                                    ] 
+                ]  
+           ] 
+  
+  ask #9s [ if community-type = "online" and time > 0 and contribution-history-9s != 0
+                [ if any? loneTasks and random-float 1 < prob-9-decides-to-join-project + ( 0.01 * sum contribution-history-9s )
+                      [ let new-loneTask min-one-of loneTasks [ distance myself + random 5 - 2.5 ]
+                        create-lonetasklink-with new-loneTask [set color 4] 
+                        set my-lone-tasks lonetasklink-neighbors
+                      ] 
+                ]
+            if community-type = "offline" and time > 0 and contribution-history-9s != 0
+                [ if any? loneTasks and random-float 1 < prob-9-decides-to-join-project + ( 0.01 * sum contribution-history-9s )
+                      [ create-lonetasklink-with one-of loneTasks [set color 4] 
+                        set my-lone-tasks lonetasklink-neighbors
+                      ] 
+                ]
            ] 
 end
 
@@ -760,55 +855,65 @@ to contribute-to-tasks
   ; 1s and 9s update time availability, if no time left, drop tasks
   ; then they update some records of contributions
  
-   ask #1s [ set time my-time - sum [ modularity ] of tasklink-neighbors
+   ask #1s [ set time my-time - sum [ modularity ] of tasklink-neighbors - sum [ modularity ] of lonetasklink-neighbors 
              if time < 0 and count my-tasklinks > 1  
                    [ ; need to pick tasks to drop
-                     ; 1/3 chance each it is less popular tasks, task with lots to do, task with least friends
+                     ; 1/4 chance each it is less popular tasks, task with lots to do, task with least friends, or a lonetask
                      let chance random-float 1
-                     if chance < 0.33 
+                     if chance < 0.25 
                            [ ask link-with ( min-one-of tasklink-neighbors [ xcor ] ) [die] ]
-                     if chance >= 0.33 and chance < 0.66 
+                     if chance >= 0.25 and chance < 0.5
                            [ ask link-with ( max-one-of tasklink-neighbors [ time-required ] ) [die] ]
-                     if chance >= 0.66 
+                     if chance >= 5 and chance < 0.75
                            [ ask link-with ( min-one-of tasklink-neighbors 
                                [ count tasklink-neighbors with [ member? [ myself ] of myself friendlink-neighbors ] ] ) [die] 
-                           ]    
+                           ]
+                     if chance >= 0.75
+                          [ if count lonetasklinks > 0 [ ask one-of lonetasklinks [ die ] ] ]  
                      set #1-dropped-a-task #1-dropped-a-task + 1
-                   ]        
+                   ]
+             set time my-time - sum [ modularity ] of tasklink-neighbors - sum [ modularity ] of lonetasklink-neighbors         
              if count my-tasklinks > 0 [ set my-tasks-1s tasklink-neighbors
-                                         set contributions-made-by-1s contributions-made-by-1s + count tasklink-neighbors
+                                         set my-lone-tasks-1s lonetasklink-neighbors
+                                         set contributions-made-by-1s contributions-made-by-1s + count tasklink-neighbors + count lonetasklink-neighbors
                                          set time-contributed-by-1s time-contributed-by-1s + ( my-time - time ) 
                                        ]
-             set contribution-history-1s lput count my-tasklinks contribution-history-1s 
+             set contribution-history-1s lput ( count my-tasklinks + count my-lonetasklinks ) contribution-history-1s 
              if length contribution-history-1s > 10 [ set contribution-history-1s but-first contribution-history-1s ]   
-             set my-total-contribution-1s my-total-contribution-1s + count my-tasklinks
+             set my-total-contribution-1s my-total-contribution-1s + ( count my-tasklinks + count my-lonetasklinks )
            ]
   
-   ask #9s [ set time my-time - sum [ modularity ] of tasklink-neighbors
+   ask #9s [ set time my-time - sum [ modularity ] of tasklink-neighbors - sum [ modularity ] of lonetasklink-neighbors 
              if time < 0 and count my-tasklinks > 1  
                    [ let chance random-float 1
-                     if chance < 0.33 
+                     if chance < 0.25 
                            [ ask link-with ( min-one-of tasklink-neighbors [ xcor ] ) [die] ]
-                     if chance >= 0.33 and chance < 0.66 
+                     if chance >= 0.25 and chance < 0.5
                            [ ask link-with ( max-one-of tasklink-neighbors [ time-required ] ) [die] ]
-                     if chance >= 0.66 
+                     if chance >= 0.5 and chance < 0.75 
                            [ ask link-with ( min-one-of tasklink-neighbors 
                                [ count tasklink-neighbors with [ member? [ myself ] of myself friendlink-neighbors ] ] ) [die] 
                            ] 
+                     if chance >= 0.75
+                           [ if count lonetasklinks > 0 [ ask one-of lonetasklinks [ die ] ] ]
                      set #9-dropped-a-task #9-dropped-a-task + 1                                     
-                   ]        
+                   ] 
+             set time my-time - sum [ modularity ] of tasklink-neighbors - sum [ modularity ] of lonetasklink-neighbors       
              if count my-tasklinks > 0 [ set my-tasks tasklink-neighbors
-                                         set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors
+                                         set my-lone-tasks lonetasklink-neighbors
+                                         set contributions-made-by-9s contributions-made-by-9s + count tasklink-neighbors + count lonetasklink-neighbors
                                          set time-contributed-by-9s time-contributed-by-9s + ( my-time - time ) 
                                        ] 
-             set contribution-history-9s lput count my-tasklinks contribution-history-9s 
+             set contribution-history-9s lput ( count my-tasklinks + count my-lonetasklinks ) contribution-history-9s 
              if length contribution-history-9s > 10 [ set contribution-history-9s but-first contribution-history-9s ]
-             set my-total-contribution-9s my-total-contribution-9s + count my-tasklinks
+             set my-total-contribution-9s my-total-contribution-9s + ( count my-tasklinks + count my-lonetasklinks )
            ]
              
   ; task reduce their time by their contriubutors * modularity 
   
   ask t4sks [ set time-required time-required - (modularity * count tasklink-neighbors) ]
+  
+  ask loneTasks [ set time-required time-required - (modularity * count lonetasklink-neighbors) ]
   
   ; projects reset their current contributors
 
@@ -886,17 +991,57 @@ to make-and-lose-friends
   ; 1s and 9s can make friends with those working on their tasks
   ; on each tick there is also a chance a friendship bond breaks
   
-  ask #1s [ if count tasklink-neighbors > 0 [ let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks-1s
-                                              create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red] 
-                                              set my-friends-1s friendlink-neighbors
-                                              if count friendlinks > 0 [ if random-float 1 < chance-forget-a-friend [ ask one-of friendlinks [die] ] ]
+  ask #1s [ if count tasklink-neighbors > 0 [ let new-friendsL other turtle-set [ lonetasklink-neighbors ] of my-lone-tasks-1s
+                                              let new-friendsT other turtle-set [ tasklink-neighbors ] of my-tasks-1s 
+                                              let new-friends turtle-set (list (new-friendsL) (new-friendsT)) 
+                                              
+                                              ask new-friends with [ member? myself friendlink-neighbors ] 
+                                                   [ ask friendlink-with myself [ set times-worked-together times-worked-together + 1 ] ]
+                                              
+                                              create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red 
+                                                                                                                        set times-worked-together 1] 
+                                              if count friendlinks > 0 [ if random-float 1 < chance-forget-a-friend 
+                                                                            [ if any? friendlinks with [ times-worked-together = 1 ]
+                                                                                 [ ask one-of friendlinks with [ times-worked-together = 1 ] [ die ] ] 
+                                                                            ] 
+                                                                         if random-float 1 < chance-forget-a-friend / 2 
+                                                                            [ if any? friendlinks with [ times-worked-together > 1 and times-worked-together < 5 ]
+                                                                                 [ ask one-of friendlinks with [ times-worked-together > 1 and
+                                                                                                                 times-worked-together < 5  ] [ die ] ]
+                                                                             ]
+                                                                         if random-float 1 < chance-forget-a-friend / 4 
+                                                                            [ if any? friendlinks with [ times-worked-together > 4 ]
+                                                                                 [ ask one-of friendlinks with [ times-worked-together > 4 ] [ die ] ]
+                                                                            ]
+                                                                        ]
+                                               set my-friends-1s friendlink-neighbors
                                             ]
           ]
 
-  ask #9s [ if count tasklink-neighbors > 0 [ let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks
-                                              create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue] 
+  ask #9s [ if count tasklink-neighbors > 0 [ let new-friendsT other turtle-set [ tasklink-neighbors ] of my-tasks
+                                              let new-friendsL other turtle-set [ lonetasklink-neighbors ] of my-lone-tasks
+                                              let new-friends turtle-set (list (new-friendsL) (new-friendsT))
+                                              
+                                              ask new-friends with [ member? myself friendlink-neighbors ] 
+                                                   [ ask friendlink-with myself [ set times-worked-together times-worked-together + 1 ] ]
+                                                   
+                                              create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue 
+                                                                                                                        set times-worked-together 1 ] 
                                               set my-friends friendlink-neighbors
-                                              if count friendlinks > 0 [ if random-float 1 < chance-forget-a-friend [ ask one-of friendlinks [die] ] ]
+                                              if count friendlinks > 0 [ if random-float 1 < chance-forget-a-friend 
+                                                                            [ if any? friendlinks with [ times-worked-together = 1 ]
+                                                                                 [ ask one-of friendlinks with [ times-worked-together = 1 ] [ die ] ] 
+                                                                            ] 
+                                                                         if random-float 1 < chance-forget-a-friend / 2 
+                                                                            [ if any? friendlinks with [ times-worked-together > 1 and times-worked-together < 5 ]
+                                                                                 [ ask one-of friendlinks with [ times-worked-together > 1 and
+                                                                                                                 times-worked-together < 5  ] [ die ] ]
+                                                                             ]
+                                                                         if random-float 1 < chance-forget-a-friend / 4 
+                                                                            [ if any? friendlinks with [ times-worked-together > 4 ]
+                                                                                 [ ask one-of friendlinks with [ times-worked-together > 4 ] [ die ] ]
+                                                                            ]
+                                                                        ]
                                             ]
           ]
 end
@@ -909,6 +1054,11 @@ to give-out-reward
   ; thanks is (more) qualitative - do i have it or not, and who is it from
   ; this is then also used in other decisions, eg., contributions, exit...
   ; 'value' of thanks is higher from 1 than 9 etc
+  
+  if reward-mechanism = "none" [
+    ask #1s [ set thanks "not received" set points 0 ]
+    ask #9s [ set thanks "not received" set points 0 ]
+  ]
     
   if reward-mechanism = "'thanks' only" 
     [ ;; half of contributors at end of project get thanks from another 9
@@ -975,12 +1125,23 @@ to finish-tasks
                                           [ ask products with [  mon-project != nobody and mon-project != 0 and member? [ my-project ] of myself mon-project ] 
                                                 [ set volume volume + volume ] 
                                           ]
+                                      ;; points given out at end of task
+                                      if reward-mechanism = "points" OR reward-mechanism = "both" 
+                                            [ ask tasklink-neighbors [ set points points + random ( [ [ reward-level ] of my-project ] of myself / 5 )  ] ]
                                       set tasks-completed tasks-completed + 1 
                                       ask turtle-set my-project [ set num-tasks num-tasks - 1 ]
                                       die 
                                     ]
               if my-project = nobody [die] 
             ]
+  
+  ask loneTasks [ if time-required <= 0 [ ask my-product-L [ set volume volume + volume ] 
+                                          if reward-mechanism = "points" OR reward-mechanism = "both" 
+                                                [ ask lonetasklink-neighbors [ set points points + random ( [ modularity ] of myself * 3 )  ] ]
+                                          set loneTasksFinished loneTasksFinished + 1 
+                                          die 
+                                        ]
+                ]
 end
 
 to finished-projects
@@ -1001,6 +1162,22 @@ to tasks-identified
     ;; if more people are working on a task - some chance they identify other tasks
     
    ask t4sks [ if count tasklink-neighbors > 0 [ if random-float 1 < chance-of-finding-new-task [ create-new-task ] ] ] 
+   
+   ;; new lone tasks appear randomly
+   
+   if random-float 1 < chance-new-loneTask [ 
+        create-loneTasks 1 [ set inter3st random num-interest-categories
+                             set xcor 0
+                             set ycor -25 + inter3st
+                             set size 0.7
+                             set color yellow
+                             set shape "circle" 
+                             set time-required random-normal mean-time-required ( mean-time-required / 4 )
+                             set modularity random max-modularity + 1
+                             set age 0   
+                             set typ3 random (num-skills - 1)    
+                             set my-product-L one-of products                                               
+                           ]               ]
 end
   
 to create-new-task
@@ -1150,7 +1327,7 @@ to birth-a-product
   
  if number-of-products = "one" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
                                                     set xcor -10
-                                                    set ycor -25 + inter3st
+                                                    ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
                                                     set size 2
                                                     set color orange
                                                     set shape "box"
@@ -1268,6 +1445,25 @@ to entry
                       ]
          ]
   
+  ; 90s enter by chance
+  
+  if random-float 1 < ( 1 - ( 0.5 * new-90s-barrier ) ) [ create-#90s 10 [ set interest random num-interest-categories
+                                                                          set xcor random 8 - 22
+                                                                          set ycor -25 + interest    
+                                                                          set size 1
+                                                                          set color yellow
+                                                                          set consumption 0
+                                                                          ifelse platform-features = TRUE 
+                                                                                [ ifelse random-float 1 < proportion-using-platform 
+                                                                                      [ set using-platform? "true" ]
+                                                                                      [ set using-platform? "false" ] 
+                                                                                ]
+                                                                                [ set using-platform? "false" ]
+                                                                          set new-#90s-total new-#90s-total + 1
+                                                                          set new-#90s-chance new-#90s-chance + 1
+                                                                         ]
+  ]
+  
   ; 9 enter if see recent jump in consumption
   
    if (( community-con-activity-t-2 + 
@@ -1285,7 +1481,7 @@ to entry
         community-con-activity-t-2 +
         community-con-activity-t-1 +
         community-con-activity-t ) / 11 ) * new-9s-barrier 
-              [ create-#9s round ( initial-number-9s / 10 ) [ set interest random num-interest-categories
+              [ create-#9s max list 1 round ( initial-number-9s / 10 ) [ set interest random num-interest-categories
                                                               set xcor ( random 6 ) + 19
                                                               set ycor -25 + interest 
                                                               set size 1
@@ -1307,7 +1503,7 @@ to entry
                                                               let mentor min-one-of #1s [ distance myself ] 
                                                               let mentors-friends count [ friendlink-neighbors ] of mentor
                                                               create-friendlinks-with n-of ( mentors-friends / 2 ) 
-                                                                    [ friendlink-neighbors ] of mentor [set color blue] 
+                                                                    [ friendlink-neighbors ] of mentor [set color blue set times-worked-together 1] 
                                                               set contribution-history-9s (list (0))
                                                               set new-#9s-total new-#9s-total + 1
                                                               set new-#9-attracted-by-#90s new-#9-attracted-by-#90s + 1 
@@ -1319,7 +1515,9 @@ to exit
   
   ;; #9s exit if no tasks with their interest for a while and not feeling loved (thanks or points)
 
-  ask #9s [ if reward-mechanism = "'thanks' only" [ if thanks = "not received" [ set feel-loved 0 ]
+  ask #9s [ if reward-mechanism = "none" [ set feel-loved 0 ]
+            
+            if reward-mechanism = "'thanks' only" [ if thanks = "not received" [ set feel-loved 0 ]
                                                     if thanks = "received from #9" [ set feel-loved 0.005 ]
                                                     if thanks = "received from #1" [ set feel-loved 0.01 ]  ]
     
@@ -1328,13 +1526,14 @@ to exit
                                                   ]
             
             if reward-mechanism = "both" [ if thanks = "not received" [ set feel-loved 0 ]
-                                           if points > mean [ points ] of #9s [ set feel-loved 0.005 ]
+                                           if points > median [ points ] of #9s [ set feel-loved 0.005 ]
                                            if thanks = "received from #9" [ set feel-loved 0.005 ]
                                            if thanks = "received from #1" [ set feel-loved 0.01 ] 
                                           ]
             
-            if count my-tasklinks = 0 [ set time-with-no-links time-with-no-links + 1 ]
-            if not any? t4sks with [ inter3st = [ interest ] of myself ] and random-float 1 < ( chance-9s-exit - feel-loved ) 
+            if ( count my-tasklinks + count my-lonetasklinks ) = 0 [ set time-with-no-links time-with-no-links + 1 ]
+            if not any? t4sks with [ inter3st = [ interest ] of myself ] and 
+               not any? loneTasks with [ inter3st = [ interest ] of myself ] and random-float 1 < ( chance-9s-exit - feel-loved ) 
                   [ set #9s-left #9s-left + 1
                     set #9-left-no-interest #9-left-no-interest + 1
                     die 
@@ -1372,7 +1571,21 @@ to exit
            ]
   
   ;; #1s and #9s leave if 'motivation very low' ie., no thanks (or thanks from lower contributor) 
-  ;; or low points plus some small chance (higher for 9s)
+  ;; or low points plus some small chance (higher for 9s), or if no reward-mech, just some low chance
+  
+  if reward-mechanism = "none"  
+       [ ask #1s [ if random-float 1 < chance-1-burn-out / 2 [ set #1s-left #1s-left + 1
+                                                               set #1-left-burnout #1-left-burnout + 1
+                                                               die 
+                                                             ]
+                  ]
+       ]
+   
+          ask #9s [ if random-float 1 < ( chance-1-burn-out ) [ set #9s-left #9s-left + 1
+                                                                set #9-left-burnout #9-left-burnout + 1
+                                                                die 
+                                                              ]
+                  ]
   
   if reward-mechanism = "'thanks' only" 
         [ ask #1s [ if thanks = "not received" OR thanks = "received from #9" 
@@ -1392,16 +1605,16 @@ to exit
         ]
   
   if reward-mechanism = "'points' only" 
-        [ ask #1s [ if points < mean [points] of #1s and random-float 1 < chance-1-burn-out [ set #1s-left #1s-left + 1
-                                                                                              set #1-left-burnout #1-left-burnout + 1
-                                                                                              die 
-                                                                                            ]
+        [ ask #1s [ if points < median [points] of #1s and random-float 1 < chance-1-burn-out [ set #1s-left #1s-left + 1
+                                                                                                set #1-left-burnout #1-left-burnout + 1
+                                                                                                die 
+                                                                                              ]
                   ]
    
-          ask #9s [ if points < mean [points] of #9s and random-float 1 < ( chance-1-burn-out * 5 ) [ set #9s-left #9s-left + 1
-                                                                                                      set #9-left-burnout #9-left-burnout + 1
-                                                                                                      die 
-                                                                                                    ]
+          ask #9s [ if points < median [points] of #9s and random-float 1 < ( chance-1-burn-out * 5 ) [ set #9s-left #9s-left + 1
+                                                                                                        set #9-left-burnout #9-left-burnout + 1
+                                                                                                        die 
+                                                                                                      ]
                   ]
         ]
   
@@ -1470,6 +1683,7 @@ to change-breed
                    set my-total-contribution-1s [ my-total-contribution-9s ] of self
                    set my-projects-1s [my-projects] of self
                    set my-tasks-1s [ my-tasks ] of self
+                   set my-lone-tasks-1s [ my-lone-tasks ] of self
                    set my-friends-1s [my-friends] of self
                    set #9-to-#1-count #9-to-#1-count + 1 
                  ]                               ] 
@@ -1495,6 +1709,7 @@ to change-breed
                    set time my-time 
                    set my-projects [my-projects-1s] of self
                    set my-tasks [ my-tasks-1s ] of self
+                   set my-lone-tasks [ my-lone-tasks-1s ] of self
                    set contribution-history-9s [contribution-history-1s] of self
                    set my-total-contribution-9s [ my-total-contribution-1s ] of self
                    set my-friends [my-friends-1s] of self
@@ -1599,6 +1814,14 @@ if platform-features = TRUE [
                                                                          fd 1           
                                                                        ]
                                                             ]
+  
+  ; lone tasks get closer if popular
+  
+  ask loneTasks [ ifelse count my-lonetasklinks > median [ count my-lonetasklinks ] of loneTasks 
+                      [ set xcor xcor + 0.1 ][ set xcor xcor - 0.1 ]
+                  if xcor < -4 [ set xcor -4 ]
+                  if xcor > 17 [ set xcor 17 ] 
+                ]
 end
 
 to update-product-position
@@ -1655,7 +1878,8 @@ to update-community-activity
   
   ; recording and updating consumption and production activity
   
-  let total-prod-activity sum [production-activity] of projects
+  let lonetasks-activity sum [ count my-lonetasklinks ] of loneTasks
+  let total-prod-activity ( sum [production-activity] of projects + lonetasks-activity )
   let total-cons-activity sum [consumption-activity] of products 
   
   set community-prod-activity-t-10 community-prod-activity-t-9
@@ -1689,7 +1913,9 @@ to products-die
   ; products can disappear if they have no consumers plus a small chance
   ask products [ if count my-consumerlinks = 0 [ if random-float 1 < chance-products-die 
                                                      [ set product-had-no-consumer-so-left product-had-no-consumer-so-left + 1 
-                                                       die ] 
+                                                       ask loneTasks with [ my-product-L = myself ] [die] 
+                                                       die 
+                                                     ] 
                                                 ] 
                 ]
   
@@ -1698,6 +1924,7 @@ to products-die
   
   if number-of-products = "one" and count products > 1 and random-float 1 < 0.5 
        [ ask min-one-of products [ sum consumption-history ] [ set products-out-competed products-out-competed + 1 
+                                                               ask loneTasks with [ my-product-L = myself ] [die] 
                                                                die 
                                                               ]
        ]
@@ -1709,6 +1936,7 @@ to all-age
   ask #9s [ set time-in-community time-in-community + 1 ]
   ask #90s [ set time-in-community time-in-community + 1 ]
   ask t4sks [ set age age + 1 ]
+  ask loneTasks [ set age age + 1 ]
   ask products [ set age age + 1 ]
   ask projects [ set age age + 1 ]
   ask tasklinks [ set ageTL ageTL + 1]
@@ -1794,7 +2022,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-10
+3
 1
 1
 NIL
@@ -1809,7 +2037,7 @@ initial-number-9s
 initial-number-9s
 0
 1000
-90
+0
 1
 1
 NIL
@@ -1977,6 +2205,7 @@ PENS
 "Tasks" 1.0 0 -10899396 true "" "plot count t4sks"
 "Prod" 1.0 0 -955883 true "" "plot count products"
 "Projects" 1.0 0 -15575016 true "" "plot count projects"
+"LoneTasks" 1.0 0 -1184463 true "" "plot count loneTasks"
 
 BUTTON
 167
@@ -2004,7 +2233,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-900
+10
 50
 1
 NIL
@@ -2696,6 +2925,7 @@ true
 PENS
 "#9s See #90s" 1.0 0 -955883 true "" "plot new-#9-attracted-by-#90s"
 "#90s See Consumption " 1.0 0 -7500403 true "" "plot new-#90s-total"
+"#90s by chance" 1.0 0 -2674135 true "" "plot new-#90s-chance"
 
 TEXTBOX
 125
@@ -2766,7 +2996,7 @@ initial-projects
 initial-projects
 0
 50
-20
+15
 5
 1
 NIL
@@ -2960,8 +3190,8 @@ CHOOSER
 232
 reward-mechanism
 reward-mechanism
-"'thanks' only" "'points' only" "both"
-2
+"none" "'thanks' only" "'points' only" "both"
+1
 
 PLOT
 1307
@@ -3043,6 +3273,7 @@ true
 PENS
 "Finshed" 1.0 0 -955883 true "" "plot projects-finished"
 "Died" 1.0 0 -7500403 true "" "plot projects-died"
+"loneTasks" 1.0 0 -1184463 true "" "plot loneTasksFinished"
 
 SWITCH
 8
@@ -3132,7 +3363,7 @@ proportion-using-platform
 proportion-using-platform
 0
 1
-0.6
+0
 0.1
 1
 NIL
@@ -3311,7 +3542,7 @@ mean-time-required
 mean-time-required
 10
 1000
-300
+200
 10
 1
 NIL
@@ -3341,7 +3572,7 @@ prob-9-decides-to-join-project
 prob-9-decides-to-join-project
 0.1
 0.6
-0.5
+0.3
 0.1
 1
 NIL
@@ -3536,7 +3767,7 @@ chance-9s-exit
 chance-9s-exit
 0
 1
-0.05
+0.1
 0.005
 1
 NIL
@@ -3551,7 +3782,7 @@ chance-90s-exit
 chance-90s-exit
 0
 1
-0.01
+0.1
 0.005
 1
 NIL
@@ -3581,7 +3812,7 @@ chance-9-become-1
 chance-9-become-1
 0
 1
-0.1
+0.0050
 0.005
 1
 NIL
@@ -3596,7 +3827,7 @@ chance-1-become-9
 chance-1-become-9
 0
 1
-0.1
+0.0050
 0.005
 1
 NIL
@@ -3756,6 +3987,58 @@ new9s barrier - should be between 0.5 and 1.5, nearer 1.5\n\nnew90s barrier - ci
 11
 0.0
 1
+
+PLOT
+2170
+65
+2330
+185
+histogramTimesWorkedTogether
+NIL
+NIL
+0.0
+100.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram [ times-worked-together ] of friendlinks"
+
+PLOT
+2175
+190
+2375
+340
+friendLinks
+NIL
+NIL
+0.0
+50.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"#9s" 1.0 1 -13791810 true "" "histogram [count friendlink-neighbors] of #9s"
+"#1s" 1.0 1 -2674135 true "" "histogram [count friendlink-neighbors] of #1s"
+
+SLIDER
+35
+2080
+305
+2113
+chance-new-loneTask
+chance-new-loneTask
+0
+1
+0.7
+0.05
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -4392,6 +4675,297 @@ NetLogo 5.1.0
     <enumeratedValueSet variable="chance-90s-exit">
       <value value="0.01"/>
       <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="errorCheckingandCalibrating_2Sept_4" repetitions="50" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="52"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="1.25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="1.25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.025"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.025"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="calibratingToOH_4sep" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="312"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count loneTasks</metric>
+    <metric>count products</metric>
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <metric>count #9s with [ count my-friendlinks = 0 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 1 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 2 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 3 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 4 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 5 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 6 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 7 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 8 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 9 ]</metric>
+    <metric>count #9s with [ count my-friendlinks = 10 ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 10 and count my-friendlinks &lt;= 20  ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 20 and count my-friendlinks &lt;= 30  ]</metric>
+    <metric>count #9s with [ count my-friendlinks &gt; 30  ]</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;'thanks' only&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.4"/>
+      <value value="0.6"/>
+      <value value="0.8"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.0050"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-consumed-each-time">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.0050"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.75"/>
+      <value value="1.5"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.025"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.025"/>
+      <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
       <value value="0.1"/>
