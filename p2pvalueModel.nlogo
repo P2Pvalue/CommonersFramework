@@ -582,19 +582,38 @@ end
 
 to find-projects
 
-  ; WITH PLATFORM...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
-
-  ask #1s [ if using-platform? and time > 0
+  ask #1s [ if time > 0
+             [ ; WITH PLATFORM...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
+               ifelse using-platform?
                 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
                   let new-project min-one-of other-projects [ distance myself ]
                   if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
                 ]
-          ]
+                [
+                  ; WITHOUT PLATFORM AND ONLINE... 1s find projects - the closest to them but with some error/noise
+                  if community-type = "online"
+                  [
+                    let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+                    let new-project min-one-of other-projects [ distance myself + random 2 - 1 ]
+                    if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                  ]
+                  ; WITH PLATFORM...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
+                  if community-type = "offline"
+                  [
+                    let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+                    if any? other-projects and random-float 1 < 0.2 [ let new-project min-one-of other-projects [ distance myself + random 5 - 2.5 ]
+                      set my-projects-1s lput new-project my-projects-1s
+                    ]
+                  ]
+                ]
+             ]
+  ]
 
-  ; WITH PLATFORM...9s find projects that are nearer the 'top of the list' but still close to them - ie., interest is nearby, and more to right
-  ; and add them to a list
 
-  ask #9s [ if using-platform? and time > 0
+  ask #9s [ if time > 0
+              ; WITH PLATFORM...9s find projects that are nearer the 'top of the list' but still close to them - ie., interest is nearby, and more to right
+              ; and add them to a list
+              [ ifelse using-platform?
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                   let new-project min-one-of other-projects [ distance myself ]
                   if other-projects != nobody and new-project != nobody
@@ -604,52 +623,33 @@ to find-projects
                                                                                    ( [ distance myself ] of max-one-of projects [ distance myself ] )
                                                                                  )
                                               )
-                              [ set my-projects lput new-project my-projects ] ] ] ]
-
-
-
-  ; WITHOUT PLATFORM AND ONLINE... 1s find projects - the closest to them but with some error/noise
-
-  ask #1s [ if not using-platform? and community-type = "online" and time > 0
-                [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
-                  let new-project min-one-of other-projects [ distance myself + random 2 - 1 ]
-                  if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
-                 ]
-          ]
-
-  ; WITHOUT PLATFORM AND ONLINE... 9s find projects that are near them but with error/noise
-  ; again relative distance used to caclulate chance of joining the project
-
-  ask #9s [ if not using-platform? and community-type = "online" and time > 0
-                [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
-                  let new-project min-one-of other-projects [ distance myself + random 10 - 5 ]
-                  if other-projects != nobody and new-project != nobody
+                              [ set my-projects lput new-project my-projects ]
+                        ]
+                ]
+                [
+                  ; WITHOUT PLATFORM AND ONLINE... 9s find projects that are near them but with error/noise
+                  ; again relative distance used to caclulate chance of joining the project
+                  if community-type = "online"
+                    [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
+                      let new-project min-one-of other-projects [ distance myself + random 10 - 5 ]
+                      if other-projects != nobody and new-project != nobody
                         [ if random-float 1 < ( prob-9-decides-to-join-project / ( ( [ distance myself ] of new-project ) /
                                                                                    ( [ distance myself ] of max-one-of projects [ distance myself ] )
                                                                                  )
                                                )
-                              [ set my-projects lput new-project my-projects ] ] ] ]
-
-
-
-  ; WITHOUT PLATFORM AND OFFLINE... 1s find with a little more error - but still will get those with closest interest
-
-  ask #1s [ if not using-platform? and community-type = "offline" and time > 0
-                [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
-                  if any? other-projects and random-float 1 < 0.2 [ let new-project min-one-of other-projects [ distance myself + random 5 - 2.5 ]
-                                                                    set my-projects-1s lput new-project my-projects-1s
-                                                                  ]
-                ]
-           ]
-
-  ; WITHOUT PLATFORM AND OFFLINE... 9s find projects randomly
-
-  ask #9s [ if not using-platform? and community-type = "offline" and time > 0
-                [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
-                  if any? other-projects and random-float 1 < prob-9-decides-to-join-project [ let new-project one-of other-projects
+                              [ set my-projects lput new-project my-projects ]
+                        ]
+                    ]
+                  ; WITHOUT PLATFORM AND OFFLINE... 9s find projects randomly
+                  if community-type = "offline"
+                    [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
+                      if any? other-projects and random-float 1 < prob-9-decides-to-join-project [ let new-project one-of other-projects
                                                                                                set my-projects lput new-project my-projects ]
+                    ]
                 ]
-           ]
+              ]
+  ]
+
 end
 
 to find-tasks
