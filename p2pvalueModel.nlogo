@@ -11,7 +11,7 @@
 
 ; pull out hidden parameters (i.e., hard coded numbers) and remove dead sliders from interface
 
-; make sure all differences in behaviour by scenarios (tool on and off, type of community) are represented
+; make sure all differences in behaviour by scenarios (tool on and off, type of community, different thanks mechanism) are represented
 
 ; make sure main scenarios for experiments are all controllable - slider, switch etc
 
@@ -19,27 +19,26 @@
 
 ; calibration check - 1% need to make most contributions.
 
+
   
-; size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
-
-
-; size of community will affect a lot of rules? which?
+; sixe of comm may effect rules? - e.g., size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
+; others?
 
 
 
-; double check transfer of agent variables when change breed and new agent appears - do they make sense (ie., should not just forget friends or projects)
+; MAIN UPDATES
+
+
+; thanks mechanism - ; give-out-reward, update -  two mechanims - 'thanks' and competitive - implement
+
+
+; update project position - should be combination of - upvotes (by 1,9,90), contribution activity, and crowd-funding analogy (if a few tasks left)
 
 
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave
 
 
-; can only drop one project at a time - can i make it more?
-
-
 ; update motivation - maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
-
-
-; update project position - should be combination of - upvotes (by 1,9,90), contribution activity, and crowd-funding analogy (if a few tasks left)
 
 
 ; 90 becomes 9 change as per comments below
@@ -51,19 +50,36 @@
 ; update calc recent activity to be a history type
 
 
-; projects finish - to be erased once tasks to products changed
-
-
 ; tasks-to-products - changed to porjects-to-products ...ie., projects finishing has an affect on products
 
 
-; give-out-reward, update -  two mechanims - thanks and competitive - implement
+; projects finish - to be erased once tasks to products changed
 
 
 ; new 9s get friends via a mentor...
 
 
 ; add friends working on a task increase chance of contributing to it
+
+
+
+
+; DEBUGGING
+
+
+; double check transfer of agent variables when change breed and new agent appears - do they make sense (ie., should not just forget friends or projects)
+
+
+; can only drop one project at a time - can i make it more?
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2077,7 +2093,7 @@ initial-products
 initial-products
 0
 100
-46
+58
 1
 1
 NIL
