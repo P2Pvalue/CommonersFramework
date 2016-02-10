@@ -13,27 +13,32 @@
 
 ; make sure all differences in behaviour by scenarios (tool on and off, type of community, different thanks mechanism) are represented
 
-; make sure main scenarios for experiments are all controllable - slider, switch etc
-
 ; tidy code - check for unused variables etc
 
 
 
-; calibration check - 1% need to make most contributions.
-
-
-  
-; size of comm may effect rules? - e.g., size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
-; others?
 
 
 
 ; MAIN UPDATES
 
 
+
 ; how is points and thanks used? currently only thanks in burnout...should it be added to other exits? and likelihood of contributions?
 
+; add in when 1/9/90 created - are they on platform or not - 
 
+; for each relevant go procedure - have a rule for when not on platform - i.e, ask X on platform - do this, ask X not on platform do that
+; for those not on platform - have an offline and online version of rules when not using platform - speak to antonio about this?
+
+; predictability of reward influences choice of task/project?
+
+; higher value if thanks from 1...
+
+; thanks creates friendhsip?
+
+; size of comm may effect rules? - e.g., size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
+; others?
 
 
 
@@ -46,13 +51,16 @@
 ; can only drop one project at a time - can i make it more?
 
 
-; error on drop projects sometimes - contributors with my-tasks = 0
+; error on drop projects sometimes - contributors with my-tasks = 0 - not set in change breeds?
+
+; 1 and 9 never drop a task because it is lonely... is this ok - probably. 9 drop when they have no tasks in it, and 1 drop when they are in overtime
+
+; when 1 product - can never get new 90s - no new products (why?) and so consumption can never go up
 
 
 
 
-
-
+; calibration check - 1% need to make most contributions.
 
 
 
@@ -99,6 +107,8 @@ globals [
   
   ; platform-features                  ; chooser for current platform features turned on/off
   
+  ; proportion-using-platform
+  
   ; initial-number-#1s                 ; initial numbers of these agents
   ; initial-number-#9s
   ; initial-number-#90s
@@ -106,23 +116,12 @@ globals [
   ; initial-tasks
   ; initial-products
   
-  ; proportion-of-community-online      ; used if different rules for finding and contributing to tasks, and making friends,
-                                        ; if some of community is offline
-  
-  ; spatial-limit                       ; means #1s and contributors can only see the tasks in their vision
-  ; vision                              ; distance agents can 'see' to interact with others, when spatial-limit turned on
-  
   ; num-interest-categories             ; number of discrete 'interest' categories
   
-  ; prop-tasks-on-platform              ; proportion of tasks that are using the platform
-  ; prop-tasks-mngt                     ; proportion of tasks that are classed as management tasks (attract different reward?)
-  ; prop-of-tasks-reward-group-decided  ; proportion of tasks that have their reward decided by group that contributed to them
-  
-  ; chance-of-new-task                  ; chance on each timestep that a #1 creates a task
+  ; prop-of-projects-reward-subjective  ; proportion of tasks that have their reward decided subjectively - ie., variation / not as predictable
   
   ; prop-consumed-each-time             ; proportion of a product that is consumed by each #90 on each timestep
-  
-  ; num-prod-per-task                   ; max number of products produced per completed task (random x)
+                                        ; currently just used to measure level of consumption by 90 - not depletion of product - ie., assume non-rivalrous
   
   #1s-left
   #9s-left                              ; count of #9 who have left communuity
@@ -150,6 +149,8 @@ globals [
   num-skills                            ; number of skill types for projects or contributors
   
   ; reward-mechanism                    ; chooser specifying which reward mechanism is currently being used
+  
+  ; chance-of-finding-new-task          ; chance per tick working on a task idenitfies a new task
   
   #9-left-no-interest                   ; recording why #9 leave comm
   #9-left-#9-here
@@ -293,14 +294,13 @@ projects-own [
   my-product
   likes                        ; used in position in list
   likes-history
-  reward-type                  ; obj or group - how reward to each contributor is decided
+  reward-type                  ; obj or subj - how reward to each contributor is decided
   reward-level                 ; amount of reward random 100
   current-contributors
 ]
 
 t4sks-own [
   my-project                   ; project task is within
-  on-platform?                 ; yes/no - is the task on the platform?
   typ3                         ; mngt/prod - type of task, management or actual product - only prod tasks produce a product for #90s
   inter3st                     ; interest score - random num-interest-categories
   time-required                ; time required to complete tasks random 1000
@@ -335,7 +335,7 @@ projectproductlinks-own [ ageL ]
 to setup
   clear-all
   
-  if platform-features = TRUE and how-community-works-without-platform = "online open" 
+  if platform-features = TRUE
    [ ;; colour lines to mark projects and products spaces
      ask patches with [pxcor = 17 OR pxcor = -5 OR pxcor = -14  OR pxcor = -4] [set pcolor white]
      ;; set some globals to zero / reset-ticks
@@ -352,11 +352,11 @@ to setup
      reset-ticks
    ]
   
-  if platform-features = TRUE and how-community-works-without-platform = "online closed" []
-  if platform-features = TRUE and how-community-works-without-platform = "offline" []
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = TRUE and community-type = "online closed" []
+  if platform-features = TRUE and community-type = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
   
  
 end
@@ -414,17 +414,12 @@ to create-existing-projects
       set inter3st random num-interest-categories
       set production-history []
       set reward-level random 100
-      ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "subjective" ] 
+      ifelse random-float 1 < prop-of-projects-reward-subjective [ set reward-type "subjective" ] 
                                                                  [ set reward-type "objective" ]
       hatch-t4sks num-tasks [ 
                              set size 0.7
                              set color green
                              set shape "circle" 
-                             
-                             
-                             ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
-                                                                            [ set on-platform? false ]
-                             
                              set inter3st [inter3st] of myself
                              
                              set time-required random 1000
@@ -461,7 +456,7 @@ end
 
 to create-existing-product
   create-products initial-products [
-    set inter3st random num-interest-categories
+    set inter3st random num-interest-categories 
     set xcor -10
     set ycor -25 + inter3st
     set size 2
@@ -543,12 +538,18 @@ end
 
 to create-#90
   create-#90s initial-number-90s [
-    set interest random num-interest-categories
+    ifelse number-of-products = "one" [ set interest [ inter3st ] of one-of products + random 20 - 10
+                                        if interest > 50 [ set interest 50 ]
+                                        if interest < 0  [ set interest 0  ] ]
+                                      [ set interest random num-interest-categories ]
     set xcor random 8 - 22
     set ycor -25 + interest
     set size 1
     set color yellow
     set consumption 0
+    
+    create-consumerlink-with min-one-of products [ distance myself ]
+    
   ]
 end
 
@@ -640,9 +641,9 @@ to find-projects
                                                                 [ set my-projects lput new-project my-projects ] ] ] ]
                         ] 
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online " []
+
+  if platform-features = FALSE and community-type = "offline" []
   
 end
 
@@ -711,14 +712,15 @@ to find-tasks
         ] ]
   
   
-  
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online " []
+
+  if platform-features = FALSE and community-type = "offline" []
   
 end
 
 to contribute-to-tasks
+  
+  if platform-features = TRUE [
   
   ; update time availability, if no time left, drop tasks
  
@@ -728,7 +730,7 @@ to contribute-to-tasks
                 if chance < 0.33 [ ask link-with ( min-one-of tasklink-neighbors [ xcor ] ) [die] ]
                 if chance >= 0.33 and chance < 0.66 [ ask link-with ( max-one-of tasklink-neighbors [ time-required ] ) [die] ]
                 if chance >= 0.66 [ ask link-with ( min-one-of tasklink-neighbors [ count tasklink-neighbors with [ one-of friendlink-neighbors = [ myself ] of myself  ] ] ) [die] ]
-                set #1-dropped-a-task #1-dropped-a-task + 2
+                set #1-dropped-a-task #1-dropped-a-task + 1
                                                        ]        
              if count my-tasklinks > 0 [
              set my-tasks-1s tasklink-neighbors
@@ -748,7 +750,7 @@ to contribute-to-tasks
                 if chance < 0.33 [ ask link-with ( min-one-of tasklink-neighbors [ xcor ] ) [die] ]
                 if chance >= 0.33 and chance < 0.66 [ ask link-with ( max-one-of tasklink-neighbors [ time-required ] ) [die] ]
                 if chance >= 0.66 [ ask link-with ( min-one-of tasklink-neighbors [ count tasklink-neighbors with [ one-of friendlink-neighbors = [ myself ] of myself  ] ] ) [die] ] 
-                                                     ]        
+                set #9-dropped-a-task #9-dropped-a-task + 1                                     ]        
              
              if count my-tasklinks > 0 [
                 set my-tasks tasklink-neighbors
@@ -779,11 +781,11 @@ to contribute-to-tasks
   
   ask projects [ set my-tasks-projects t4sks with [ my-project = myself ]
                  set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects ]
+]
   
-  
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online " []
+
+  if platform-features = FALSE and community-type = "offline" []
   
 end
 
@@ -804,6 +806,7 @@ to drop-projects
       ask lonely-unpopular-tasks [ ask my-tasklinks [die] ]
       set my-tasks-1s tasklink-neighbors
       set #1-dropped-a-task #1-dropped-a-task + (count lonely-unpopular-tasks )
+      
       ]]
        
        
@@ -823,20 +826,19 @@ to drop-projects
       ask lonely-unpopular-tasks [ ask my-tasklinks [die] ]
       set my-tasks tasklink-neighbors
       set #9-dropped-a-task #9-dropped-a-task + (count lonely-unpopular-tasks )
+       
       ]]
   
-  
-  
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
  
   
   ; 9s drop projects if i have no tasks in them and a certain chance
   
   ask #9s [ if count ( turtle-set my-projects ) with [ not member? self [ [ my-project ] of my-tasks ] of myself ] > 0 and random-float 1 < 0.2 
             [ let projects-to-drop ( turtle-set my-projects ) with [not member? self [ [my-project] of my-tasks ] of myself ]  
+              
               set my-projects remove one-of projects-to-drop my-projects
+              
+              set #9-dropped-a-project #9-dropped-a-project + 1
             ]
            ]
 
@@ -868,9 +870,6 @@ to make-and-lose-friends
           ]
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
 end
 
 to give-out-reward
@@ -879,18 +878,11 @@ to give-out-reward
   
   ; competitive is quantitative - get reward when task is complete, reward is then used in deciding whether to contribute again etc, 
   
-  ; thanks - increases feeling of belonging, directed from anyone (1,9,90) to a contributor, but value is higher from 1 than 9 etc, also public thanks is better than private
+  ; thanks - value is higher from 1 than 9 etc, also public thanks is better than private
   
-  ; thanks occur after the project is finished and the results can be seen. For quantitative/competitive this seams to be also the appropriate choice.
- 
- ;The expression of gratitude among community members create social ties (friendship in the model),
-; - To receive thanks create belonging feeling
- ;- Thanks mechanism (unlike quantitative/competitive) allows to appreciate non visible work, such as cleaning an space after a party. However...
- ;- ... Non visible contributions are less frequently appreciated than visible ones
+  ;The expression of gratitude among community members create social ties (friendship in the model),
 
-;Our hypothesis is that competitive/quantitative approach is gender biased towards male participants while thanks is not
-
-; We also identified different thanks mechanisms that are not exclusive: personal thanks (person to person) or public thanks (a person thanks another in a place that is visible to the community).
+  ; We also identified different thanks mechanisms that are not exclusive: personal thanks (person to person) or public thanks (a person thanks another in a place that is visible to the community).
   
   
   if reward-mechanism = "'thanks' only" [
@@ -972,9 +964,9 @@ to finished-projects
     ;; BUT WHEN A PROJECT FINISHES AND HATCHES A PRODUCT - SHOULD IT NOT CONTINUE TO MAINTAIN THAT PRODUCT?
     
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
 end
    
 to tasks-identified
@@ -982,13 +974,13 @@ to tasks-identified
     ;; if more people are working on a task - more likley to create further tasks
     
    ask t4sks [ if count tasklink-neighbors > 0 [
-      if chance-of-finding-new-task > random-float 1 [ create-new-task ] ] ] 
+      if random-float 1 < chance-of-finding-new-task [ create-new-task ] ] ] 
  
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
 end
   
 to create-new-task
@@ -997,8 +989,6 @@ to create-new-task
                  set size 0.7
                  set color green
                  set shape "circle" 
-                 ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
-                                                                [ set on-platform? false ]
                  t4sk-set-typ3       
                  set inter3st [inter3st] of myself
                  set time-required random 1000
@@ -1025,9 +1015,9 @@ to projects-die
   ] ]
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
 end
 
 to calc-recent-activity
@@ -1059,9 +1049,9 @@ to new-projects
   
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
   
 end
 
@@ -1071,14 +1061,12 @@ to #1-or-#9-hatch-project
         set num-tasks random 10 + 2
         set production-history []
         set reward-level random 100
-        ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "subjective" ] 
+        ifelse random-float 1 < prop-of-projects-reward-subjective [ set reward-type "subjective" ] 
                                                                    [ set reward-type "objective" ]
         ifelse inter3st > 3 [ set inter3st [interest ] of myself  + random 3 - random 3 ] [ set inter3st [interest ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
                                 set shape "circle" 
-                                ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
-                                                                               [ set on-platform? false ]
                                 t4sk-set-typ3
                                 set inter3st [inter3st] of myself
                                 set time-required random 1000
@@ -1115,14 +1103,12 @@ to project-hatch-a-project
         set num-tasks random 10 + 2
         set production-history []
         set reward-level random 100
-        ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "subjective" ] 
+        ifelse random-float 1 < prop-of-projects-reward-subjective [ set reward-type "subjective" ] 
                                                                    [ set reward-type "objective" ]
         ifelse inter3st > 3 [ set inter3st [inter3st ] of myself  + random 3 - random 3 ] [ set inter3st [inter3st ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
                                 set shape "circle" 
-                                ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
-                                                                               [ set on-platform? false ]
                                 t4sk-set-typ3
                                 set inter3st [inter3st] of myself
                                 set time-required random 1000
@@ -1153,7 +1139,19 @@ end
 
 to birth-a-product
   
- if number-of-products = "one" []
+ if number-of-products = "one" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
+                                            set xcor -10
+                                            set ycor -25 + inter3st
+                                            set size 2
+                                            set color orange
+                                            set shape "box"
+                                            set volume random 100
+                                            set age 0
+                                            set mon-project (list (myself))
+                                            set consumption-history []
+                                            create-projectproductlink-with one-of mon-project [ set color red ]
+                                            set new-products-count new-products-count + 1
+                                           ] ]
  
  if number-of-products = "a few" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
                                             set xcor -10
@@ -1209,9 +1207,9 @@ to consume-products
   ask consumerlinks [ if random-float 1 < 0.1 [die] ]
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
   
   
 end
@@ -1220,6 +1218,7 @@ end
 to entry
   ; 90 enter if see high recent consumption activity
   
+  if community-con-activity-t-10 != 0 [ 
   if (( community-con-activity-t-2 + 
         community-con-activity-t-1 + 
         community-con-activity-t ) / 3 )
@@ -1234,7 +1233,7 @@ to entry
         community-con-activity-t-3 +
         community-con-activity-t-2 +
         community-con-activity-t-1 +
-        community-con-activity-t ) / 11 ) * 1.5 [
+        community-con-activity-t ) / 11 ) * new-90s-barrier [
         
     create-#90s ( round ( initial-number-90s / 10 )) [
       set interest random num-interest-categories
@@ -1244,7 +1243,7 @@ to entry
       set color yellow
       set consumption 0
       set new-#90s-total new-#90s-total + 1
-  ]]
+  ]]]
   
   ; 9 enter if see recent jump in consumption
   
@@ -1299,9 +1298,9 @@ to entry
   
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
 end
 
 to exit
@@ -1363,9 +1362,9 @@ to exit
   
   ]
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
 end
 
 to change-breed
@@ -1522,7 +1521,7 @@ to update-project-position
                  if length likes-history = 11 [ set likes-history but-first likes-history ] 
   
       if length likes-history > 3 and mean likes-history > 0  [ let history-difference mean sublist likes-history (length likes-history - 3) (length likes-history ) - mean likes-history
-      if random-float 1 < 0.1 [ set xcor max list ( xcor + history-difference / mean likes-history * 10 ) ( -4 ) ]] 
+      if random-float 1 < 0.1 [ set xcor max list ( xcor + history-difference / mean likes-history * 2 ) ( -4 ) ]] 
       
       
       
@@ -1553,9 +1552,9 @@ to update-project-position
               fd 1           
             ]
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
   
 end
 
@@ -1581,9 +1580,9 @@ to update-product-position
     if xcor > -6 [ set xcor -6 ]
   ]
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
   
 end
 
@@ -1610,9 +1609,9 @@ to update-90s-and-9s-and-1s-positions
     ]]
   
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
   
 end
 
@@ -1650,13 +1649,13 @@ end
 to products-die
   
   ask products [ if count my-consumerlinks = 0 [ 
-                 if random-float 1 < 0.01 [ 
+                 if random-float 1 < 0.1 [ 
                    set product-had-no-consumer-so-left product-had-no-consumer-so-left + 1 
                    die ] ] ]
   
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
+  if platform-features = FALSE and community-type = "online open" []
+  if platform-features = FALSE and community-type = "online closed" []
+  if platform-features = FALSE and community-type = "offline" []
   
   
 end
@@ -1682,10 +1681,10 @@ to t4sk-set-typ3
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-280
-90
-838
-669
+325
+180
+883
+759
 25
 25
 10.75
@@ -1788,10 +1787,10 @@ NIL
 HORIZONTAL
 
 PLOT
-1073
-74
-1523
-263
+975
+70
+1425
+259
 Size of Community
 NIL
 NIL
@@ -1808,10 +1807,10 @@ PENS
 "#90s" 1.0 0 -1184463 true "" "plot count #90s"
 
 PLOT
-2008
-1029
-2253
-1204
+1809
+895
+2054
+1070
 Entry&Exit Per Tick
 NIL
 NIL
@@ -1829,57 +1828,12 @@ PENS
 "Exit#9s" 1.0 0 -14730904 true "" "if ticks > 0 [ plot #9s-left / ticks]"
 
 SLIDER
-20
-785
-260
-818
-proportion-of-community-online
-proportion-of-community-online
-0
-1
-0.41
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-20
-750
-260
-783
-prop-tasks-on-platform
-prop-tasks-on-platform
-0
-1
-0.2
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-40
-1032
-280
-1065
-prop-tasks-mngt
-prop-tasks-mngt
-0
-1
-0.3
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-40
-1067
-280
-1100
-prop-of-tasks-reward-group-decided
-prop-of-tasks-reward-group-decided
+15
+870
+287
+904
+prop-of-projects-reward-subjective
+prop-of-projects-reward-subjective
 0
 1
 0.5
@@ -1888,26 +1842,11 @@ prop-of-tasks-reward-group-decided
 NIL
 HORIZONTAL
 
-SLIDER
-158
-265
-271
-298
-vision
-vision
-0
-50
-9
-1
-1
-NIL
-HORIZONTAL
-
 PLOT
-1442
-1018
-1602
-1138
+1443
+1032
+1603
+1152
 Tasks' TimeReq
 NIL
 NIL
@@ -1958,10 +1897,10 @@ PENS
 "default" 1.0 1 -13345367 true "" "histogram [ points ] of #9s"
 
 PLOT
-1282
-1018
 1442
-1138
+898
+1602
+1018
 Projects' RewardLevel
 NIL
 NIL
@@ -1976,10 +1915,10 @@ PENS
 "default" 5.0 1 -13840069 true "" "histogram [reward-level] of projects"
 
 PLOT
-1060
-330
-1305
-480
+976
+365
+1426
+515
 Tasks&Products
 NIL
 NIL
@@ -2021,7 +1960,7 @@ initial-products
 initial-products
 0
 100
-55
+77
 1
 1
 NIL
@@ -2079,10 +2018,10 @@ PENS
 "default" 5.0 1 -13345367 true "" "histogram [time] of #9s"
 
 PLOT
-2280
-600
-2518
-720
+2126
+232
+2364
+352
 Overtime
 NIL
 NIL
@@ -2095,7 +2034,7 @@ true
 "" ""
 PENS
 "#1s" 1.0 0 -2674135 true "" "plot count #1s with [ time < 0 ]"
-"Peri" 1.0 0 -13345367 true "" "plot count #9s with [ time < 0 ]"
+"#9s" 1.0 0 -13345367 true "" "plot count #9s with [ time < 0 ]"
 
 PLOT
 750
@@ -2116,10 +2055,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [consumption] of #90s"
 
 SLIDER
-39
-1213
-359
-1246
+16
+945
+289
+979
 prop-consumed-each-time
 prop-consumed-each-time
 0
@@ -2130,45 +2069,11 @@ prop-consumed-each-time
 NIL
 HORIZONTAL
 
-PLOT
-2264
-359
-2501
-479
-Ave No. Links
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"Tasks" 1.0 0 -13840069 true "" "if count t4sks > 0 [ plot mean [count link-neighbors] of t4sks ]"
-"Prod" 1.0 0 -955883 true "" "if count products > 0 [ plot mean [count link-neighbors] of products ]"
-
 SLIDER
-40
-1102
-280
-1135
-chance-of-new-task
-chance-of-new-task
-0
-0.5
-0.01
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-19
-697
-259
-730
+15
+834
+288
+868
 num-interest-categories
 num-interest-categories
 0
@@ -2180,10 +2085,10 @@ NIL
 HORIZONTAL
 
 PLOT
-2264
-239
-2502
-359
+2123
+69
+2361
+189
 Ave No. Links
 NIL
 NIL
@@ -2217,54 +2122,54 @@ NIL
 1
 
 MONITOR
-1428
-270
-1528
-315
-NIL
+1325
+260
+1395
+305
+#90s Left
 #90s-left
 0
 1
 11
 
 MONITOR
-1223
-270
-1323
-315
-NIL
+1190
+260
+1255
+305
+#9s Left
 #9s-left
 17
 1
 11
 
 MONITOR
-1122
-270
-1224
-315
-NIL
+1125
+260
+1190
+305
+New #9s
 new-#9s-total
 0
 1
 11
 
 MONITOR
-1323
-270
-1430
-315
-NIL
+1260
+260
+1325
+305
+New #90s
 new-#90s-total
 0
 1
 11
 
 MONITOR
-954
-193
-1052
-238
+740
+65
+820
+110
 NIL
 count #1s
 0
@@ -2272,10 +2177,10 @@ count #1s
 11
 
 MONITOR
-954
-239
-1052
-284
+820
+65
+890
+110
 NIL
 count #9s
 0
@@ -2283,10 +2188,10 @@ count #9s
 11
 
 MONITOR
-954
-283
-1052
-328
+355
+65
+440
+110
 NIL
 count #90s
 0
@@ -2294,10 +2199,10 @@ count #90s
 11
 
 MONITOR
-949
-423
-1048
-468
+540
+50
+635
+95
 NIL
 count t4sks
 0
@@ -2305,10 +2210,10 @@ count t4sks
 11
 
 MONITOR
-949
-378
-1049
-423
+445
+50
+540
+95
 NIL
 count products
 0
@@ -2316,10 +2221,10 @@ count products
 11
 
 PLOT
-2378
-900
-2623
-1050
+1925
+1098
+2170
+1248
 ProdCons&TasksCompl
 NIL
 NIL
@@ -2335,10 +2240,10 @@ PENS
 "Tasks" 1.0 0 -13840069 true "" "plot tasks-completed"
 
 PLOT
-2378
-1050
-2623
-1200
+1925
+1248
+2170
+1398
 NewProd&Tasks
 NIL
 NIL
@@ -2355,10 +2260,10 @@ PENS
 "Projects" 1.0 0 -15575016 true "" "plot count-new-projects"
 
 MONITOR
-2278
-960
-2378
-1005
+1825
+1158
+1925
+1203
 NIL
 products-consumed
 0
@@ -2366,10 +2271,10 @@ products-consumed
 11
 
 MONITOR
-2278
-1004
-2378
-1049
+1825
+1202
+1925
+1247
 NIL
 tasks-completed
 0
@@ -2377,10 +2282,10 @@ tasks-completed
 11
 
 MONITOR
-2273
-1154
-2378
-1199
+1821
+1352
+1926
+1397
 NIL
 new-tasks-count
 0
@@ -2388,10 +2293,10 @@ new-tasks-count
 11
 
 MONITOR
-2273
-1110
-2378
-1155
+1821
+1308
+1926
+1353
 NIL
 new-products-count
 0
@@ -2543,29 +2448,10 @@ PENS
 "default" 5.0 1 -13840069 true "" "histogram [time-in-community] of #90s"
 
 PLOT
-1282
-898
-1442
-1018
-Tasks' Type
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"Mngt" 1.0 0 -5825686 true "" "plot count t4sks with [typ3 = \"mngt\"]"
-"Prod" 1.0 0 -7500403 true "" "plot count t4sks with [typ3 = \"prod\"]"
-
-PLOT
-1602
-898
-1762
-1018
+1600
+1150
+1760
+1270
 Tasks' Interest
 NIL
 NIL
@@ -2580,9 +2466,9 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [inter3st] of t4sks"
 
 PLOT
-1442
+1282
 898
-1602
+1442
 1018
 Projects' RewardType
 NIL
@@ -2599,10 +2485,10 @@ PENS
 "Obj" 1.0 0 -7500403 true "" "plot count projects with [reward-type = \"objective\" ]"
 
 PLOT
-1602
-1018
-1762
-1138
+1603
+1032
+1763
+1152
 Tasks' SkillReq
 NIL
 NIL
@@ -2617,10 +2503,10 @@ PENS
 "default" 10.0 1 -13840069 true "" "histogram [skill-required] of t4sks"
 
 PLOT
-1282
-1138
-1442
-1258
+1283
+1152
+1443
+1272
 Tasks' Modularity
 NIL
 NIL
@@ -2635,10 +2521,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [modularity] of t4sks"
 
 PLOT
-1442
-1138
-1602
-1258
+1443
+1152
+1603
+1272
 Tasks' Age
 NIL
 NIL
@@ -2671,33 +2557,15 @@ PENS
 "default" 1.0 1 -955883 true "" "histogram [inter3st] of products"
 
 PLOT
-1547
-695
-1889
-815
-Prod's Volume
-NIL
-NIL
-0.0
-1000.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 50.0 1 -955883 true "" "histogram [volume] of products"
-
-PLOT
+1442
+1289
 1602
-1288
-1762
-1408
+1409
 Prod's Age
 NIL
 NIL
 0.0
-50.0
+200.0
 0.0
 10.0
 true
@@ -2706,59 +2574,11 @@ false
 PENS
 "default" 10.0 1 -955883 true "" "histogram [age] of products"
 
-SLIDER
-39
-1253
-361
-1286
-num-prod-per-task
-num-prod-per-task
-0
-50
-15
-1
-1
-NIL
-HORIZONTAL
-
-SWITCH
-28
-265
-160
-298
-spatial-limit
-spatial-limit
-0
-1
--1000
-
 MONITOR
-594
-838
-724
-883
-NIL
-#9-to-#1-count
-0
-1
-11
-
-MONITOR
-727
-838
-857
-883
-NIL
-#1-to-#9-count
-0
-1
-11
-
-MONITOR
-958
-38
-1038
-83
+740
+20
+820
+65
 % #1s
 ( count #1s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2766,10 +2586,10 @@ MONITOR
 11
 
 MONITOR
-958
-83
-1028
-128
+820
+20
+890
+65
 % #9s
 ( count #9s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2777,10 +2597,10 @@ MONITOR
 11
 
 MONITOR
-958
-127
-1044
-172
+355
+20
+441
+65
 % #90s
 ( count #90s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2788,30 +2608,10 @@ MONITOR
 11
 
 PLOT
-2264
-478
-2501
-598
-No. Links
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"#1s" 1.0 0 -2674135 true "" "plot sum [ count my-links] of #1s"
-"#9s" 1.0 0 -13345367 true "" "plot sum [ count my-links] of #9s"
-"#90s" 1.0 0 -13840069 true "" "plot sum [count my-links] of #90s"
-
-PLOT
-2008
-893
-2252
-1030
+2126
+488
+2370
+625
 Long time Members
 NIL
 NIL
@@ -2828,11 +2628,11 @@ PENS
 "2 years" 1.0 0 -8431303 true "" "plot (( count #1s with [ time-in-community > 104 ] ) + ( count #9s with [ time-in-community > 104 ]) + ( count #90s with [ time-in-community > 104 ] )) / ( count #1s + count #9s + count #90s )"
 
 PLOT
-1985
-265
-2230
-424
-Why #9s Leave
+1809
+223
+2064
+382
+Why #9s Left
 NIL
 NIL
 0.0
@@ -2849,10 +2649,10 @@ PENS
 "Burnout" 1.0 0 -955883 true "" "plot #9-left-burnout"
 
 PLOT
-1985
-85
-2229
-264
+1809
+69
+2064
+219
 Why #1s Left 
 NIL
 NIL
@@ -2867,157 +2667,12 @@ PENS
 "BurntOut" 1.0 0 -16777216 true "" "plot #1-left-burnout"
 "Became #9s" 1.0 0 -13345367 true "" "plot #1-to-#9-count"
 
-SLIDER
-38
-897
-362
-930
-#9s-time-with-no-links-to-consider-leaving
-#9s-time-with-no-links-to-consider-leaving
-1
-10
-10
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-38
-928
-395
-961
-#90s-time-without-products-to-consider-leaving
-#90s-time-without-products-to-consider-leaving
-1
-10
-5
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-38
-962
-450
-995
-motivation-threshold-for-1s-to-leave
-motivation-threshold-for-1s-to-leave
-0
-0.1
-0.05
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-39
-1318
-363
-1351
-reward-for-9s-to-become-1s
-reward-for-9s-to-become-1s
-0
-500
-100
-10
-1
-NIL
-HORIZONTAL
-
-SLIDER
-39
-1355
-364
-1388
-time-for-9s-to-become-1s
-time-for-9s-to-become-1s
-0
-208
-51
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-39
-1388
-364
-1421
-motivation-low-for-1s-to-become-9s
-motivation-low-for-1s-to-become-9s
-0
-0.5
-0.19
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-39
-1425
-364
-1458
-time-low-for-1s-to-become-9s
-time-low-for-1s-to-become-9s
-0
-50
-10
-1
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-80
-872
-247
-890
-entry&exit parameters
-14
-0.0
-1
-
-TEXTBOX
-119
-1008
-251
-1028
-task parameters
-14
-0.0
-1
-
-TEXTBOX
-120
-1188
-287
-1208
-product parameters
-14
-0.0
-1
-
-TEXTBOX
-102
-1297
-329
-1324
-switching breed parameters
-14
-0.0
-1
-
 PLOT
-1984
-567
-2230
-740
-Why #9s Enter?
+1809
+543
+2064
+698
+Why #9s and #90s Enter?
 NIL
 NIL
 0.0
@@ -3028,13 +2683,14 @@ true
 true
 "" ""
 PENS
-"See #90s" 1.0 0 -955883 true "" "plot new-#9-attracted-by-#90s"
+"#9s See #90s" 1.0 0 -955883 true "" "plot new-#9-attracted-by-#90s"
+"#90s See Consumption " 1.0 0 -7500403 true "" "plot new-#90s-total"
 
 TEXTBOX
-47
-830
-367
-874
+30
+765
+350
+809
 ---ADVANCED PARAMETERS---
 14
 0.0
@@ -3061,30 +2717,30 @@ TEXTBOX
 1
 
 TEXTBOX
-1073
-34
-1536
-54
+975
+30
+1438
+50
 --------------------MAIN OUTPUTS-------------------
 14
 0.0
 1
 
 TEXTBOX
-1998
-52
-2227
-72
+1819
+29
+2054
+49
 ---OUTPUT: WHY EXIT/ENTER---
 14
 0.0
 1
 
 TEXTBOX
-2257
-198
-2530
-233
+2116
+28
+2389
+63
 ---OUTPUT: LINKS-STRUCTURE---
 14
 0.0
@@ -3106,46 +2762,46 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-860
-215
-875
-585
-^\n|\n|\n|\n|\n|\n|\ni\nn\nt\ne\nr\ne\ns\nt\n|\n|\n|\n|\n|\n|\nV\n
+905
+211
+920
+752
+^\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\ni\nn\nt\ne\nr\ne\ns\nt\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\nV\n
 14
 0.0
 1
 
 TEXTBOX
-345
-680
-855
-753
-90          Products                      Projects                      1      9 \n                <--More         ---More recent activity-->\n               Appealing-
+385
+120
+895
+191
+                 Products                                             \n                 <--More                      Projects\n#90s          Appealing-          ---Higher in list--->        #1s   #9s
 15
 0.0
 1
 
 SLIDER
-40
-1135
-267
-1168
+15
+908
+288
+942
 chance-of-finding-new-task
 chance-of-finding-new-task
 0
 1
-0.01
-0.01
+0.0010
+0.001
 1
 NIL
 HORIZONTAL
 
 PLOT
-1305
-329
-1540
-479
-HistoNumTasks
+1600
+898
+1760
+1019
+HistoProjectsNumTasks
 NIL
 NIL
 0.0
@@ -3159,53 +2815,15 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [num-tasks] of projects"
 
 MONITOR
-2273
-1068
-2378
-1113
+1821
+1266
+1926
+1311
 NIL
 count-new-projects
 0
 1
 11
-
-PLOT
-1805
-898
-1965
-1023
-HistoProjectsProdActivity
-NIL
-NIL
--10.0
-50.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 1 -16777216 true "" "histogram [production-history] of projects"
-
-PLOT
-1820
-1280
-1980
-1400
-TypePref
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"Prod" 1.0 0 -16777216 true "" "plot count #9s with [typ3-preference = \"prod\"]"
-"Mngt" 1.0 0 -7500403 true "" "plot count #9s with [typ3-preference = \"mngt\"]"
-"Both" 1.0 0 -2674135 true "" "plot count #9s with [typ3-preference = \"both\"]"
 
 TEXTBOX
 885
@@ -3218,11 +2836,11 @@ TEXTBOX
 1
 
 PLOT
-1060
-630
-1300
-750
-ConsumptionActivity
+976
+636
+1202
+757
+Aggregate Consumption
 NIL
 NIL
 0.0
@@ -3246,11 +2864,11 @@ PENS
 "t" 1.0 0 -13791810 true "" "plot community-con-activity-t"
 
 PLOT
-1300
-635
-1535
-755
-ProductionActivity
+1200
+636
+1426
+757
+Aggregate Production
 NIL
 NIL
 0.0
@@ -3274,11 +2892,11 @@ PENS
 "pen-10" 1.0 0 -13791810 true "" "plot community-prod-activity-t"
 
 PLOT
-1058
-483
-1302
-633
-Links
+976
+516
+1202
+637
+Count Links
 NIL
 NIL
 0.0
@@ -3289,15 +2907,15 @@ true
 true
 "" ""
 PENS
-"tasklinks" 1.0 0 -7500403 true "" "plot count tasklinks"
-"friendlinks" 1.0 0 -13345367 true "" "plot count friendlinks"
-"consumerlinks" 1.0 0 -2674135 true "" "plot count consumerlinks"
+"Task" 1.0 0 -7500403 true "" "plot count tasklinks"
+"Friend" 1.0 0 -13345367 true "" "plot count friendlinks"
+"Cons" 1.0 0 -13840069 true "" "plot count consumerlinks"
 
 MONITOR
-949
-468
-1051
-513
+635
+50
+730
+95
 NIL
 count projects
 17
@@ -3305,10 +2923,10 @@ count projects
 11
 
 PLOT
-1300
-486
-1538
-636
+1200
+516
+1426
+637
 AgesOfLinks
 NIL
 NIL
@@ -3321,25 +2939,25 @@ true
 "" ""
 PENS
 "Friend" 1.0 0 -13345367 true "" "if count friendlinks > 0 [ plot mean [ageL] of friendlinks ]"
-"Consumer" 1.0 0 -2674135 true "" "if count consumerlinks > 0 [ plot mean [ageL] of consumerlinks ]"
+"Consumer" 1.0 0 -13840069 true "" "if count consumerlinks > 0 [ plot mean [ageL] of consumerlinks ]"
 "Task" 1.0 0 -7500403 true "" "if count tasklinks > 0 [ plot mean [ageL] of tasklinks ]"
 
 CHOOSER
-25
-215
-265
+20
+200
 260
+245
 reward-mechanism
 reward-mechanism
 "'thanks' only" "'points' only" "both"
 2
 
 PLOT
-1545
-80
-1885
-230
-contributions-made
+1445
+70
+1785
+255
+Average Contributions Made
 NIL
 NIL
 0.0
@@ -3350,19 +2968,19 @@ true
 true
 "" ""
 PENS
-"No. Contributions 1s" 1.0 0 -2139308 true "" "plot contributions-made-by-1s"
-"Time Contributed 1s (hrs)" 1.0 0 -8053223 true "" "plot time-contributed-by-1s"
-"No. Contributions 9s" 1.0 0 -8275240 true "" "plot contributions-made-by-9s"
-"Time Contributed 9s (hrs)" 1.0 0 -14730904 true "" "plot time-contributed-by-9s"
+"No. Contributions 1s" 1.0 0 -2139308 true "" "if count #1s > 0 [ plot contributions-made-by-1s / count #1s ]"
+"Time Contributed 1s (hrs)" 1.0 0 -8053223 true "" "if count #1s > 0 [ plot time-contributed-by-1s / count #1s ]"
+"No. Contributions 9s" 1.0 0 -8275240 true "" "if count #9s > 0 [ plot contributions-made-by-9s / count #9s ]"
+"Time Contributed 9s (hrs)" 1.0 0 -14730904 true "" "if count #9s > 0 [ plot time-contributed-by-9s / count #9s ]"
 
 CHOOSER
 20
 350
 260
 395
-how-community-works-without-platform
-how-community-works-without-platform
-"online open" "online closed" "offline"
+community-type
+community-type
+"online" "offline"
 0
 
 CHOOSER
@@ -3376,10 +2994,10 @@ number-of-products
 2
 
 PLOT
-1545
-230
-1885
-380
+1445
+625
+1785
+755
 Dropped Projects&Tasks
 NIL
 NIL
@@ -3397,28 +3015,10 @@ PENS
 "9 project" 1.0 0 -5325092 true "" "plot #9-dropped-a-project"
 
 PLOT
-2260
-10
-2460
-160
-HistoAgeofTaskLinks
-NIL
-NIL
-0.0
-500.0
-0.0
-10.0
-false
-false
-"" ""
-PENS
-"default" 5.0 1 -16777216 true "" "histogram [ageL] of tasklinks"
-
-PLOT
-2280
-730
-2522
-850
+2128
+358
+2369
+479
 Projects Finished & Died
 NIL
 NIL
@@ -3434,10 +3034,10 @@ PENS
 "Died" 1.0 0 -7500403 true "" "plot projects-died"
 
 SWITCH
-25
-175
-265
-208
+20
+160
+260
+193
 platform-features
 platform-features
 0
@@ -3445,10 +3045,10 @@ platform-features
 -1000
 
 PLOT
-1545
-380
-1885
-530
+1445
+270
+1785
+445
 ChangeRole
 NIL
 NIL
@@ -3464,34 +3064,19 @@ PENS
 "#9->#1" 1.0 0 -7500403 true "" "plot #9-to-#1-count"
 "#1->#9" 1.0 0 -2674135 true "" "plot #1-to-#9-count"
 
-SLIDER
-45
-1500
-365
-1533
-chance-of-9-contribution
-chance-of-9-contribution
-0
-1
-0.1
-0.05
-1
-NIL
-HORIZONTAL
-
 PLOT
-1545
-535
-1885
-685
+1445
+460
+1785
+610
 ContributionsHisto
 NIL
 NIL
 0.0
-100.0
+200.0
 0.0
-10.0
-true
+8.0
+false
 false
 "" ""
 PENS
@@ -3499,10 +3084,10 @@ PENS
 "#1s" 1.0 1 -2139308 true "" "histogram [ my-total-contribution-1s ] of #1s"
 
 PLOT
-1984
-424
-2229
-574
+1809
+389
+2064
+539
 Why #90s Leave?
 NIL
 NIL
@@ -3514,15 +3099,89 @@ true
 true
 "" ""
 PENS
-"No product they liked" 1.0 0 -16777216 true "" "plot #90s-left-no-product"
+"No product 4 them" 1.0 0 -16777216 true "" "plot #90s-left-no-product"
 
 MONITOR
-1063
-269
+1060
+260
 1122
-314
-NIL
+305
+#1s Left
 #1s-left
+0
+1
+11
+
+SLIDER
+20
+250
+260
+283
+proportion-using-platform
+proportion-using-platform
+0
+1
+1
+0.1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+1000
+260
+1062
+305
+New #1s
+#9-to-#1-count
+0
+1
+11
+
+SLIDER
+16
+796
+286
+829
+new-90s-barrier
+new-90s-barrier
+0
+5
+1.5
+0.25
+1
+NIL
+HORIZONTAL
+
+MONITOR
+1326
+306
+1396
+352
+#90->#9
+#90-to-#9-count
+0
+1
+11
+
+MONITOR
+1192
+306
+1257
+352
+#9->#1
+#9-to-#1-count
+0
+1
+11
+
+MONITOR
+1062
+305
+1125
+351
+#1->#9
+#1-to-#9-count
 0
 1
 11
