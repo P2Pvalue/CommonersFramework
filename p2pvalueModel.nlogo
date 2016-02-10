@@ -40,13 +40,7 @@
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
 
 
-; when using production-activity use the history instead
-
-
-; tasks-to-products - changed to porjects-to-products ...ie., projects finishing has an affect on products
-
-
-; projects finish - to be erased once tasks to products changed
+; WHEN A PROJECT FINISHES AND HATCHES A PRODUCT - SHOULD IT NOT CONTINUE TO MAINTAIN THAT PRODUCT?
 
 
 ; add friends working on a task increase chance of contributing to it
@@ -183,6 +177,7 @@ globals [
   new-#9-attracted-by-#90s
     
   projects-died                         ; count of projects 'died'
+  projects-finished
   
   count-new-projects                    ; count new projects
   
@@ -377,10 +372,10 @@ to go
   drop-projects
   make-and-lose-friends           ;; friendships formed and broken
   give-out-reward                 ;; tasks give out reward depending on reward mechanism
-  tasks-to-products               ;; completed tasks become products or improve existing ones - SHOULD THIS BE PROJECTS?
+  finished-tasks-and-projects-to-products    ;; completed tasks become products or improve existing ones - SHOULD THIS BE PROJECTS?
   tasks-identified                ;; creates new tasks from existing tasks, ie., find new ones by doing others
   tasks-finish                    ;; tasks finsih and 'die'
-  projects-finish                 ;; projects 'die' if no contributors or tasks
+  projects-die                    ;; projects 'die' if no contributors or tasks
   calc-recent-activity            ;; projects calculate recent-activity
   update-project-position         ;; projects get closer or further from 9s depending on recent activity
   new-projects                    ;; if projects have high activity they might produce another project
@@ -460,6 +455,8 @@ to create-existing-projects
     set my-product min-one-of products [distance myself]
     create-projectproductlink-with my-product [set color red] 
     ask projectproductlink-neighbors [ set mon-project (list (projectproductlink-neighbors))] 
+    
+    ask products with [ mon-project = 0 ] [ set mon-project [] ] 
     
     ] ]
 end
@@ -895,21 +892,35 @@ to tasks-finish
   
 end
 
-to tasks-to-products
+to finished-tasks-and-projects-to-products
+  
+  ; when a task is finished - it improves its related project
   
   ; this should be projects not tasks - ie., you get new products or improved products when a project is fisnihed.
   
-  if number-of-products = "one" [ ask t4sks [ if time-required <= 0 [   improve-current-products  ]] ]
+  ask t4sks [ if time-required <= 0 [   
   
-  if number-of-products = "a few" [ ask t4sks [ if time-required <= 0 and count products > 4 [  improve-current-products   ]
-                                                if time-required <= 0 and count products < 5 [  ifelse random-float 1 < 0.5 [ birth-a-product ] [ improve-current-products ] 
-
-                                                                                              ]
-                                              ]
-                                  ]
+  ;; this needs to move the product - improved product will get closer to 90s etc
   
-  if number-of-products = "many" [ ask t4sks [ if time-required <= 0 [  ifelse random-float 1 < 0.5 [ birth-a-product ] [ improve-current-products ] ]] ]
+  ifelse number-of-products = "many" [ ask products with [ mon-project = [ my-project ] of myself ] [ set volume volume + volume ] ]
+                                     [ ask products with [ mon-project != nobody and member? [ my-project ] of myself mon-project ] [ set volume volume + volume ] ]
+  ]]
   
+  
+  ;; a project is finshed it either improves its product, or creates a new one if it has no product
+  
+  ask projects [
+    
+    
+    if num-tasks = 0 and my-product != nobody [ ask my-product [ set volume volume * 3 ]
+                                                set projects-finished projects-finished + 1
+                                                die ]
+    if num-tasks = 0 and my-product = nobody [ birth-a-product 
+                                               set projects-finished projects-finished + 1
+                                               die ]
+  ]
+    ;; BUT WHEN A PROJECT FINISHES AND HATCHES A PRODUCT - SHOULD IT NOT CONTINUE TO MAINTAIN THAT PRODUCT?
+    
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
@@ -952,27 +963,18 @@ to create-new-task
                ]
 end
 
-to projects-finish
+to projects-die
   
-  ;; projects can linger without activity - may come back but unlikely - offline less likley to hang around
-  
-  ; this should be erased once - tasks-to-products - is changed to projects-to-products
-  
+  ;; projects can linger without contributors for a short time but die (ie., removed from list)
   ask projects [
-    if num-tasks = 0 [ set time-project-with-no-tasks time-project-with-no-tasks + 1 ]
-    if time-project-with-no-tasks > 20 [ ask turtle-set my-tasks-projects [ die ]                                     
-                                         set projects-died projects-died + 1
-                                         die
-                                        ]
     
     if not any? #9s with [ member? myself my-projects ] and not any? #1s with [ member? myself my-projects-1s ] [
-       set time-project-with-no-contributors time-project-with-no-contributors + 1 ]
-       if time-project-with-no-contributors > 10 [ set projects-died projects-died + 1
-                                                ask turtle-set my-tasks-projects [ die ]
-                                                die 
-                                              ]
+       if random-float 1 < 0.5 [ set projects-died projects-died + 1
+                                 ask turtle-set my-tasks-projects [ die ]
+                                 die 
+                               ]
     
-  ]
+  ] ]
   
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
@@ -1049,9 +1051,11 @@ to #1-or-#9-hatch-project
                                              set heading random 360
                                              fd 1
                                             ]
-    set my-product min-one-of products [distance myself]
-    create-projectproductlink-with my-product [set color red] 
-    ask projectproductlink-neighbors [ set mon-project lput myself mon-project ] 
+    ifelse random-float 1 < 0.5 [ set my-product min-one-of products [distance myself]
+                                  create-projectproductlink-with my-product [set color red] 
+                                  ask projectproductlink-neighbors [ set mon-project lput myself mon-project ] ]
+                                
+                                [ set my-product nobody ] 
     
           ]
 end
@@ -1090,6 +1094,8 @@ to project-hatch-a-project
                                              set heading random 360
                                              fd 1
                                             ]
+     if my-product != nobody [ create-projectproductlink-with my-product [set color red] 
+                               ask projectproductlink-neighbors [ set mon-project lput myself mon-project ] ]
     
     ]
 end
@@ -1099,9 +1105,7 @@ to birth-a-product
   
  if number-of-products = "one" []
  
- if number-of-products = "a few" []
- 
- if number-of-products = "many" [ hatch-products random num-prod-per-task [ set inter3st ( [ inter3st ] of myself )
+ if number-of-products = "a few" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
                                             set xcor -10
                                             set ycor -25 + inter3st
                                             set size 2
@@ -1109,9 +1113,23 @@ to birth-a-product
                                             set shape "box"
                                             set volume random 100
                                             set age 0
-                                            set mon-project [ my-project ] of myself 
+                                            set mon-project (list (myself)) 
                                             set consumption-history []
-                                            create-projectproductlink-with mon-project [ set color red ]
+                                            create-projectproductlink-with one-of mon-project [ set color red ]
+                                            set new-products-count new-products-count + 1
+                                           ]]
+ 
+ if number-of-products = "many" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
+                                            set xcor -10
+                                            set ycor -25 + inter3st
+                                            set size 2
+                                            set color orange
+                                            set shape "box"
+                                            set volume random 100
+                                            set age 0
+                                            set mon-project (list (myself))
+                                            set consumption-history []
+                                            create-projectproductlink-with one-of mon-project [ set color red ]
                                             set new-products-count new-products-count + 1
                                            ] ]
 end
@@ -1151,8 +1169,6 @@ end
 
 to entry
   ; 90 enter if see high recent consumption activity
-  
-  ; these have changed necause of consumption histories - check to see if can change these again
   
   if (( community-con-activity-t-2 + 
         community-con-activity-t-1 + 
@@ -1252,8 +1268,6 @@ to exit
           ]
   
   ;; 9s exit if consumption has dropped - ie., 90s have left, 
-  
-  ; update using consumption history
   
   ask #9s [
     if ((( community-con-activity-t-2 + 
@@ -1392,15 +1406,6 @@ to change-breed
                                 
      set #1-to-#9-count #1-to-#9-count + 1 
      ]]]
-end
-
-to improve-current-products
-  
-  ;; this needs to move the product - improved product will get closer to 90s etc
-  
-  ifelse number-of-products = "many" [ ask products with [ mon-project = [ my-project ] of myself ] [ set volume volume + volume ] ]
-                                     [ ask products with [ member? [ my-project ] of myself mon-project ] [ set volume volume + volume ] ]
-  
 end
 
 
@@ -1630,7 +1635,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-10
+9
 1
 1
 NIL
@@ -1900,7 +1905,7 @@ initial-products
 initial-products
 0
 100
-4
+3
 1
 1
 NIL
@@ -2550,22 +2555,22 @@ PENS
 "default" 1.0 1 -955883 true "" "histogram [inter3st] of products"
 
 PLOT
-1442
-1288
-1602
-1408
+1547
+695
+1889
+815
 Prod's Volume
 NIL
 NIL
 0.0
-100000.0
+1000.0
 0.0
 10.0
 true
 false
 "" ""
 PENS
-"default" 1000.0 1 -955883 true "" "histogram [volume] of products"
+"default" 50.0 1 -955883 true "" "histogram [volume] of products"
 
 PLOT
 1602
@@ -3297,9 +3302,9 @@ PENS
 PLOT
 2280
 730
-2440
+2522
 850
-Projects Died
+Projects Finished & Died
 NIL
 NIL
 0.0
@@ -3307,10 +3312,11 @@ NIL
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -955883 true "" "plot projects-died"
+"Finshed" 1.0 0 -955883 true "" "plot projects-finished"
+"Died" 1.0 0 -7500403 true "" "plot projects-died"
 
 SWITCH
 25
