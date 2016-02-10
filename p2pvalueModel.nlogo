@@ -23,7 +23,7 @@
 
 
   
-; sixe of comm may effect rules? - e.g., size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
+; size of comm may effect rules? - e.g., size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
 ; others?
 
 
@@ -49,9 +49,6 @@
 ; projects finish - to be erased once tasks to products changed
 
 
-; new 9s get friends via a mentor...
-
-
 ; add friends working on a task increase chance of contributing to it
 
 
@@ -65,8 +62,6 @@
 
 ; can only drop one project at a time - can i make it more?
 
-
-; consumer links staying with those that go from 90 to 1 or 9
 
 
 
@@ -303,7 +298,8 @@ projects-own [
   num-tasks                    ; number of tasks currently in project
   time-project-with-no-tasks   ; count ticks with no current tasks
   my-tasks-projects            ; the tasks of this project
-  recent-activity              ; score - count of current contributors to project's tasks
+  production-activity          ; score - count of current contributors to project's tasks weighted by distance
+  production-history           ; 10 tick history of production-activity
   time-project-with-no-contributors ; count ticks with no contributors to any of project's tasks
   age                          ; time task has been in community
   my-product
@@ -984,10 +980,15 @@ end
 
 to calc-recent-activity
   
-  ; use similar format to history used elsewhere - recent contribution activity
+  ;;;fix here
   
+  ; use similar format to history used elsewhere - recent contribution activity
+
   ask projects [ set my-tasks-projects t4sks with [ my-project = myself ]
-                 set recent-activity sum [ count tasklink-neighbors ] of my-tasks-projects ] 
+                 if count my-tasks-projects > 0 [ 
+                 set production-activity  ( count link-set [ my-tasklinks ] of my-tasks-projects  /  mean [ distance myself ] of [ tasklink-neighbors ] of my-tasks-projects ) 
+                 set production-history lput  ( count link-set [ my-tasklinks ] of my-tasks-projects /  mean [ distance myself ] of [ tasklink-neighbors ] of my-tasks-projects )   production-history 
+                 if length production-history = 11 [ set production-history but-first production-history ] ] ]
 end
 
 to new-projects
@@ -1002,7 +1003,7 @@ to new-projects
   
   ; this will change when i update how recent activity is calc - ie., a history relative to itself
   
-  ask projects [ if recent-activity > mean [ recent-activity ] of projects AND random-float 1 < 0.03 [
+  ask projects [ if production-activity > mean [ production-activity ] of projects AND random-float 1 < 0.03 [
       project-hatch-a-project ] ]
       
   
@@ -1208,6 +1209,13 @@ to entry
       set using-platform? "true"
       set reward 0 
       set my-projects (list (nobody))
+      
+      ;; mentor and then get 3 friends via them
+      
+      let mentor min-one-of #1s [ distance myself ] 
+      
+      create-friendlinks-with n-of 3 [ friendlink-neighbors ] of mentor [set color blue] 
+ 
       set contribution-history-9s (list (0))
       set new-#9s-total new-#9s-total + 1
       set new-#9-attracted-by-#90s new-#9-attracted-by-#90s + 1 ] ]
@@ -1407,8 +1415,8 @@ to update-project-position
   
   ; have on/off switches and weights for each - crowd funding, up votes, activity, effect on position.
   
-  ask projects [ if recent-activity < 0.5 * mean [recent-activity] of projects [ set xcor xcor - 1 ]
-                 if recent-activity > 1.5 * mean [recent-activity] of projects [ set xcor xcor + 1 ]
+  ask projects [ if production-activity < 0.5 * mean [production-activity] of projects [ set xcor xcor - 1 ]
+                 if production-activity > 1.5 * mean [production-activity] of projects [ set xcor xcor + 1 ]
                  if xcor < -4 [ set xcor -4 ]
                  if xcor > 17 [ set xcor 17 ]
   ]
@@ -1484,7 +1492,7 @@ end
 
 to update-community-activity
   
-  let total-prod-activity sum [recent-activity] of projects
+  let total-prod-activity sum [production-activity] of projects
   let total-cons-activity sum [consumption-activity] of products 
   
   set community-prod-activity-t-10 community-prod-activity-t-9
@@ -1887,7 +1895,7 @@ initial-products
 initial-products
 0
 100
-1
+5
 1
 1
 NIL
