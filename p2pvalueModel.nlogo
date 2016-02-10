@@ -38,9 +38,6 @@
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
 
 
-; 90 becomes 9 change as per comments below
-
-
 ; enter - remove 9s enter based on contribution activity
 
 
@@ -68,6 +65,9 @@
 
 
 ; can only drop one project at a time - can i make it more?
+
+
+; consumer links staying with those that go from 90 to 1 or 9
 
 
 
@@ -996,9 +996,9 @@ to new-projects
   
   ; 1s and 9s to propose new projects with a small probability (1 is higher?)
   
-  ask #1s [ if random-float 1 < 0.005 [ #1-or-#9-hatch-project print "1 hatched a project "] ]
+  ask #1s [ if random-float 1 < 0.005 [ #1-or-#9-hatch-project ] ]
   
-  ask #9s [ if random-float 1 < 0.001 [ #1-or-#9-hatch-project print "9 hatched a project "] ]
+  ask #9s [ if random-float 1 < 0.001 [ #1-or-#9-hatch-project ] ]
   
   ; projects can create other projects - if very active
   
@@ -1326,19 +1326,16 @@ to change-breed
   
   
   
- ; 90 become 9 if they make a new project when products have interest near them, but not quite right, and have high consumption and high time
+ ; 90 become 9 if they find a task close to their interest - and a very smal chance - ie., they find something on the list
  
  ; in the tool - with a small chance X 90 find a task (with similar interest and same skills they have ) and start to contribute...
  ; also change chance 90s check the list, 
  
- ask #90s [ if any? products with [ ( inter3st < [ interest ] of myself + 5 ) and
-                                    ( inter3st > [ interest ] of myself - 5 ) and
-                                    ( inter3st != [ interest ] of myself + 1 ) and
-                                    ( inter3st != [ interest ] of myself - 1) and
-                                    ( inter3st != [ interest ] of myself ) ]
-                              and ( consumption > 1.2 * mean [consumption] of #90s )
-                              and ( time-in-community > 1.5 * mean [time-in-community ]of #90s) 
-                            [ set breed #9s
+ ask #90s [ if random-float 1 < 0.001 and ( any? t4sks with [ ( inter3st < [ interest ] of myself + 3 ) and
+                                                             ( inter3st > [ interest ] of myself - 3 ) ] )
+ 
+                            [   let task-i-found min-one-of t4sks [ ( abs ( inter3st - [ interest ] of myself ) )  ]
+                                set breed #9s
                                 ; set interest random num-interest-categories
                                 set xcor ( random 6 ) + 19
                                 set ycor -25 + interest
@@ -1353,47 +1350,21 @@ to change-breed
                                 if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                 if pref-prob >= 0.66 [ set typ3-preference "both" ]
                                 set reward 0 
-                                set my-projects (list (nobody)) 
+                                
+                                create-tasklink-with task-i-found [set color 3]
+                                set my-tasks tasklink-neighbors
+                                
+                                let new-project projects with [ member? task-i-found [ my-tasks-projects ] of self ]
+                               
+                                set my-projects (list (new-project))
+                                
                                 set contribution-history-9s (list (0))
                                 
+                                ask my-consumerlinks [die]
+                                
                                 set #90-to-#9-count #90-to-#9-count + 1
-                                
-                                hatch-projects 1 [
-                                                   set count-new-projects count-new-projects + 1
-                                                   set num-tasks random 10 + 2
-                                                   set inter3st [ interest ] of myself + random 3 - random 3
-                                                   hatch-t4sks num-tasks [ set size 0.7
-                                                                           set color green
-                                                                           set shape "circle" 
-                                                                           ifelse random-float 1 < prop-tasks-on-platform [ set on-platform? true ] 
-                                                                                                                          [ set on-platform? false ]
-                                                                           t4sk-set-typ3
-                                                                           set inter3st [inter3st] of myself
-                                                                           set reward-level random 100
-                                                                           ifelse random-float 1 < prop-of-tasks-reward-group-decided [ set reward-type "group" ] 
-                                                                                                                                      [ set reward-type "objective" ]
-                                                                           set time-required random 1000
-                                                                           set skill-required random 100
-                                                                           set modularity random 20 + 1 
-                                                                           set age 0 
-                                                                           set my-project myself 
-                                                                         ]  
-                                                    set my-tasks-projects t4sks with [ my-project = myself ]
-                                                    set xcor [xcor] of myself
-                                                    set ycor -25 + inter3st 
-                                                    set size 2.5
-                                                    set color green - 2
-                                                    set shape "target" 
-                                                    set age 0 
-                                                    ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
-                                                                                            set ycor [ycor] of myself
-                                                                                            set heading random 360
-                                                                                            fd 1
-                                                                                          ]
-    
-                                                 ] 
-                                
-                               ]]
+                              ]
+              ] 
 
   
 
@@ -1507,9 +1478,10 @@ to update-product-position
     ;; update position - activity from 90 and 9 on their project
     ;; if product dies dont update - just drift away
     
-   
+    ;; needed catch to avoid division by zero
+    
       ; artefact? had to delay calculation until consumption hstory has 3 times
-      if length consumption-history > 3 [ let history-difference mean sublist consumption-history (length consumption-history - 3) (length consumption-history ) - mean consumption-history
+      if length consumption-history > 3 and mean consumption-history > 0  [ let history-difference mean sublist consumption-history (length consumption-history - 3) (length consumption-history ) - mean consumption-history
       if random-float 1 < 0.1 [ set xcor max list ( xcor - history-difference / mean consumption-history * 10 ) ( -14 ) ]]
       
     if xcor < -14 [ set xcor -14 ]
@@ -1956,7 +1928,7 @@ initial-products
 initial-products
 0
 100
-3
+49
 1
 1
 NIL
@@ -3310,7 +3282,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-1
+2
 
 PLOT
 1545
