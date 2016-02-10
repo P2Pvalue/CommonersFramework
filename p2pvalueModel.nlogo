@@ -40,7 +40,7 @@
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
 
 
-; update calc recent activity to be a history type
+; when using production-activity use the history instead
 
 
 ; tasks-to-products - changed to porjects-to-products ...ie., projects finishing has an affect on products
@@ -421,6 +421,7 @@ to create-existing-projects
     create-projects initial-projects [ 
       set num-tasks random 10 + 2
       set inter3st random num-interest-categories
+      set production-history []
       hatch-t4sks num-tasks [ 
                              set size 0.7
                              set color green
@@ -458,6 +459,7 @@ to create-existing-projects
                                            ]
     set my-product min-one-of products [distance myself]
     create-projectproductlink-with my-product [set color red] 
+    ask projectproductlink-neighbors [ set mon-project (list (projectproductlink-neighbors))] 
     
     ] ]
 end
@@ -472,7 +474,7 @@ to create-existing-product
     set shape "box"
     set volume random 100
     set age 0
-    set mon-project projectproductlink-neighbors
+    ;set mon-project (list (projectproductlink-neighbors))
     set consumption-history []
   ]
 end
@@ -979,15 +981,13 @@ to projects-finish
 end
 
 to calc-recent-activity
-  
-  ;;;fix here
-  
-  ; use similar format to history used elsewhere - recent contribution activity
+ 
 
   ask projects [ set my-tasks-projects t4sks with [ my-project = myself ]
-                 if count my-tasks-projects > 0 [ 
-                 set production-activity  ( count link-set [ my-tasklinks ] of my-tasks-projects  /  mean [ distance myself ] of [ tasklink-neighbors ] of my-tasks-projects ) 
-                 set production-history lput  ( count link-set [ my-tasklinks ] of my-tasks-projects /  mean [ distance myself ] of [ tasklink-neighbors ] of my-tasks-projects )   production-history 
+                 if count my-tasks-projects > 0 and count turtle-set [ tasklink-neighbors ] of my-tasks-projects > 0 [ 
+                 let my-tasks-tasklinkneighbors turtle-set [ tasklink-neighbors ] of my-tasks-projects
+                 set production-activity  ( count link-set [ my-tasklinks ] of my-tasks-projects  /  mean  [ distance myself ] of  my-tasks-tasklinkneighbors  ) 
+                 set production-history lput  ( count link-set [ my-tasklinks ] of my-tasks-projects /  mean  [ distance myself ] of  my-tasks-tasklinkneighbors )   production-history 
                  if length production-history = 11 [ set production-history but-first production-history ] ] ]
 end
 
@@ -1019,6 +1019,7 @@ to #1-or-#9-hatch-project
   hatch-projects 1 [
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
+        set production-history []
         ifelse inter3st > 3 [ set inter3st [interest ] of myself  + random 3 - random 3 ] [ set inter3st [interest ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
@@ -1048,6 +1049,9 @@ to #1-or-#9-hatch-project
                                              set heading random 360
                                              fd 1
                                             ]
+    set my-product min-one-of products [distance myself]
+    create-projectproductlink-with my-product [set color red] 
+    ask projectproductlink-neighbors [ set mon-project lput myself mon-project ] 
     
           ]
 end
@@ -1056,6 +1060,7 @@ to project-hatch-a-project
   hatch-projects 1 [
         set count-new-projects count-new-projects + 1
         set num-tasks random 10 + 2
+        set production-history []
         ifelse inter3st > 3 [ set inter3st [inter3st ] of myself  + random 3 - random 3 ] [ set inter3st [inter3st ] of myself  + random 3 ]
         hatch-t4sks num-tasks [ set size 0.7
                                 set color green
@@ -1213,8 +1218,8 @@ to entry
       ;; mentor and then get 3 friends via them
       
       let mentor min-one-of #1s [ distance myself ] 
-      
-      create-friendlinks-with n-of 3 [ friendlink-neighbors ] of mentor [set color blue] 
+      let mentors-friends count [ friendlink-neighbors ] of mentor
+      create-friendlinks-with n-of ( mentors-friends / 2 ) [ friendlink-neighbors ] of mentor [set color blue] 
  
       set contribution-history-9s (list (0))
       set new-#9s-total new-#9s-total + 1
@@ -1895,7 +1900,7 @@ initial-products
 initial-products
 0
 100
-5
+4
 1
 1
 NIL
