@@ -434,10 +434,10 @@ to create-#1
                                  set time my-time
                                  set skill (n-of 3 (n-values num-skills [?]))
                                  ifelse platform-features = TRUE
-                                       [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ]
-                                                                                           [ set using-platform? "false" ]
+                                       [ ifelse random-float 1 < proportion-using-platform [ set using-platform? TRUE ]
+                                                                                           [ set using-platform? FALSE ]
                                        ]
-                                       [ set using-platform? "false" ]
+                                       [ set using-platform? FALSE ]
                                  set points 0
                                  set thanks "not received"
                                  set my-projects-1s (list (min-one-of projects [ distance myself ]) )
@@ -471,10 +471,10 @@ to create-#9
                                  set time my-time
                                  set skill (n-of 3 (n-values num-skills [?]))
                                  ifelse platform-features = TRUE
-                                       [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ]
-                                                                                           [ set using-platform? "false" ]
+                                       [ ifelse random-float 1 < proportion-using-platform [ set using-platform? TRUE ]
+                                                                                           [ set using-platform? FALSE ]
                                        ]
-                                       [ set using-platform? "false" ]
+                                       [ set using-platform? FALSE ]
                                  set points 0
                                  set thanks "not received"
                                  set my-projects (list (min-one-of projects [ distance myself ]))
@@ -513,10 +513,10 @@ to create-#90
                                     set color yellow
                                     set consumption 0
                                     ifelse platform-features = TRUE
-                                          [ ifelse random-float 1 < proportion-using-platform [ set using-platform? "true" ]
-                                                                                              [ set using-platform? "false" ]
+                                          [ ifelse random-float 1 < proportion-using-platform [ set using-platform? TRUE ]
+                                                                                              [ set using-platform? FALSE ]
                                           ]
-                                          [ set using-platform? "false" ]
+                                          [ set using-platform? FALSE ]
                                     create-consumerlink-with min-one-of products [ distance myself ]
                                     ask consumerlink-neighbors [ if count my-consumerlinks > 0
                                            [ set consumption-activity ( ( count my-consumerlinks / mean [ distance myself ] of consumerlink-neighbors ) *
@@ -591,7 +591,7 @@ to find-projects
 
   ; WITH PLATFORM...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
 
-  ask #1s [ if using-platform? = "true" and time > 0
+  ask #1s [ if using-platform? and time > 0
                 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
                   let new-project min-one-of other-projects [ distance myself ]
                   if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
@@ -601,7 +601,7 @@ to find-projects
   ; WITH PLATFORM...9s find projects that are nearer the 'top of the list' but still close to them - ie., interest is nearby, and more to right
   ; and add them to a list
 
-  ask #9s [ if using-platform? = "true" and time > 0
+  ask #9s [ if using-platform? and time > 0
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                   let new-project min-one-of other-projects [ distance myself ]
                   if other-projects != nobody and new-project != nobody
@@ -617,7 +617,7 @@ to find-projects
 
   ; WITHOUT PLATFORM AND ONLINE... 1s find projects - the closest to them but with some error/noise
 
-  ask #1s [ if using-platform? = "false" and community-type = "online" and time > 0
+  ask #1s [ if not using-platform? and community-type = "online" and time > 0
                 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
                   let new-project min-one-of other-projects [ distance myself + random 2 - 1 ]
                   if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
@@ -627,7 +627,7 @@ to find-projects
   ; WITHOUT PLATFORM AND ONLINE... 9s find projects that are near them but with error/noise
   ; again relative distance used to caclulate chance of joining the project
 
-  ask #9s [ if using-platform? = "false" and community-type = "online" and time > 0
+  ask #9s [ if not using-platform? and community-type = "online" and time > 0
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                   let new-project min-one-of other-projects [ distance myself + random 10 - 5 ]
                   if other-projects != nobody and new-project != nobody
@@ -641,7 +641,7 @@ to find-projects
 
   ; WITHOUT PLATFORM AND OFFLINE... 1s find with a little more error - but still will get those with closest interest
 
-  ask #1s [ if using-platform? = "false" and community-type = "offline" and time > 0
+  ask #1s [ if not using-platform? and community-type = "offline" and time > 0
                 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
                   if any? other-projects and random-float 1 < 0.2 [ let new-project min-one-of other-projects [ distance myself + random 5 - 2.5 ]
                                                                     set my-projects-1s lput new-project my-projects-1s
@@ -651,7 +651,7 @@ to find-projects
 
   ; WITHOUT PLATFORM AND OFFLINE... 9s find projects randomly
 
-  ask #9s [ if using-platform? = "false" and community-type = "offline" and time > 0
+  ask #9s [ if not using-platform? and community-type = "offline" and time > 0
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                   if any? other-projects and random-float 1 < prob-9-decides-to-join-project [ let new-project one-of other-projects
                                                                                                set my-projects lput new-project my-projects ]
@@ -1349,11 +1349,11 @@ to entry
                                                                            set color yellow
                                                                            set consumption 0
                                                                            ifelse platform-features = TRUE
-                                                                                 [ ifelse random-float 1 < proportion-using-platform
-                                                                                       [ set using-platform? "true" ]
-                                                                                       [ set using-platform? "false" ]
+                                                                                  [ ifelse random-float 1 < proportion-using-platform
+                                                                                       [ set using-platform? TRUE ]
+                                                                                       [ set using-platform? FALSE ]
                                                                                  ]
-                                                                                 [ set using-platform? "false" ]
+                                                                                 [ set using-platform? FALSE ]
                                                                            set new-#90s-total new-#90s-total + 1
                                                                          ]
                       ]
@@ -1368,11 +1368,11 @@ to entry
                                                                           set color yellow
                                                                           set consumption 0
                                                                           ifelse platform-features = TRUE
-                                                                                [ ifelse random-float 1 < proportion-using-platform
-                                                                                      [ set using-platform? "true" ]
-                                                                                      [ set using-platform? "false" ]
+                                                                                 [ ifelse random-float 1 < proportion-using-platform
+                                                                                      [ set using-platform? TRUE ]
+                                                                                      [ set using-platform? FALSE ]
                                                                                 ]
-                                                                                [ set using-platform? "false" ]
+                                                                                [ set using-platform? FALSE ]
                                                                           set new-#90s-total new-#90s-total + 1
                                                                           set new-#90s-chance new-#90s-chance + 1
                                                                          ]
@@ -1405,10 +1405,10 @@ to entry
                                                               set skill (n-of 3 (n-values num-skills [?]))
                                                               ifelse platform-features = TRUE
                                                                     [ ifelse random-float 1 < proportion-using-platform
-                                                                          [ set using-platform? "true" ]
-                                                                          [ set using-platform? "false" ]
+                                                                          [ set using-platform? TRUE ]
+                                                                          [ set using-platform? FALSE ]
                                                                     ]
-                                                                    [ set using-platform? "false" ]
+                                                                    [ set using-platform? FALSE ]
                                                               set points 0
                                                               set thanks "not received"
                                                               set my-projects (list (nobody))
@@ -1699,7 +1699,7 @@ if platform-features = TRUE [
   ; crowd-funding input - i.e, if few tasks left - get pushed up the list
                  if num-tasks < 3 [ set xcor xcor + 1 ]
                 ]
-                          ] ; closing bracket for if platform-features true
+                          ] ; closing bracket for if platform-features TRUE
 
 
 
