@@ -8,53 +8,24 @@
 ; GENERAL TO DOS / COMMENTS / also check word doc
 
 
+; tidy code up in position
+
+; add comments
 
 ; pull out hidden parameters (i.e., hard coded numbers) and remove dead sliders from interface
 
-
-
-
-; tidy code - check for unused variables etc
-;           - go through checking code and redoing comments
+; remove unused parameters
 
 
 
 
 
 
-; MAIN UPDATES
 
 
 
 
-; higher value if thanks from 1...
 
-; generally thanks mechanism needs to be checked - and make sure it affects everything it should - thanks is not always, and is typically directed.
-
-; thanks creates friendhsip?
-
-; size of comm may effect rules? - e.g., size of community will differentiate change in breed - ie., in small comms, you may bevome a 1 just by starting a project.
-; others?
-
-; update new projects use of history / activity  
-
-
-
-
-; DEBUGGING
-
-
-; double check transfer of agent variables when change breed and new agent appears - do they make sense (ie., should not just forget friends or projects)
-
-
-; can only drop one project at a time - can i make it more?
-
-
-; error on drop projects sometimes - contributors with my-tasks = 0 - not set in change breeds?
-
-; 1 and 9 never drop a task because it is lonely... is this ok - probably. 9 drop when they have no tasks in it, and 1 drop when they are in overtime
-
-; when 1 product - can never get new 90s - no new products (why?) and so consumption can never go up
 
 
 
@@ -91,7 +62,7 @@
 
 ; use for initialisation, and for validation
 
-
+; calibration check - 1% need to make most contributions.
 
 ; data to come from antonio
 
@@ -446,7 +417,7 @@ to create-existing-projects
                              set shape "circle" 
                              set inter3st [inter3st] of myself
                              
-                             set time-required random 1000
+                             set time-required random-normal 50 10
                              set skill-required random 100
                              set modularity random 20 + 1 
                              set age 0   
@@ -749,9 +720,17 @@ to find-tasks
   ; 9s find tasks that are in the projects they have found, but have an interest close to them; 
   ; ie., if they have found a project far from them they wont actually contribute to tasks
   
-  ask #9s [ if time > 0 [ if reward-mechanism = "'thanks' only" [ ifelse thanks = "received" [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
+  ask #9s [ if time > 0 [ if reward-mechanism = "'thanks' only" [ if thanks = "not received" [ set feel-loved 0 ]
+                                                                  if thanks = "received from #9" [ set feel-loved 0.005 ]
+                                                                  if thanks = "received from #1" [ set feel-loved 0.01 ]  ]
+      
                           if reward-mechanism = "'points' only" [ ifelse points > mean [ points ] of #9s [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
-                          if reward-mechanism = "both" [ ifelse ( thanks = "received" ) OR ( points > mean [ points ] of #9s ) [ set feel-loved 0.005 ] [ set feel-loved 0 ]   ]
+                          
+                          if reward-mechanism = "both" [ if thanks = "not received" [ set feel-loved 0 ]
+                                                         if points > mean [ points ] of #9s [ set feel-loved 0.005 ]
+                                                         if thanks = "received from #9" [ set feel-loved 0.005 ]
+                                                         if thanks = "received from #1" [ set feel-loved 0.01 ] ]
+                          
                           
                           let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
                           
@@ -944,7 +923,7 @@ to give-out-reward
   
   ; thanks - value is higher from 1 than 9 etc, also public thanks is better than private
   
-  ;The expression of gratitude among community members create social ties (friendship in the model),
+  ; The expression of gratitude among community members create social ties (friendship in the model),
 
   ; We also identified different thanks mechanisms that are not exclusive: personal thanks (person to person) or public thanks (a person thanks another in a place that is visible to the community).
   
@@ -953,7 +932,8 @@ to give-out-reward
     
     ask projects [ 
       if num-tasks = 0 [ 
-        ask current-contributors [ set thanks "received" ] ] ] 
+        ask n-of ( round count current-contributors / 2 ) current-contributors [ set thanks "received from #9" ] 
+        ask min-n-of random ( round count current-contributors / 3 )  current-contributors [ time ] [ set thanks "received from #1" ]  ] ] 
     
     ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
     
@@ -965,7 +945,7 @@ to give-out-reward
   if reward-mechanism = "'points' only" [ 
     ask projects [ if num-tasks = 0 [ 
   
-      if reward-type = "subjective" [ ask current-contributors [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
+      if reward-type = "subjective" [ ask current-contributors [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ] ]
       if reward-type = "objective" [ ask current-contributors [ set points points + [ reward-level ] of myself ] ] ]  ] ] 
   
   
@@ -973,7 +953,10 @@ to give-out-reward
   
   if reward-mechanism = "both" [ 
     
-    ask projects [ if num-tasks = 0 [ ask current-contributors [ set thanks "received" ] ] ]
+    ask projects [ 
+      if num-tasks = 0 [ 
+        ask n-of ( round count current-contributors / 2 ) current-contributors [ set thanks "received from #9" ] 
+        ask min-n-of random ( round count current-contributors / 3 )  current-contributors [ time ] [ set thanks "received from #1" ] ] ]
     
     ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
     
@@ -981,7 +964,7 @@ to give-out-reward
 
     ask projects [ if num-tasks = 0 [ 
   
-      if reward-type = "subjective" [ ask current-contributors [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
+      if reward-type = "subjective" [ ask current-contributors [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ] ]
       if reward-type = "objective" [ ask current-contributors [ set points points + [ reward-level ] of myself ] ] ]  ] ]
   
   
@@ -1107,10 +1090,11 @@ to new-projects
   
   ; this will change when i update how recent activity is calc - ie., a history relative to itself
   
-  ask projects [ if production-activity > mean [ production-activity ] of projects AND random-float 1 < 0.03 [
-      project-hatch-a-project ] ]
+  ask projects [
       
-  
+  if length production-history > 3 and mean production-history > 0  [ let history-difference mean sublist production-history (length production-history - 3) (length production-history ) - mean production-history
+      if random-float 1 < 0.03 and history-difference > 0 [ project-hatch-a-project show "i hatched a project cos i got busy!" ]
+  ] ]
   
   
   if platform-features = FALSE and community-type = "online open" []
@@ -1153,7 +1137,7 @@ to #1-or-#9-hatch-project
                                              set heading random 360
                                              fd 1
                                             ]
-    ifelse random-float 1 < 0.5 [ set my-product min-one-of products [distance myself]
+    ifelse random-float 1 < 0.8 [ set my-product min-one-of products [distance myself]
                                   create-projectproductlink-with my-product [set color red] 
                                   ask projectproductlink-neighbors [ set mon-project lput myself mon-project ] ]
                                 
@@ -1379,9 +1363,17 @@ to exit
    
   
    
-  ask #9s [ if reward-mechanism = "'thanks' only" [ ifelse thanks = "received" [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
+  ask #9s [ if reward-mechanism = "'thanks' only" [ if thanks = "not received" [ set feel-loved 0 ]
+                                                    if thanks = "received from #9" [ set feel-loved 0.005 ]
+                                                    if thanks = "received from #1" [ set feel-loved 0.01 ]  ]
+    
             if reward-mechanism = "'points' only" [ ifelse points > mean [ points ] of #9s [ set feel-loved 0.005 ] [ set feel-loved 0 ]  ]
-            if reward-mechanism = "both" [ ifelse ( thanks = "received" ) OR ( points > mean [ points ] of #9s ) [ set feel-loved 0.005 ] [ set feel-loved 0 ]   ]
+            
+            if reward-mechanism = "both" [ if thanks = "not received" [ set feel-loved 0 ]
+                                           if points > mean [ points ] of #9s [ set feel-loved 0.005 ]
+                                           if thanks = "received from #9" [ set feel-loved 0.005 ]
+                                           if thanks = "received from #1" [ set feel-loved 0.01 ] ]
+            
     
             if count my-tasklinks = 0 [ set time-with-no-links time-with-no-links + 1]
             if not any? t4sks with [ inter3st = [ interest ] of myself ] and random-float 1 < ( 0.01 - feel-loved ) [ 
@@ -1424,15 +1416,16 @@ to exit
   
   if reward-mechanism = "'thanks' only" [
     
-   ask #1s [ if thanks = "not received" and random-float 1 < 0.001 [ set #1s-left #1s-left + 1
-                                                                     set #1-left-burnout #1-left-burnout + 1
-                                                                     die ]]
+   ask #1s [ if thanks = "not received" OR thanks = "received from #1" [
+             if random-float 1 < 0.001 [ set #1s-left #1s-left + 1
+                                         set #1-left-burnout #1-left-burnout + 1
+                                         die ]]
    
    ask #9s [ if thanks = "not received" and random-float 1 < 0.0005 [ set #9s-left #9s-left + 1
                                                                       set #9-left-burnout #9-left-burnout + 1
                                                                       die ]]
   
-  ]
+  ]]
   
   if reward-mechanism = "'points' only" [
     
@@ -1448,7 +1441,7 @@ to exit
   
   if reward-mechanism = "both" [
     
-   ask #1s [ if thanks = "not received" OR points < mean [points] of #1s [
+   ask #1s [ if thanks = "not received" OR thanks = "received from #1" OR points < mean [points] of #1s [
                 if random-float 1 < 0.001 [ set #1s-left #1s-left + 1
                                             set #1-left-burnout #1-left-burnout + 1
                                             die ]]]
@@ -1507,6 +1500,7 @@ to change-breed
                                 ask my-consumerlinks [die]
                                 
                                 set #90-to-#9-count #90-to-#9-count + 1
+                                
                               ]
               ] 
 
@@ -1903,8 +1897,8 @@ HORIZONTAL
 PLOT
 975
 70
-1425
-259
+1420
+210
 Size of Community
 NIL
 NIL
@@ -2029,10 +2023,10 @@ PENS
 "default" 5.0 1 -13840069 true "" "histogram [reward-level] of projects"
 
 PLOT
-976
-365
-1426
-515
+965
+300
+1415
+450
 Tasks&Products
 NIL
 NIL
@@ -2236,10 +2230,10 @@ NIL
 1
 
 MONITOR
-1325
-260
-1395
-305
+1319
+210
+1389
+255
 #90s Left
 #90s-left
 0
@@ -2247,10 +2241,10 @@ MONITOR
 11
 
 MONITOR
-1190
-260
-1255
-305
+1184
+210
+1249
+255
 #9s Left
 #9s-left
 17
@@ -2258,10 +2252,10 @@ MONITOR
 11
 
 MONITOR
-1125
-260
-1190
-305
+1119
+210
+1184
+255
 New #9s
 new-#9s-total
 0
@@ -2269,10 +2263,10 @@ new-#9s-total
 11
 
 MONITOR
-1260
-260
-1325
-305
+1254
+210
+1319
+255
 New #90s
 new-#90s-total
 0
@@ -2950,10 +2944,10 @@ TEXTBOX
 1
 
 PLOT
-976
-636
-1202
-757
+966
+570
+1191
+690
 Aggregate Consumption
 NIL
 NIL
@@ -2978,10 +2972,10 @@ PENS
 "t" 1.0 0 -13791810 true "" "plot community-con-activity-t"
 
 PLOT
-1200
-636
-1426
-757
+1189
+570
+1415
+691
 Aggregate Production
 NIL
 NIL
@@ -3006,10 +3000,10 @@ PENS
 "pen-10" 1.0 0 -13791810 true "" "plot community-prod-activity-t"
 
 PLOT
-976
-516
-1202
-637
+965
+450
+1191
+571
 Count Links
 NIL
 NIL
@@ -3037,10 +3031,10 @@ count projects
 11
 
 PLOT
-1200
-516
-1426
-637
+1189
+450
+1415
+570
 AgesOfLinks
 NIL
 NIL
@@ -3064,13 +3058,13 @@ CHOOSER
 reward-mechanism
 reward-mechanism
 "'thanks' only" "'points' only" "both"
-2
+0
 
 PLOT
-1445
+1440
 70
-1785
-255
+1780
+230
 Average Contributions Made
 NIL
 NIL
@@ -3108,10 +3102,10 @@ number-of-products
 0
 
 PLOT
-1445
-625
-1785
-755
+2120
+705
+2375
+855
 Dropped Projects&Tasks
 NIL
 NIL
@@ -3154,15 +3148,15 @@ SWITCH
 193
 platform-features
 platform-features
-0
+1
 1
 -1000
 
 PLOT
-1445
-270
-1785
-445
+1440
+230
+1780
+350
 ChangeRole
 NIL
 NIL
@@ -3179,17 +3173,17 @@ PENS
 "#1->#9" 1.0 0 -2674135 true "" "plot #1-to-#9-count"
 
 PLOT
-1445
-460
-1785
-610
+1440
+350
+1780
+535
 ContributionsHisto
 NIL
 NIL
 0.0
 200.0
 0.0
-8.0
+10.0
 false
 false
 "" ""
@@ -3216,10 +3210,10 @@ PENS
 "No product 4 them" 1.0 0 -16777216 true "" "plot #90s-left-no-product"
 
 MONITOR
-1060
-260
-1122
-305
+1054
+210
+1116
+255
 #1s Left
 #1s-left
 0
@@ -3242,10 +3236,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-1000
-260
-1062
-305
+994
+210
+1056
+255
 New #1s
 #9-to-#1-count
 0
@@ -3268,10 +3262,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-1326
-306
-1396
-351
+1320
+256
+1390
+301
 #90->#9
 #90-to-#9-count
 0
@@ -3279,10 +3273,10 @@ MONITOR
 11
 
 MONITOR
-1192
-306
-1257
-351
+1186
+256
+1251
+301
 #9->#1
 #9-to-#1-count
 0
@@ -3290,10 +3284,10 @@ MONITOR
 11
 
 MONITOR
-1062
-305
-1125
-350
+1056
+255
+1119
+300
 #1->#9
 #1-to-#9-count
 0
@@ -3329,6 +3323,63 @@ products-out-competed
 0
 1
 11
+
+PLOT
+1440
+535
+1780
+800
+Thanks Counts
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"#9s Thanks from #9s" 1.0 0 -6759204 true "" "plot count #9s with [ thanks = \"received from #9\" ]"
+"#9s Thanks from #1s" 1.0 0 -14070903 true "" "plot count #9s with [ thanks = \"received from #1\" ]"
+"#1s Thanks from #9s" 1.0 0 -865067 true "" "plot count #1s with [ thanks = \"received from #9\" ]"
+"#1s Thanks from #1s" 1.0 0 -5298144 true "" "plot count #1s with [ thanks = \"received from #1\" ]"
+
+PLOT
+964
+689
+1414
+809
+Mean Consumption History of Products
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot mean [sum consumption-history] of products"
+
+PLOT
+1280
+1020
+1440
+1140
+Histo Current Contributors
+NIL
+NIL
+0.0
+30.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram [ count current-contributors]  of projects"
 
 @#$#@#$#@
 ## WHAT IS IT?
