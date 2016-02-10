@@ -11,7 +11,7 @@
 
 ; pull out hidden parameters (i.e., hard coded numbers) and remove dead sliders from interface
 
-; make sure all differences in behaviour by scenarios (tool on and off, type of community, different thanks mechanism) are represented
+
 
 
 ; tidy code - check for unused variables etc
@@ -26,23 +26,6 @@
 
 
 
-
-
-; for each relevant go procedure - have a rule for when not on platform - i.e, ask X on platform - do this, ask X not on platform do that
-; for those not on platform - have an offline and online version of rules when not using platform - speak to antonio about this?
-
-;  done - working OK?? - Find projects - the whole idea of distance and ordering of projects will be not relevant, i think we could have this more random, and in online communities people can find things reasonably well, though not as well as with the platform, and in offline communities, they only see things very close to them
-;
-;  Give out reward - need some kind of basic reward mechanism?
-;  
-;  change breed - 90 less likely to become 9 by perusing the platform
-;  
-;  update 90s 9s and 1s position - less relevant for 9s and 1s, but same for 90s
-;
-;  update project position - more random?
-
-
-; predictability of reward influences choice of task/project?
 
 ; higher value if thanks from 1...
 
@@ -226,6 +209,8 @@ globals [
   
   #1-dropped-a-project
   #9-dropped-a-project
+  
+  chance-90-find-a-task                 ; chance a 90 sees a task that makes them decide to become a 9 - higher with platform
   
   community-prod-activity-t-10          ; history of community production activity
   community-prod-activity-t-9 
@@ -646,6 +631,8 @@ to setup-globals
   set community-con-activity-t 0
   
   set num-skills 10
+  
+  ifelse platform-features = TRUE [ set chance-90-find-a-task 0.001 ] [ set chance-90-find-a-task 0.0005 ]
 end
 
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
@@ -1488,8 +1475,9 @@ to change-breed
  ; in the tool - with a small chance X 90 find a task (with similar interest and same skills they have ) and start to contribute...
  ; also change chance 90s check the list, 
  
- ask #90s [ if random-float 1 < 0.001 and ( any? t4sks with [ ( inter3st < [ interest ] of myself + 3 ) and
-                                                             ( inter3st > [ interest ] of myself - 3 ) ] )
+ ask #90s [ 
+            if random-float 1 < chance-90-find-a-task and ( any? t4sks with [ ( inter3st < [ interest ] of myself + 3 ) and
+                                                                              ( inter3st > [ interest ] of myself - 3 ) ] )
  
                             [   let task-i-found min-one-of t4sks [ ( abs ( inter3st - [ interest ] of myself ) )  ]
                                 set breed #9s
@@ -1586,7 +1574,7 @@ end
 
 to update-project-position
   
-
+if platform-features = TRUE [ 
   
   ; change to be like product movement...
   
@@ -1638,34 +1626,42 @@ to update-project-position
       
   ; crowd-funding input - i.e, if few tasks left - get pushed up the list
   
-  if num-tasks < 3 [ set xcor xcor + 0.1 ]
-  
-      
-      
-      ; regulate position
-     
-      if xcor < -4 [ set xcor -4 ]
-      if xcor > 17 [ set xcor 17 ]
+  if num-tasks < 3 [ set xcor xcor + 1 ]
 
   
-]
+] ]
+  
+  if platform-features = FALSE and community-type = "online" [
+    
+    ; online projects still get some sorting by number of people working on them
+    
+    ask projects [ ifelse count current-contributors > mean [count current-contributors] of projects [ set xcor xcor + 1 ][ set xcor xcor - 1 ]]]
+  
+  if platform-features = FALSE and community-type = "offline" [
+    ; no movement - position meaningless as projects found randomly
+    ]
   
   
-;  ask projects [ if production-activity < 0.5 * mean [production-activity] of projects [ set xcor xcor - 1 ]
- ;                if production-activity > 1.5 * mean [production-activity] of projects [ set xcor xcor + 1 ]
- ;                if xcor < -4 [ set xcor -4 ]
- ;                if xcor > 17 [ set xcor 17 ]
- ; ]
+     
+  ; regulate position
   
-  ask t4sks [ set xcor [ xcor ] of my-project
+  ask projects [   
+
+     
+      if xcor < -4 [ set xcor -4 ]
+      if xcor > 17 [ set xcor 17 ] ]
+  
+  ; tasks need to go with their project
+  
+  if platform-features = TRUE OR community-type = "online" [
+    ask t4sks [ set xcor [ xcor ] of my-project
               set ycor [ ycor ] of my-project
               set heading random 360 
               fd 1           
             ]
+  ]
   
-  if platform-features = FALSE and community-type = "online open" []
-  if platform-features = FALSE and community-type = "online closed" []
-  if platform-features = FALSE and community-type = "offline" []
+
   
 end
 
@@ -1868,7 +1864,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-5
+10
 1
 1
 NIL
@@ -1883,7 +1879,7 @@ initial-number-9s
 initial-number-9s
 0
 1000
-45
+90
 1
 1
 NIL
@@ -1898,7 +1894,7 @@ initial-tasks
 initial-tasks
 0
 100
-5
+10
 1
 1
 NIL
@@ -2093,7 +2089,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-450
+900
 50
 1
 NIL
@@ -3099,7 +3095,7 @@ CHOOSER
 community-type
 community-type
 "online" "offline"
-1
+0
 
 CHOOSER
 20
@@ -3158,7 +3154,7 @@ SWITCH
 193
 platform-features
 platform-features
-1
+0
 1
 -1000
 
@@ -3239,7 +3235,7 @@ proportion-using-platform
 proportion-using-platform
 0
 1
-1
+0.5
 0.1
 1
 NIL
