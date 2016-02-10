@@ -35,10 +35,7 @@
 ; update project position - should be combination of - upvotes (by 1,9,90), contribution activity, and crowd-funding analogy (if a few tasks left)
 
 
-; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave
-
-
-; update motivation - maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
+; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
 
 
 ; 90 becomes 9 change as per comments below
@@ -181,7 +178,7 @@ globals [
   #9-left-no-links-and-old
   #9-left-drop-cons
   
-  #1-left-motivation                    ; recording why #1 left
+  #1-left-burnout                       ; USED THIS???? recording why #1 left
   
   time-with-no-#1s                      ; recording ticks with no agents
   time-with-no-#9
@@ -266,12 +263,8 @@ undirected-link-breed [projectproductlinks projectproductlink]
   time                         ; current spare time available (not being used on tasks already)
   skill                        ; skill score - random 100
   interest                     ; interest score - random num-interest-categories
-  motivation                   ; parameter derived from combination of desire variables below - used to decide how much to contribute?????
   typ3-preference              ; type of tasks preferred - prod, mngt, or both 
   using-platform?              ; yes/no - is the #1 using the platform?
-  desire-for-money             ; score - how important is money to agent - NB community cannot offer money - ie., high des4money increases chance of leaving
-  desire-for-collaboration     ; score - how important is collaboration for agent - goes up when not many collab, or friends
-  desire-for-learning          ; score - decreases as time in comm goes up, higher scroe more likely to stay in community
   reward                       ; count reward received by agent
   time-in-community            ; count ticks/weeks spent in community
   contribution-history-1s      ; list with contribution in previous N ticks
@@ -290,12 +283,8 @@ undirected-link-breed [projectproductlinks projectproductlink]
   time                         ; current spare time available (not being used on tasks already)
   skill                        ; skill score - random 100
   interest                     ; interest score - random num-interest-categories
-  motivation                   ; parameter derived from combination of desire variables below - used to decide how much to contribute?????
   typ3-preference              ; prod, mngt, or both
   using-platform?              ; yes/no - is the #9 using the platform?
-  desire-for-money             ; score - how important is money to agent - NB community cannot offer money - ie., high des4money increases chance of leaving
-  desire-for-collaboration     ; score - how important is collaboration for agent - goes up when not many collab, or friends
-  desire-for-learning          ; score - decreases as time in comm goes up, higher scroe more likely to stay in community
   reward                       ; count reward received by agent
   time-in-community            ; count ticks/weeks spent in community
   time-with-no-links           ; count ticks #9 has had no tasks
@@ -411,12 +400,7 @@ to go
   entry                           ;; various rules for diff agents entry to community
   exit                            ;; various rules for diff agents exit from community
   change-breed                    ;; rules for agents changing breed - TO BE DONE
-  all-age                         ;; all agents tick on their age/time in comm variable                
-  update-motivation               ;; motivations shift over time depending on:
-                                  ;; desire for money - higher if around long time and spend a lot of time in comm
-                                  ;; desire for collab - high if low collab and vice versa
-                                  ;; desire for learning - lower if been in comm long time
-                                  ;; money up - wanna leave, collab up - wanna stay, learning up - wanna stay.    
+  all-age                         ;; all agents tick on their age/time in comm variable                  
   update-community-activity       ;; calc history of prod and cons activity       
   
   ;; some backstop stop conditions for model
@@ -510,15 +494,11 @@ to create-#1
                                      set time my-time
                                      set skill (n-of 3 (n-values num-skills [?]))
                                      set interest random num-interest-categories
-                                     set motivation 1
                                      set using-platform? "true"
                                      let pref-prob random-float 1
                                      if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
-                                     if pref-prob >= 0.66 [ set typ3-preference "both" ]
-                                     set desire-for-money random-float 1
-                                     set desire-for-collaboration random-float 1
-                                     set desire-for-learning random-float 1
+                                     if pref-prob >= 0.66 [ set typ3-preference "both" ]  
                                      set reward 0 
                                      set my-projects-1s (list (min-one-of projects [ distance myself ]))
                                      let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects-1s] of myself ) ] 
@@ -550,11 +530,7 @@ to create-#9
                                    if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                    if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                    if pref-prob >= 0.66 [ set typ3-preference "both" ]
-                                   set motivation 1
                                    set using-platform? "true"
-                                   set desire-for-money random-float 1
-                                   set desire-for-collaboration random-float 1
-                                   set desire-for-learning random-float 1
                                    set reward 0 
                                    set my-projects (list (min-one-of projects [ distance myself ]))
                                    let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
@@ -604,7 +580,7 @@ to setup-globals
   set #9-left-no-interest 0
   set #9-left-#9-here 0
   set #9-left-no-links-and-old 0
-  set #1-left-motivation 0
+  set #1-left-burnout 0
   set time-with-no-#1s 0
   set time-with-no-#9 0
   set time-with-no-#90s 0
@@ -1231,11 +1207,7 @@ to entry
       if pref-prob < 0.33 [ set typ3-preference "prod" ]
       if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
       if pref-prob >= 0.66 [ set typ3-preference "both" ]
-      set motivation 1
       set using-platform? "true"
-      set desire-for-money random-float 1
-      set desire-for-collaboration random-float 1
-      set desire-for-learning random-float 1
       set reward 0 
       set my-projects (list (nobody))
       set contribution-history-9s (list (0))
@@ -1275,11 +1247,7 @@ to entry
       if pref-prob < 0.33 [ set typ3-preference "prod" ]
       if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
       if pref-prob >= 0.66 [ set typ3-preference "both" ]
-      set motivation 1
       set using-platform? "true"
-      set desire-for-money random-float 1
-      set desire-for-collaboration random-float 1
-      set desire-for-learning random-float 1
       set reward 0 
       set my-projects (list (nobody))
       set contribution-history-9s (list (0))
@@ -1343,12 +1311,9 @@ to exit
                     die ]
            ]
   
-  ;; #1s leave if motivation very low
+  ;; #1s leave if motivation very low - this should now be like burnout described above - if thanks low...
   
-  ask #1s [ if motivation < motivation-threshold-for-1s-to-leave [ 
-            set #1-left-motivation #1-left-motivation + 1
-            die ]
-          ]
+;   ask #1s [ if 'thanks' = low [leave]]
   
   
   
@@ -1387,10 +1352,6 @@ to change-breed
                                 if pref-prob < 0.33 [ set typ3-preference "prod" ]
                                 if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                 if pref-prob >= 0.66 [ set typ3-preference "both" ]
-                                set motivation 1
-                                set desire-for-money random-float 1
-                                set desire-for-collaboration random-float 1
-                                set desire-for-learning random-float 1
                                 set reward 0 
                                 set my-projects (list (nobody)) 
                                 set contribution-history-9s (list (0))
@@ -1449,15 +1410,11 @@ to change-breed
      set time my-time
      ; set skill (n-of 3 (n-values num-skills [?]))
      ; set interest random num-interest-categories
-     set motivation 1
      set using-platform? "true"
      let pref-prob random-float 1
      if pref-prob < 0.33 [ set typ3-preference "prod" ]
      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
      if pref-prob >= 0.66 [ set typ3-preference "both" ]
-     set desire-for-money random-float 1
-     set desire-for-collaboration random-float 1
-     set desire-for-learning random-float 1
      ; set reward 0 
      set contribution-history-1s [ contribution-history-9s ] of self 
      set my-projects-1s [my-projects] of self
@@ -1485,10 +1442,6 @@ to change-breed
      if pref-prob < 0.33 [ set typ3-preference "prod" ]
      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
      if pref-prob >= 0.66 [ set typ3-preference "both" ]
-     set motivation 1
-     set desire-for-money random-float 1
-     set desire-for-collaboration random-float 1
-     set desire-for-learning random-float 1
      ; set reward 0 
      set my-projects [my-projects-1s] of self
      set contribution-history-9s [contribution-history-1s] of self
@@ -1653,78 +1606,6 @@ to all-age
   ask tasklinks [ set ageL ageL + 1]
   ask consumerlinks [ set ageL ageL + 1]
   ask friendlinks [ set ageL ageL + 1]
-end
-
-to update-motivation
-  
-  ;; maybe throw this all out, or base on existing parameters - histories - ie., leave when they are low, not motivation
-  
-  
-  ask #1s [
-    
-    ; desire for money goes up with time in community and my-time
-    
-    if ( my-time > 20 ) and ( time-in-community > 300 ) [ set desire-for-money ( desire-for-money * 1.1 ) ]
-    
-    ; desire for collab goes up/down depending on current level of collab
-    
-    if count my-friendlinks > 10 [ set desire-for-collaboration ( desire-for-collaboration * 0.9 ) ]
-    if count my-friendlinks < 10 [ set desire-for-collaboration ( desire-for-collaboration * 1.1 ) ]
-    
-    ; desire for learning goes down as experience more in comm
-    
-    if time-in-community > 300 [ set desire-for-learning ( desire-for-learning * 0.9 ) ]
-    
-    ; regulate values between 0 and 1
-    
-    if desire-for-money < 0 [ set desire-for-money 0 ]
-    if desire-for-money > 1 [ set desire-for-money 1 ]
-    
-    if desire-for-collaboration < 0 [ set desire-for-collaboration 0 ]
-    if desire-for-collaboration > 1 [ set desire-for-collaboration 1 ]
-    
-    if desire-for-learning < 0 [ set desire-for-learning 0 ]
-    if desire-for-learning > 1 [ set desire-for-learning 1 ]
-    
-    ; calculate motivatin - learning and collaboration increase it - money decreases it.
-    
-    set motivation ( ( desire-for-learning + desire-for-collaboration - desire-for-money ) / 3 )
-    ]
-  
-  ask #9s [
-    ; desire for money goes up with time in community and my-time
-    
-    if ( my-time > 10 ) and ( time-in-community > 100 ) [ set desire-for-money ( desire-for-money * 1.1 ) ]
-    
-    ; desire for collab goes up/down depending on current level of collab
-    
-    if count my-friendlinks > 10 [ set desire-for-collaboration ( desire-for-collaboration * 0.9 ) ]
-    if count my-friendlinks < 10 [ set desire-for-collaboration ( desire-for-collaboration * 1.1 ) ]
-    
-    ; desire for learning goes down as experience more in comm
-    
-    if time-in-community > 150 [ set desire-for-learning ( desire-for-learning * 0.9 ) ]
-    
-    ; regulate values between 0 and 1
-    
-    if desire-for-money < 0 [ set desire-for-money 0 ]
-    if desire-for-money > 1 [ set desire-for-money 1 ]
-    
-    if desire-for-collaboration < 0 [ set desire-for-collaboration 0 ]
-    if desire-for-collaboration > 1 [ set desire-for-collaboration 1 ]
-    
-    if desire-for-learning < 0 [ set desire-for-learning 0 ]
-    if desire-for-learning > 1 [ set desire-for-learning 1 ]
-    
-    ; calculate motivatin - learning and collaboration increase it - money decreases it.
-    
-    set motivation ( ( desire-for-learning + desire-for-collaboration - desire-for-money ) / 3 )]
-  
-  
-  if platform-features = FALSE and how-community-works-without-platform = "online open" []
-  if platform-features = FALSE and how-community-works-without-platform = "online closed" []
-  if platform-features = FALSE and how-community-works-without-platform = "offline" []
-  
 end
 
 to t4sk-set-typ3
@@ -1942,24 +1823,6 @@ prop-of-tasks-reward-group-decided
 NIL
 HORIZONTAL
 
-PLOT
-754
-1275
-914
-1395
-#9s' Des4Money
-NIL
-NIL
-0.0
-1.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 0.1 1 -13345367 true "" "histogram [desire-for-money] of #9s"
-
 SLIDER
 158
 265
@@ -2012,10 +1875,10 @@ PENS
 "default" 10.0 1 -2674135 true "" "histogram [ reward ] of #1s"
 
 PLOT
-594
-1275
-754
-1395
+1070
+1040
+1230
+1160
 #9s' Reward
 NIL
 NIL
@@ -2093,7 +1956,7 @@ initial-products
 initial-products
 0
 100
-58
+3
 1
 1
 NIL
@@ -2170,10 +2033,10 @@ PENS
 "Peri" 1.0 0 -13345367 true "" "plot count #9s with [ time < 0 ]"
 
 PLOT
-752
-1418
-912
-1538
+750
+1310
+910
+1430
 #90s' Consumption
 NIL
 NIL
@@ -2543,60 +2406,6 @@ PENS
 "default" 1.0 1 -13345367 true "" "histogram [interest] of #9s"
 
 PLOT
-754
-1018
-914
-1138
-#1s' Des4Money
-NIL
-NIL
-0.0
-1.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 0.1 1 -2674135 true "" "histogram [desire-for-money] of #1s"
-
-PLOT
-914
-1018
-1074
-1138
-#1s' Des4Collab
-NIL
-NIL
-0.0
-1.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 0.1 1 -2674135 true "" "histogram [desire-for-collaboration] of #1s"
-
-PLOT
-1074
-1018
-1234
-1138
-#1s' Des4Learning
-NIL
-NIL
-0.0
-1.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 0.1 1 -2674135 true "" "histogram [desire-for-learning] of #1s"
-
-PLOT
 1074
 898
 1234
@@ -2613,42 +2422,6 @@ false
 "" ""
 PENS
 "default" 10.0 1 -2674135 true "" "histogram [time-in-community] of #1s"
-
-PLOT
-914
-1275
-1074
-1395
-#9s Des4Collab
-NIL
-NIL
-0.0
-1.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 0.1 1 -13345367 true "" "histogram [desire-for-collaboration] of #9s"
-
-PLOT
-1074
-1278
-1234
-1398
-#9s' Des4Learning
-NIL
-NIL
-0.0
-1.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 0.1 1 -13345367 true "" "histogram [desire-for-learning] of #9s"
 
 PLOT
 1074
@@ -2669,10 +2442,10 @@ PENS
 "default" 10.0 1 -13345367 true "" "histogram [time-in-community] of #9s"
 
 PLOT
-592
-1418
-752
-1538
+590
+1310
+750
+1430
 #90s' Interest
 NIL
 NIL
@@ -2687,10 +2460,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [interest] of #90s"
 
 PLOT
-912
-1418
-1072
-1538
+910
+1310
+1070
+1430
 #90s' Time in Comm
 NIL
 NIL
@@ -3010,25 +2783,6 @@ PENS
 "no links & old" 1.0 0 -2674135 true "" "plot #9-left-no-links-and-old"
 "Became #1" 1.0 0 -10899396 true "" "plot #9-to-#1-count"
 "Cons Dop" 1.0 0 -7500403 true "" "plot #9-left-drop-cons"
-
-PLOT
-1985
-700
-2230
-837
-Motivation
-NIL
-NIL
-0.0
-10.0
-0.0
-1.0
-true
-true
-"" ""
-PENS
-"#1s" 1.0 0 -2674135 true "" "if count #1s > 0 [plot mean [motivation] of #1s ]"
-"#9s" 1.0 0 -13345367 true "" "if count #9s > 0 [plot mean [motivation] of #9s ]"
 
 PLOT
 1985
@@ -3371,10 +3125,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram [recent-activity] of projects"
 
 PLOT
-1219
-1428
-1379
-1548
+1820
+1280
+1980
+1400
 TypePref
 NIL
 NIL
@@ -3556,7 +3310,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-2
+1
 
 PLOT
 1545
