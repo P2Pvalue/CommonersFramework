@@ -15,6 +15,8 @@
 
 ; make sure main scenarios for experiments are all controllable - slider, switch etc
 
+; tidy code - check for unused variables etc
+
 
 
 ; calibration check - 1% need to make most contributions.
@@ -36,9 +38,6 @@
 
 
 ; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
-
-
-; enter - remove 9s enter based on contribution activity
 
 
 ; update calc recent activity to be a history type
@@ -186,7 +185,6 @@ globals [
   time-with-no-products
   time-with-no-tasks
   
-  new-#9-attracted-by-tasks             ; recording why #9 enter
   new-#9-attracted-by-#90s
     
   projects-died                         ; count of projects 'died'
@@ -584,7 +582,7 @@ to setup-globals
   set time-with-no-#1s 0
   set time-with-no-#9 0
   set time-with-no-#90s 0
-  set new-#9-attracted-by-tasks 0
+
   set new-#9-attracted-by-#90s 0
   set projects-died  0
   set count-new-projects 0
@@ -1214,46 +1212,7 @@ to entry
       set new-#9s-total new-#9s-total + 1
       set new-#9-attracted-by-#90s new-#9-attracted-by-#90s + 1 ] ]
  
-     ;; 9s enter if recent prod rise 
      
-     ;; - this is more dodgey...maybe remove...
-     
-      if (( community-prod-activity-t-2 + 
-         community-prod-activity-t-1 + 
-         community-prod-activity-t ) / 3 ) 
-        >
-     (( community-prod-activity-t-10 +
-        community-prod-activity-t-9 +
-        community-prod-activity-t-8 +
-        community-prod-activity-t-7 +
-        community-prod-activity-t-6 +
-        community-prod-activity-t-5 +
-        community-prod-activity-t-4 +
-        community-prod-activity-t-3 +
-        community-prod-activity-t-2 +
-        community-prod-activity-t-1 +
-        community-prod-activity-t ) / 11 ) * 1.5 [
-        
-    create-#9s round ( initial-number-9s / 10 ) [
-      set interest random num-interest-categories
-      set xcor ( random 6 ) + 19
-      set ycor -25 + interest 
-      set size 1
-      set color blue
-      set my-time 1 + random 20
-      set time my-time
-      set skill (n-of 3 (n-values num-skills [?]))
-      let pref-prob random-float 1
-      if pref-prob < 0.33 [ set typ3-preference "prod" ]
-      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
-      if pref-prob >= 0.66 [ set typ3-preference "both" ]
-      set using-platform? "true"
-      set reward 0 
-      set my-projects (list (nobody))
-      set contribution-history-9s (list (0))
-      set new-#9s-total new-#9s-total + 1 
-      set new-#9-attracted-by-tasks new-#9-attracted-by-tasks + 1 ] ]
-  
   ; 1 how ? never?
   
   
@@ -1928,7 +1887,7 @@ initial-products
 initial-products
 0
 100
-49
+1
 1
 1
 NIL
@@ -2772,7 +2731,7 @@ true
 true
 "" ""
 PENS
-"Motiv" 1.0 0 -16777216 true "" "plot #1-left-motivation"
+"BurntOut" 1.0 0 -16777216 true "" "plot #1-left-burnout"
 "Became #9s" 1.0 0 -13345367 true "" "plot #1-to-#9-count"
 
 SLIDER
@@ -2936,7 +2895,6 @@ true
 true
 "" ""
 PENS
-"See Tasks" 1.0 0 -13840069 true "" "plot new-#9-attracted-by-tasks"
 "See #90s" 1.0 0 -955883 true "" "plot new-#9-attracted-by-#90s"
 
 TEXTBOX
@@ -3282,7 +3240,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-2
+1
 
 PLOT
 1545
