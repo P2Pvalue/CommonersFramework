@@ -10,9 +10,6 @@
 
 
 
-; pull out hidden parameters (i.e., hard coded numbers) 
-
-
 ; error checking behaviour space - look for errors in all scenarios using extreme values...
 
 ; calibration behaviour space for advanced parameters
@@ -113,7 +110,7 @@ globals [
   ; initial-number-#90s
   ; initial-projects
   ; initial-tasks
-  ; initial-products
+  initial-products
   
   ; num-interest-categories             ; number of discrete 'interest' categories
   
@@ -389,8 +386,8 @@ to go
   if count products = 0 [ set time-with-no-products time-with-no-products + 1 ]
   if count t4sks = 0 [ set time-with-no-tasks time-with-no-tasks + 1 ]
   if ( time-with-no-#90s = 26 ) [ print "stop no #90s" print ticks stop ]
-  if ( time-with-no-#1s = 5 ) [ print "stop no #1s" print ticks stop ]
-  if ( time-with-no-#9 = 12 ) [ print "stop no #9" print ticks stop ]
+  if ( time-with-no-#1s = 26 ) [ print "stop no #1s" print ticks stop ]
+  if ( time-with-no-#9 = 26 ) [ print "stop no #9" print ticks stop ]
   if ( time-with-no-products = 26 ) [ print "stop no products" print ticks stop ]
   if ( time-with-no-tasks = 26 ) [ print "stop no tasks" print ticks stop ]
  
@@ -426,8 +423,8 @@ to create-existing-projects
                                                              set color green
                                                              set shape "circle" 
                                                              set inter3st [inter3st] of myself
-                                                             set time-required random-normal 200 50
-                                                             set modularity random 20 + 1 
+                                                             set time-required random-normal mean-time-required ( mean-time-required / 4 )
+                                                             set modularity random max-modularity + 1
                                                              set age 0   
                                                              set my-project myself 
                                                              t4sk-set-typ3
@@ -619,11 +616,11 @@ to find-projects
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                   let new-project min-one-of other-projects [ distance myself ] 
                   if other-projects != nobody and new-project != nobody
-                          ;; random number < 0.2 / ( distance of new project / distance furthest project )
+                          ;; random number < prob / ( distance of new project / distance furthest project )
                           ;; ie., relative closeness of new project increases chance of joining it 
-                        [ if random-float 1 < ( 0.2 / ( ( [ distance myself ] of new-project ) / 
-                                                        ( [ distance myself ] of max-one-of projects [ distance myself ] ) 
-                                                      )
+                        [ if random-float 1 < ( prob-9-decides-to-join-project / ( ( [ distance myself ] of new-project ) / 
+                                                                                   ( [ distance myself ] of max-one-of projects [ distance myself ] ) 
+                                                                                 )
                                               )
                               [ set my-projects lput new-project my-projects ] ] ] ]
   
@@ -645,9 +642,9 @@ to find-projects
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
                   let new-project min-one-of other-projects [ distance myself + random 10 - 5 ] 
                   if other-projects != nobody and new-project != nobody 
-                        [ if random-float 1 < ( 0.2 / ( ( [ distance myself ] of new-project ) / 
-                                                        ( [ distance myself ] of max-one-of projects [ distance myself ] ) 
-                                                       )
+                        [ if random-float 1 < ( prob-9-decides-to-join-project / ( ( [ distance myself ] of new-project ) / 
+                                                                                   ( [ distance myself ] of max-one-of projects [ distance myself ] ) 
+                                                                                 )
                                                )                
                               [ set my-projects lput new-project my-projects ] ] ] ]
   
@@ -667,8 +664,8 @@ to find-projects
   
   ask #9s [ if using-platform? = "false" and community-type = "offline" and time > 0 
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]           
-                  if any? other-projects and random-float 1 < 0.2 [ let new-project one-of other-projects
-                                                                    set my-projects lput new-project my-projects ]
+                  if any? other-projects and random-float 1 < prob-9-decides-to-join-project [ let new-project one-of other-projects
+                                                                                               set my-projects lput new-project my-projects ]
                 ]      
            ] 
 end
@@ -721,13 +718,13 @@ to find-tasks
                                   let contributors-to-new-tasks-that-are-my-friend 
                                         contributors-to-new-task with [ member? myself friendlink-neighbors ]
                                   ifelse any? contributors-to-new-tasks-that-are-my-friend 
-                                        [ if ( random-float 1 < ( 0.1 + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
+                                        [ if ( random-float 1 < ( prob-9-contributes-to-friends-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
                                               [ create-tasklink-with one-of turtle-set 
                                                     [ tasklink-neighbors ] of contributors-to-new-tasks-that-are-my-friend 
                                                          [set color 3] 
                                               ] 
                                         ]
-                                        [ if ( random-float 1 < ( 0.05 + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
+                                        [ if ( random-float 1 < ( prob-9-contributes-to-none-friend-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) ) 
                                               [ create-tasklink-with one-of new-task$ [set color 3] ] 
                                         ]
                                   set my-tasks tasklink-neighbors
@@ -807,7 +804,7 @@ to drop-projects
                                            ( turtle-set tasklink-neighbors = nobody )  
                                          ]
                 ] 
-                  and random-float 1 < 0.01 [
+                  and random-float 1 < prob-1-drop-lonely-project [
                         let lonely-projects ( turtle-set my-projects-1s ) with 
                               [ all? my-tasks-projects [ ( turtle-set tasklink-neighbors = turtle-set myself OR 
                                                            turtle-set tasklink-neighbors = nobody ) 
@@ -833,7 +830,7 @@ to drop-projects
                                            ( turtle-set tasklink-neighbors = nobody )  
                                          ]
                 ] 
-                  and random-float 1 < 0.1 [
+                  and random-float 1 < prob-9-drop-a-lonely-or-no-tasks-project [
                        let lonely-projects ( turtle-set my-projects ) with 
                              [ all? my-tasks-projects [ ( turtle-set tasklink-neighbors = turtle-set myself OR 
                                                           turtle-set tasklink-neighbors = nobody )  
@@ -853,7 +850,7 @@ to drop-projects
   ; with a certain chance 9s drop projects if they have no tasks in them
   
   ask #9s [ if count ( turtle-set my-projects ) with [ not member? self [ [ my-project ] of my-tasks ] of myself ] > 0 and 
-            random-float 1 < 0.2 
+            random-float 1 < prob-9-drop-a-lonely-or-no-tasks-project 
                   [ let projects-to-drop ( turtle-set my-projects ) with [ not member? self [ [my-project] of my-tasks ] of myself ]  
                     set my-projects remove one-of projects-to-drop my-projects
                     set #9-dropped-a-project #9-dropped-a-project + 1
@@ -870,14 +867,14 @@ to make-and-lose-friends
   ask #1s [ if count tasklink-neighbors > 0 [ let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks-1s
                                               create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red] 
                                               set my-friends-1s friendlink-neighbors
-                                              if count friendlinks > 0 [ if random-float 1 < 0.1 [ ask one-of friendlinks [die] ] ]
+                                              if count friendlinks > 0 [ if random-float 1 < chance-forget-a-friend [ ask one-of friendlinks [die] ] ]
                                             ]
           ]
 
   ask #9s [ if count tasklink-neighbors > 0 [ let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks
                                               create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color blue] 
                                               set my-friends friendlink-neighbors
-                                              if count friendlinks > 0 [ if random-float 1 < 0.1 [ ask one-of friendlinks [die] ] ]
+                                              if count friendlinks > 0 [ if random-float 1 < chance-forget-a-friend [ ask one-of friendlinks [die] ] ]
                                             ]
           ]
 end
@@ -901,8 +898,8 @@ to give-out-reward
                                       ] 
                    ] 
       ; chance per tick that a contributor 'forgets' they got thanks
-      ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
-      ask #9s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
+      ask #1s [ if random-float 1 < chance-forget-thanks [ set thanks "not received" ] ]
+      ask #9s [ if random-float 1 < chance-forget-thanks [ set thanks "not received" ] ]
      ]
   
   if reward-mechanism = "'points' only" 
@@ -928,8 +925,8 @@ to give-out-reward
                                              [ set thanks "received from #1" ] 
                                        ] 
                    ] 
-      ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ] 
-      ask #9s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
+      ask #1s [ if random-float 1 < chance-forget-thanks [ set thanks "not received" ] ] 
+      ask #9s [ if random-float 1 < chance-forget-thanks [ set thanks "not received" ] ]
 
       ask projects [ if num-tasks = 0 
         [ if reward-type = "subjective" 
@@ -992,8 +989,8 @@ to create-new-task
                   set shape "circle" 
                   t4sk-set-typ3       
                   set inter3st [inter3st] of myself
-                  set time-required random-normal 200 50
-                  set modularity random 20 + 1 
+                  set time-required random-normal mean-time-required ( mean-time-required / 4 )
+                  set modularity random max-modularity + 1 
                   set age 0            
                   set my-project [my-project] of myself
                   set new-tasks-count new-tasks-count + 1 
@@ -1007,10 +1004,10 @@ to projects-die
    
   ask projects [ if not any? #9s with [ member? myself my-projects ] and 
                     not any? #1s with [ member? myself my-projects-1s ] 
-                          [ if random-float 1 < 0.5 [ set projects-died projects-died + 1
-                                                      ask turtle-set my-tasks-projects [ die ]
-                                                      die 
-                                                    ]
+                          [ if random-float 1 < chance-unpopular-project-dies [ set projects-died projects-died + 1
+                                                                                ask turtle-set my-tasks-projects [ die ]
+                                                                                die 
+                                                                              ]
                           ] 
                 ]
 end
@@ -1034,15 +1031,15 @@ to new-projects
   
   ; 1s and 9s to propose new projects with a small probability - 1s is higher
   
-  ask #1s [ if random-float 1 < 0.005 [ #1-or-#9-hatch-project ] ]
-  ask #9s [ if random-float 1 < 0.001 [ #1-or-#9-hatch-project ] ]
+  ask #1s [ if random-float 1 < chance-contributor-proposes-a-new-project [ #1-or-#9-hatch-project ] ]
+  ask #9s [ if random-float 1 < chance-contributor-proposes-a-new-project [ #1-or-#9-hatch-project ] ]
   
   ; projects can create other projects - if very active
   
   ask projects [ if length production-history > 3 and mean production-history > 0 
         [ let history-difference mean sublist production-history (length production-history - 3) (length production-history ) 
           - mean production-history
-          if random-float 1 < 0.03 and history-difference > 0 [ project-hatch-a-project ]
+          if random-float 1 < chance-a-project-hatches-a-project and history-difference > 0 [ project-hatch-a-project ]
         ] 
                ]
 end
@@ -1061,8 +1058,8 @@ to #1-or-#9-hatch-project
                                              set shape "circle" 
                                              t4sk-set-typ3
                                              set inter3st [inter3st] of myself
-                                             set time-required random-normal 200 50
-                                             set modularity random 20 + 1 
+                                             set time-required random-normal mean-time-required ( mean-time-required / 4 )
+                                             set modularity random max-modularity + 1 
                                              set age 0 
                                              set my-project myself 
                                            ]
@@ -1102,8 +1099,8 @@ to project-hatch-a-project
                                              set shape "circle" 
                                              t4sk-set-typ3
                                              set inter3st [inter3st] of myself
-                                             set time-required random-normal 200 50
-                                             set modularity random 20 + 1 
+                                             set time-required random-normal mean-time-required ( mean-time-required / 4 )
+                                             set modularity random max-modularity + 1 
                                              set age 0 
                                              set my-project myself 
                                            ]
@@ -1184,7 +1181,7 @@ to consume-products
   
   ask #90s [ if count consumerlink-neighbors < 3 and count products > 0 
                    [ let new-products products with [ not member? self [ consumerlink-neighbors ] of myself ]
-                     if count new-products > 0 AND ( random-float 1 < 0.01 OR count consumerlink-neighbors = 0 )
+                     if count new-products > 0 AND ( random-float 1 < chance-90-picks-another-product OR count consumerlink-neighbors = 0 )
                            [ create-consumerlink-with min-one-of new-products [ distance myself ] ] 
                    ] 
            ] 
@@ -1208,7 +1205,7 @@ to consume-products
   
   ; random breaks in consumerlinks
   
-  ask consumerlinks [ if random-float 1 < 0.05 [die] ]
+  ask consumerlinks [ if random-float 1 < chance-consumer-link-breaks [die] ]
 end
 
 
@@ -1265,7 +1262,7 @@ to entry
         community-con-activity-t-3 +
         community-con-activity-t-2 +
         community-con-activity-t-1 +
-        community-con-activity-t ) / 11 ) * 1.5 
+        community-con-activity-t ) / 11 ) * new-9s-barrier 
               [ create-#9s round ( initial-number-9s / 10 ) [ set interest random num-interest-categories
                                                               set xcor ( random 6 ) + 19
                                                               set ycor -25 + interest 
@@ -1315,7 +1312,7 @@ to exit
                                           ]
             
             if count my-tasklinks = 0 [ set time-with-no-links time-with-no-links + 1 ]
-            if not any? t4sks with [ inter3st = [ interest ] of myself ] and random-float 1 < ( 0.01 - feel-loved ) 
+            if not any? t4sks with [ inter3st = [ interest ] of myself ] and random-float 1 < ( chance-9s-exit - feel-loved ) 
                   [ set #9s-left #9s-left + 1
                     set #9-left-no-interest #9-left-no-interest + 1
                     die 
@@ -1335,7 +1332,7 @@ to exit
                    community-con-activity-t-6 +
                    community-con-activity-t-5 +
                    community-con-activity-t-4 +
-                   community-con-activity-t-3 ) / 8 ) ) and random-float 1 < ( 0.01 - feel-loved )
+                   community-con-activity-t-3 ) / 8 ) ) and random-float 1 < ( chance-9s-exit - feel-loved )
                          [ set #9s-left #9s-left + 1
                            set #9-left-drop-cons #9-left-drop-cons + 1
                            die 
@@ -1346,10 +1343,10 @@ to exit
   
   ask #90s [ if count my-consumerlinks = 0 [ set time-without-products time-without-products + 1 ]
              if ( not any? products with [ inter3st = [ interest ] of myself ] ) and 
-                  random-float 1 < 0.01 [ set #90s-left #90s-left + 1
-                                          set #90s-left-no-product #90s-left-no-product + 1 
-                                          die 
-                                        ]
+                  random-float 1 < chance-90s-exit [ set #90s-left #90s-left + 1
+                                                     set #90s-left-no-product #90s-left-no-product + 1 
+                                                     die 
+                                                   ]
            ]
   
   ;; #1s and #9s leave if 'motivation very low' ie., no thanks (or thanks from lower contributor) 
@@ -1357,49 +1354,49 @@ to exit
   
   if reward-mechanism = "'thanks' only" 
         [ ask #1s [ if thanks = "not received" OR thanks = "received from #9" 
-                        [ if random-float 1 < 0.001 [ set #1s-left #1s-left + 1
-                                                      set #1-left-burnout #1-left-burnout + 1
-                                                      die 
-                                                    ]
+                        [ if random-float 1 < chance-1-burn-out [ set #1s-left #1s-left + 1
+                                                                  set #1-left-burnout #1-left-burnout + 1
+                                                                  die 
+                                                                ]
                         ]
                   ]
    
-          ask #9s [ if thanks = "not received" and random-float 1 < 0.005 [ set #9s-left #9s-left + 1
-                                                                            set #9-left-burnout #9-left-burnout + 1
-                                                                            die 
-                                                                           ]
+          ask #9s [ if thanks = "not received" and random-float 1 < ( chance-1-burn-out * 5 ) [ set #9s-left #9s-left + 1
+                                                                                                set #9-left-burnout #9-left-burnout + 1
+                                                                                                die 
+                                                                                              ]
                   ]
   
         ]
   
   if reward-mechanism = "'points' only" 
-        [ ask #1s [ if points < mean [points] of #1s and random-float 1 < 0.001 [ set #1s-left #1s-left + 1
-                                                                                  set #1-left-burnout #1-left-burnout + 1
-                                                                                  die 
-                                                                                 ]
+        [ ask #1s [ if points < mean [points] of #1s and random-float 1 < chance-1-burn-out [ set #1s-left #1s-left + 1
+                                                                                              set #1-left-burnout #1-left-burnout + 1
+                                                                                              die 
+                                                                                            ]
                   ]
    
-          ask #9s [ if points < mean [points] of #9s and random-float 1 < 0.005 [ set #9s-left #9s-left + 1
-                                                                                  set #9-left-burnout #9-left-burnout + 1
-                                                                                  die 
-                                                                                 ]
+          ask #9s [ if points < mean [points] of #9s and random-float 1 < ( chance-1-burn-out * 5 ) [ set #9s-left #9s-left + 1
+                                                                                                      set #9-left-burnout #9-left-burnout + 1
+                                                                                                      die 
+                                                                                                    ]
                   ]
         ]
   
   if reward-mechanism = "both" 
         [ ask #1s [ if thanks = "not received" OR thanks = "received from #9" OR points < mean [points] of #1s 
-              [ if random-float 1 < 0.001 [ set #1s-left #1s-left + 1
-                                            set #1-left-burnout #1-left-burnout + 1
-                                            die 
-                                           ]
+              [ if random-float 1 < chance-1-burn-out [ set #1s-left #1s-left + 1
+                                                        set #1-left-burnout #1-left-burnout + 1
+                                                        die 
+                                                      ]
               ]
                   ]
    
            ask #9s [ if thanks = "not received" OR points < mean [points] of #9s 
-                 [ if random-float 1 < 0.005 [ set #9s-left #9s-left + 1
-                                               set #9-left-burnout #9-left-burnout + 1
-                                               die 
-                                              ]
+                 [ if random-float 1 < ( chance-1-burn-out * 5 ) [ set #9s-left #9s-left + 1
+                                                                   set #9-left-burnout #9-left-burnout + 1
+                                                                   die 
+                                                                 ]
                  ]
                    ]
          ]
@@ -1439,7 +1436,7 @@ to change-breed
                                                               (length contribution-history-9s ) 
                                                  - 
                                                  mean contribution-history-9s 
-           if ( history-difference > 0 ) and ( random-float 1 < 0.01  )   
+           if ( history-difference > 0 ) and ( random-float 1 < chance-9-become-1  )   
                  [ set breed #1s
                    set xcor 18
                    set ycor -25 + interest 
@@ -1466,7 +1463,7 @@ to change-breed
                                                                 (length contribution-history-1s ) 
                                                    - 
                                                    mean contribution-history-1s 
-           if ( history-difference < 0 ) and ( random-float 1 < 0.01 - feel-loved ) 
+           if ( history-difference < 0 ) and ( random-float 1 < chance-1-become-9 - feel-loved ) 
                  [ set breed #9s
                    set xcor ( random 6 ) + 19
                    set ycor -25 + interest
@@ -1668,7 +1665,7 @@ end
 to products-die
   
   ; products can disappear if they have no consumers plus a small chance
-  ask products [ if count my-consumerlinks = 0 [ if random-float 1 < 0.1 
+  ask products [ if count my-consumerlinks = 0 [ if random-float 1 < chance-products-die 
                                                      [ set product-had-no-consumer-so-left product-had-no-consumer-so-left + 1 
                                                        die ] 
                                                 ] 
@@ -1706,10 +1703,10 @@ to t4sk-set-typ3
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-250
-230
-683
-686
+319
+245
+752
+701
 25
 25
 7.4314
@@ -1805,17 +1802,17 @@ initial-tasks
 initial-tasks
 0
 100
-13
+10
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-717
-53
-1162
-193
+864
+62
+1309
+202
 Size of Community
 NIL
 NIL
@@ -1832,10 +1829,10 @@ PENS
 "#90s" 1.0 0 -1184463 true "" "plot count #90s"
 
 PLOT
-1680
-950
-1925
-1125
+2073
+887
+2318
+1062
 Entry&Exit Per Tick
 NIL
 NIL
@@ -1854,9 +1851,9 @@ PENS
 
 SLIDER
 15
-835
+820
 287
-868
+853
 prop-of-projects-reward-subjective
 prop-of-projects-reward-subjective
 0
@@ -1868,10 +1865,10 @@ NIL
 HORIZONTAL
 
 PLOT
-1314
-1087
-1474
-1207
+1707
+1025
+1867
+1145
 Tasks' TimeReq
 NIL
 NIL
@@ -1886,10 +1883,10 @@ PENS
 "default" 100.0 1 -13840069 true "" "histogram [time-required] of t4sks"
 
 PLOT
-465
-1073
-625
-1193
+858
+1010
+1018
+1130
 #1s' Points
 NIL
 NIL
@@ -1904,10 +1901,10 @@ PENS
 "default" 10.0 1 -2674135 true "" "histogram [ points ] of #1s"
 
 PLOT
-941
-1095
-1101
-1215
+1334
+1033
+1494
+1153
 #9s' Points
 NIL
 NIL
@@ -1922,10 +1919,10 @@ PENS
 "default" 1.0 1 -13345367 true "" "histogram [ points ] of #9s"
 
 PLOT
-1313
-953
-1473
-1073
+1706
+890
+1866
+1010
 Projects' RewardLevel
 NIL
 NIL
@@ -1940,10 +1937,10 @@ PENS
 "default" 5.0 1 -13840069 true "" "histogram [reward-level] of projects"
 
 PLOT
-707
-283
-1157
-433
+854
+290
+1304
+440
 Tasks&Products
 NIL
 NIL
@@ -1978,21 +1975,6 @@ NIL
 
 SLIDER
 8
-635
-248
-668
-initial-products
-initial-products
-0
-100
-63
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-8
 517
 248
 550
@@ -2007,10 +1989,10 @@ NIL
 HORIZONTAL
 
 PLOT
-465
-953
-625
-1073
+858
+890
+1018
+1010
 #1s' Time
 NIL
 NIL
@@ -2025,10 +2007,10 @@ PENS
 "default" 5.0 1 -2674135 true "" "histogram [ time ] of #1s"
 
 PLOT
-465
-1210
-625
-1330
+858
+1147
+1018
+1267
 #9s' Time
 NIL
 NIL
@@ -2043,10 +2025,10 @@ PENS
 "default" 5.0 1 -13345367 true "" "histogram [time] of #9s"
 
 PLOT
-1760
-215
-1998
-335
+1907
+224
+2145
+344
 Overtime
 NIL
 NIL
@@ -2062,10 +2044,10 @@ PENS
 "#9s" 1.0 0 -13345367 true "" "plot count #9s with [ time < 0 ]"
 
 PLOT
-621
-1365
-781
-1485
+1014
+1303
+1174
+1423
 #90s' Consumption
 NIL
 NIL
@@ -2080,10 +2062,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [consumption] of #90s"
 
 SLIDER
-16
-910
-289
-943
+385
+1100
+658
+1133
 prop-consumed-each-time
 prop-consumed-each-time
 0
@@ -2095,10 +2077,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-799
-288
-832
+16
+762
+289
+795
 num-interest-categories
 num-interest-categories
 0
@@ -2110,10 +2092,10 @@ NIL
 HORIZONTAL
 
 PLOT
-1757
-53
-1995
-173
+1905
+62
+2143
+182
 Ave No. Links
 NIL
 NIL
@@ -2147,10 +2129,10 @@ NIL
 1
 
 MONITOR
-1062
-193
-1132
-238
+1208
+202
+1278
+247
 #90s Left
 #90s-left
 0
@@ -2158,10 +2140,10 @@ MONITOR
 11
 
 MONITOR
-926
-193
-991
-238
+1073
+202
+1138
+247
 #9s Left
 #9s-left
 17
@@ -2169,10 +2151,10 @@ MONITOR
 11
 
 MONITOR
-862
-193
-927
-238
+1008
+202
+1073
+247
 New #9s
 new-#9s-total
 0
@@ -2180,10 +2162,10 @@ new-#9s-total
 11
 
 MONITOR
-996
-193
-1061
-238
+1143
+202
+1208
+247
 New #90s
 new-#90s-total
 0
@@ -2191,10 +2173,10 @@ new-#90s-total
 11
 
 MONITOR
-330
-10
-410
-55
+399
+25
+479
+70
 NIL
 count #1s
 0
@@ -2202,10 +2184,10 @@ count #1s
 11
 
 MONITOR
-330
-54
-410
-100
+399
+69
+479
+115
 NIL
 count #9s
 0
@@ -2213,10 +2195,10 @@ count #9s
 11
 
 MONITOR
-330
-100
-410
-146
+399
+115
+479
+161
 NIL
 count #90s
 0
@@ -2224,10 +2206,10 @@ count #90s
 11
 
 MONITOR
-506
-55
-598
-101
+576
+70
+668
+116
 NIL
 count t4sks
 0
@@ -2235,10 +2217,10 @@ count t4sks
 11
 
 MONITOR
-506
-100
-599
-146
+576
+115
+669
+161
 NIL
 count products
 0
@@ -2246,10 +2228,10 @@ count products
 11
 
 PLOT
-1796
-1153
-2041
-1303
+2189
+1090
+2434
+1240
 ProdCons&TasksCompl
 NIL
 NIL
@@ -2265,10 +2247,10 @@ PENS
 "Tasks" 1.0 0 -13840069 true "" "plot tasks-completed"
 
 PLOT
-1796
-1303
-2041
-1453
+2189
+1240
+2434
+1390
 NewProd&Tasks
 NIL
 NIL
@@ -2285,10 +2267,10 @@ PENS
 "Projects" 1.0 0 -15575016 true "" "plot count-new-projects"
 
 MONITOR
-1696
-1213
-1796
-1258
+2089
+1150
+2189
+1195
 NIL
 products-consumed
 0
@@ -2296,10 +2278,10 @@ products-consumed
 11
 
 MONITOR
-1696
-1257
-1796
-1302
+2089
+1195
+2189
+1240
 NIL
 tasks-completed
 0
@@ -2307,10 +2289,10 @@ tasks-completed
 11
 
 MONITOR
-1692
-1407
-1797
-1452
+2085
+1345
+2190
+1390
 NIL
 new-tasks-count
 0
@@ -2318,10 +2300,10 @@ new-tasks-count
 11
 
 MONITOR
-1692
-1363
-1797
-1408
+2085
+1300
+2190
+1345
 NIL
 new-products-count
 0
@@ -2329,10 +2311,10 @@ new-products-count
 11
 
 PLOT
-625
-953
-785
-1073
+1018
+890
+1178
+1010
 #1s' Skill
 NIL
 NIL
@@ -2347,10 +2329,10 @@ PENS
 "default" 10.0 1 -2674135 true "" "histogram [ skill ] of #1s"
 
 PLOT
-785
-953
-945
-1073
+1178
+890
+1338
+1010
 #1s' Interest
 NIL
 NIL
@@ -2365,10 +2347,10 @@ PENS
 "default" 1.0 1 -2674135 true "" "histogram [interest] of #1s"
 
 PLOT
-625
-1210
-785
-1330
+1018
+1147
+1178
+1267
 #9s' Skill
 NIL
 NIL
@@ -2383,10 +2365,10 @@ PENS
 "default" 10.0 1 -13345367 true "" "histogram [skill] of #9s"
 
 PLOT
-785
-1210
-945
-1330
+1178
+1147
+1338
+1267
 #9s' Interest
 NIL
 NIL
@@ -2401,10 +2383,10 @@ PENS
 "default" 1.0 1 -13345367 true "" "histogram [interest] of #9s"
 
 PLOT
-945
-953
-1105
-1073
+1338
+890
+1498
+1010
 #1s' Time in Comm
 NIL
 NIL
@@ -2419,10 +2401,10 @@ PENS
 "default" 10.0 1 -2674135 true "" "histogram [time-in-community] of #1s"
 
 PLOT
-945
-1213
-1105
-1333
+1338
+1150
+1498
+1270
 #9s' Time in Comm
 NIL
 NIL
@@ -2437,10 +2419,10 @@ PENS
 "default" 10.0 1 -13345367 true "" "histogram [time-in-community] of #9s"
 
 PLOT
-461
-1365
-621
-1485
+854
+1303
+1014
+1423
 #90s' Interest
 NIL
 NIL
@@ -2455,10 +2437,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [interest] of #90s"
 
 PLOT
-781
-1365
-941
-1485
+1174
+1303
+1334
+1423
 #90s' Time in Comm
 NIL
 NIL
@@ -2473,10 +2455,10 @@ PENS
 "default" 5.0 1 -13840069 true "" "histogram [time-in-community] of #90s"
 
 PLOT
-1471
-1205
-1631
-1325
+1864
+1143
+2024
+1263
 Tasks' Interest
 NIL
 NIL
@@ -2491,10 +2473,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [inter3st] of t4sks"
 
 PLOT
-1153
-953
-1313
-1073
+1546
+890
+1706
+1010
 Projects' RewardType
 NIL
 NIL
@@ -2510,10 +2492,10 @@ PENS
 "Obj" 1.0 0 -7500403 true "" "plot count projects with [reward-type = \"objective\" ]"
 
 PLOT
-1154
-1207
-1314
-1327
+1547
+1145
+1707
+1265
 Tasks' Modularity
 NIL
 NIL
@@ -2528,10 +2510,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [modularity] of t4sks"
 
 PLOT
-1314
-1207
-1474
-1327
+1707
+1145
+1867
+1265
 Tasks' Age
 NIL
 NIL
@@ -2546,10 +2528,10 @@ PENS
 "default" 100.0 1 -13840069 true "" "histogram [age] of t4sks"
 
 PLOT
-1153
-1343
-1313
-1463
+1546
+1280
+1706
+1400
 Prod's Interest
 NIL
 NIL
@@ -2564,10 +2546,10 @@ PENS
 "default" 1.0 1 -955883 true "" "histogram [inter3st] of products"
 
 PLOT
-1313
-1344
-1473
-1464
+1706
+1282
+1866
+1402
 Prod's Age
 NIL
 NIL
@@ -2582,10 +2564,10 @@ PENS
 "default" 10.0 1 -955883 true "" "histogram [age] of products"
 
 MONITOR
-410
-10
-490
-55
+479
+25
+559
+70
 % #1s
 ( count #1s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2593,10 +2575,10 @@ MONITOR
 11
 
 MONITOR
-410
-55
-489
-101
+479
+70
+558
+116
 % #9s
 ( count #9s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2604,10 +2586,10 @@ MONITOR
 11
 
 MONITOR
-410
-100
-489
-146
+479
+115
+558
+161
 % #90s
 ( count #90s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2615,10 +2597,10 @@ MONITOR
 11
 
 PLOT
-1760
-472
-2004
-609
+1907
+480
+2151
+617
 Long time Members
 NIL
 NIL
@@ -2635,10 +2617,10 @@ PENS
 "2 years" 1.0 0 -8431303 true "" "plot (( count #1s with [ time-in-community > 104 ] ) + ( count #9s with [ time-in-community > 104 ]) + ( count #90s with [ time-in-community > 104 ] )) / ( count #1s + count #9s + count #90s )"
 
 PLOT
-1499
-206
-1754
-365
+1647
+215
+1902
+374
 Why #9s Left
 NIL
 NIL
@@ -2656,10 +2638,10 @@ PENS
 "Burnout" 1.0 0 -955883 true "" "plot #9-left-burnout"
 
 PLOT
-1499
-53
-1754
-203
+1647
+62
+1902
+212
 Why #1s Left 
 NIL
 NIL
@@ -2675,10 +2657,10 @@ PENS
 "Became #9s" 1.0 0 -13345367 true "" "plot #1-to-#9-count"
 
 PLOT
-1499
-526
-1754
-681
+1647
+535
+1902
+690
 Why #9s and #90s Enter?
 NIL
 NIL
@@ -2694,10 +2676,10 @@ PENS
 "#90s See Consumption " 1.0 0 -7500403 true "" "plot new-#90s-total"
 
 TEXTBOX
-30
-730
-350
-774
+272
+729
+592
+773
 ---ADVANCED PARAMETERS---
 14
 0.0
@@ -2724,30 +2706,30 @@ TEXTBOX
 1
 
 TEXTBOX
-717
-13
-1180
-33
+864
+20
+1327
+40
 --------------------MAIN OUTPUTS-------------------
 14
 0.0
 1
 
 TEXTBOX
-1509
-13
-1744
-33
+1657
+22
+1892
+42
 ---OUTPUT: WHY EXIT/ENTER---
 14
 0.0
 1
 
 TEXTBOX
-1750
-12
-2023
-47
+1897
+20
+2170
+55
 ---OUTPUT: LINKS-STRUCTURE---
 14
 0.0
@@ -2769,30 +2751,30 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-689
-215
-705
-667
+758
+229
+774
+681
 ^\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\ni\nn\nt\ne\nr\ne\ns\nt\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\nV\n
 14
 0.0
 1
 
 TEXTBOX
-280
-165
-680
-221
+349
+180
+749
+236
                  Products                                             \n                 <--More                      Projects\n#90s          Appealing-          ---Higher in list--->        #1s   #9s
 12
 0.0
 1
 
 SLIDER
-15
-873
-288
-906
+385
+985
+658
+1018
 chance-of-finding-new-task
 chance-of-finding-new-task
 0
@@ -2804,10 +2786,10 @@ NIL
 HORIZONTAL
 
 PLOT
-1471
-953
-1631
-1074
+1864
+890
+2024
+1011
 HistoProjectsNumTasks
 NIL
 NIL
@@ -2822,10 +2804,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [num-tasks] of projects"
 
 MONITOR
-1692
-1321
-1797
-1366
+2085
+1258
+2190
+1303
 NIL
 count-new-projects
 0
@@ -2833,20 +2815,20 @@ count-new-projects
 11
 
 TEXTBOX
-756
-908
-1261
-927
+1149
+846
+1654
+865
 -------UNINTERESTING OUTPUTS & DIAGNOSTICS----------
 15
 0.0
 1
 
 PLOT
-708
-553
-933
-673
+856
+560
+1081
+680
 Aggregate Consumption
 NIL
 NIL
@@ -2871,10 +2853,10 @@ PENS
 "t" 1.0 0 -13791810 true "" "plot community-con-activity-t"
 
 PLOT
-932
-553
-1158
-674
+1078
+560
+1304
+681
 Aggregate Production
 NIL
 NIL
@@ -2899,10 +2881,10 @@ PENS
 "pen-10" 1.0 0 -13791810 true "" "plot community-prod-activity-t"
 
 PLOT
-707
-433
-933
-554
+854
+440
+1080
+561
 Count Links
 NIL
 NIL
@@ -2919,10 +2901,10 @@ PENS
 "Cons" 1.0 0 -13840069 true "" "plot count consumerlinks"
 
 MONITOR
-506
-10
-599
-56
+576
+25
+669
+71
 NIL
 count projects
 17
@@ -2930,10 +2912,10 @@ count projects
 11
 
 PLOT
-932
-433
-1158
-553
+1078
+440
+1304
+560
 AgesOfLinks
 NIL
 NIL
@@ -2960,10 +2942,10 @@ reward-mechanism
 2
 
 PLOT
-1160
-55
-1500
-215
+1307
+64
+1647
+224
 Average Contributions Made
 NIL
 NIL
@@ -2998,13 +2980,13 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-2
+0
 
 PLOT
-1754
-688
-2009
-838
+1902
+697
+2157
+847
 Dropped Projects&Tasks
 NIL
 NIL
@@ -3022,10 +3004,10 @@ PENS
 "9 project" 1.0 0 -5325092 true "" "plot #9-dropped-a-project"
 
 PLOT
-1762
-342
-2003
-463
+1909
+350
+2150
+471
 Projects Finished & Died
 NIL
 NIL
@@ -3052,10 +3034,10 @@ platform-features
 -1000
 
 PLOT
-1160
-215
-1500
-335
+1307
+224
+1647
+344
 ChangeRole
 NIL
 NIL
@@ -3072,10 +3054,10 @@ PENS
 "#1->#9" 1.0 0 -2674135 true "" "plot #1-to-#9-count"
 
 PLOT
-1160
-335
-1500
-520
+1307
+344
+1647
+529
 ContributionsHisto
 NIL
 NIL
@@ -3091,10 +3073,10 @@ PENS
 "#1s" 1.0 1 -2139308 true "" "histogram [ my-total-contribution-1s ] of #1s"
 
 PLOT
-1499
-373
-1754
-523
+1647
+382
+1902
+532
 Why #90s Leave?
 NIL
 NIL
@@ -3109,10 +3091,10 @@ PENS
 "No product 4 them" 1.0 0 -16777216 true "" "plot #90s-left-no-product"
 
 MONITOR
-796
-193
-858
-238
+943
+202
+1005
+247
 #1s Left
 #1s-left
 0
@@ -3135,10 +3117,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-736
-193
-798
-238
+884
+202
+946
+247
 New #1s
 #9-to-#1-count
 0
@@ -3146,25 +3128,25 @@ New #1s
 11
 
 SLIDER
-16
-761
-286
-794
+390
+1220
+660
+1253
 new-90s-barrier
 new-90s-barrier
 0
 5
-1.5
+0.75
 0.25
 1
 NIL
 HORIZONTAL
 
 MONITOR
-1062
-239
-1132
-284
+1208
+247
+1278
+292
 #90->#9
 #90-to-#9-count
 0
@@ -3172,10 +3154,10 @@ MONITOR
 11
 
 MONITOR
-928
-239
-993
-284
+1075
+247
+1140
+292
 #9->#1
 #9-to-#1-count
 0
@@ -3183,10 +3165,10 @@ MONITOR
 11
 
 MONITOR
-798
-238
-861
-283
+945
+246
+1008
+291
 #1->#9
 #1-to-#9-count
 0
@@ -3194,10 +3176,10 @@ MONITOR
 11
 
 PLOT
-1494
-683
-1754
-833
+1642
+692
+1902
+842
 PointsHisto
 NIL
 NIL
@@ -3213,10 +3195,10 @@ PENS
 "#1s" 1.0 1 -2674135 true "" "histogram [points] of #1s"
 
 MONITOR
-1759
-613
-1921
-658
+1907
+622
+2069
+667
 NIL
 products-out-competed
 0
@@ -3224,10 +3206,10 @@ products-out-competed
 11
 
 PLOT
-1160
-520
-1500
-785
+1307
+528
+1647
+793
 Thanks Counts
 NIL
 NIL
@@ -3245,10 +3227,10 @@ PENS
 "#1s Thanks from #1s" 1.0 0 -5298144 true "" "plot count #1s with [ thanks = \"received from #1\" ]"
 
 PLOT
-710
-675
-1160
-795
+857
+684
+1307
+804
 Mean Consumption History of Products
 NIL
 NIL
@@ -3263,10 +3245,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "if count products > 0 [ plot mean [sum consumption-history] of products ]"
 
 PLOT
-1151
-1075
-1311
-1195
+1544
+1013
+1704
+1133
 Histo Current Contributors
 NIL
 NIL
@@ -3281,10 +3263,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram [ count current-contributors]  of projects"
 
 PLOT
-781
-1095
-941
-1215
+1174
+1033
+1334
+1153
 #9s Time with No Links
 NIL
 NIL
@@ -3297,6 +3279,321 @@ false
 "" ""
 PENS
 "default" 5.0 1 -16777216 true "" "histogram [ time-with-no-links] of #9s"
+
+SLIDER
+380
+910
+655
+943
+mean-time-required
+mean-time-required
+10
+1000
+200
+10
+1
+NIL
+HORIZONTAL
+
+SLIDER
+380
+875
+655
+908
+max-modularity
+max-modularity
+1
+80
+20
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+15
+880
+290
+913
+prob-9-decides-to-join-project
+prob-9-decides-to-join-project
+0.001
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+15
+915
+292
+948
+prob-9-contributes-to-friends-task
+prob-9-contributes-to-friends-task
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+15
+950
+295
+983
+prob-9-contributes-to-none-friend-task
+prob-9-contributes-to-none-friend-task
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+15
+1010
+295
+1043
+prob-1-drop-lonely-project
+prob-1-drop-lonely-project
+0
+1
+0.01
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+15
+1045
+295
+1078
+prob-9-drop-a-lonely-or-no-tasks-project
+prob-9-drop-a-lonely-or-no-tasks-project
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+1110
+295
+1143
+chance-forget-a-friend
+chance-forget-a-friend
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+1170
+295
+1203
+chance-forget-thanks
+chance-forget-thanks
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+1225
+300
+1258
+chance-unpopular-project-dies
+chance-unpopular-project-dies
+0
+1
+0.5
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+1280
+335
+1314
+chance-contributor-proposes-a-new-project
+chance-contributor-proposes-a-new-project
+0
+1
+0.0010
+0.0005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+1315
+305
+1349
+chance-a-project-hatches-a-project
+chance-a-project-hatches-a-project
+0
+1
+0.03
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+1349
+305
+1383
+chance-90-picks-another-product
+chance-90-picks-another-product
+0
+1
+0.01
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+18
+1412
+303
+1446
+chance-consumer-link-breaks
+chance-consumer-link-breaks
+0
+1
+0.05
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+390
+1186
+660
+1220
+new-9s-barrier
+new-9s-barrier
+0.5
+3
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+390
+1256
+660
+1290
+chance-9s-exit
+chance-9s-exit
+0
+1
+0.05
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+390
+1291
+660
+1325
+chance-90s-exit
+chance-90s-exit
+0
+1
+0.01
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+390
+1329
+660
+1363
+chance-1-burn-out
+chance-1-burn-out
+0
+1
+0.0010
+0.0005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+380
+765
+605
+799
+chance-9-become-1
+chance-9-become-1
+0
+1
+0.1
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+378
+801
+608
+835
+chance-1-become-9
+chance-1-become-9
+0
+1
+0.01
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+385
+1063
+660
+1097
+chance-products-die
+chance-products-die
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -3646,118 +3943,151 @@ NetLogo 5.1.0
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="1st Calibration entry&amp;exit 1:9:90" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="errorCheckingandCalibrating_2Sept" repetitions="1" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
-    <final>export-interface (word "interface_from_run_number" behaviorspace-run-number ".png")</final>
-    <timeLimit steps="600"/>
-    <metric>count cores</metric>
-    <metric>count peripheries</metric>
-    <metric>count users</metric>
+    <timeLimit steps="52"/>
+    <metric>count #1s</metric>
+    <metric>count #9s</metric>
+    <metric>count #90s</metric>
+    <metric>( count #1s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #9s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>( count #90s / ( count #1s + count #9s + count #90s )) * 100</metric>
+    <metric>count projects</metric>
     <metric>count t4sks</metric>
     <metric>count products</metric>
-    <metric>( count cores / ( count cores + count peripheries + count users )) * 100</metric>
-    <metric>( count peripheries / ( count cores + count peripheries + count users )) * 100</metric>
-    <metric>( count users / ( count cores + count peripheries + count users )) * 100</metric>
-    <enumeratedValueSet variable="volume-req-to-attract-new-users">
-      <value value="50"/>
-      <value value="70"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="motivation-low-for-core-to-become-peri">
-      <value value="0.2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="reward-mechanism">
-      <value value="&quot;a&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="oldness-of-peri-to-consider-exit">
-      <value value="5"/>
-      <value value="26"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="chance-of-new-task">
+    <metric>#9-to-#1-count</metric>
+    <metric>#1s-left</metric>
+    <metric>#1-to-#9-count</metric>
+    <metric>new-#9s-total</metric>
+    <metric>#9s-left</metric>
+    <metric>new-#90s-total</metric>
+    <metric>#90s-left</metric>
+    <metric>#90-to-#9-count</metric>
+    <metric>count friendlinks</metric>
+    <metric>count tasklinks</metric>
+    <metric>mean [ my-total-contribution-9s ] of #9s</metric>
+    <metric>mean [ my-total-contribution-1s ] of #1s</metric>
+    <enumeratedValueSet variable="prob-1-drop-lonely-project">
       <value value="0.01"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="reward-for-peri-to-become-core">
-      <value value="100"/>
+    <enumeratedValueSet variable="reward-mechanism">
+      <value value="&quot;both&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="time-req-to-attract-new-peri">
-      <value value="985"/>
-      <value value="995"/>
+    <enumeratedValueSet variable="initial-number-90s">
+      <value value="900"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-periphery-contributors">
-      <value value="135"/>
+    <enumeratedValueSet variable="prob-9-decides-to-join-project">
+      <value value="0.1"/>
+      <value value="0.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="time-low-for-core-to-become-peri">
-      <value value="10"/>
+    <enumeratedValueSet variable="chance-90-picks-another-product">
+      <value value="0.01"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="new-9s-barrier">
+      <value value="0.5"/>
+      <value value="1.5"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="proportion-using-platform">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-consumer-link-breaks">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="community-type">
+      <value value="&quot;online&quot;"/>
+      <value value="&quot;offline&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-products-die">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-9-become-1">
+      <value value="0.01"/>
+      <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
       <value value="0.0010"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-tasks">
-      <value value="100"/>
+    <enumeratedValueSet variable="max-modularity">
+      <value value="20"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="low-count-product-links-to-attract-new-users">
-      <value value="2"/>
-      <value value="6"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="low-count-task-links-to-attract-new-peri">
-      <value value="2"/>
-      <value value="6"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-tasks-on-platform">
-      <value value="0.2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="time-for-peri-to-become-core">
-      <value value="52"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="vision">
-      <value value="10"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="motivation-threshold-for-core-to-leave">
-      <value value="0.05"/>
-      <value value="0.15"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-core-contributors">
-      <value value="15"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="inertia-before-exit">
-      <value value="1"/>
-      <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="peri-time-with-no-links-to-consider-leaving">
-      <value value="1"/>
-      <value value="4"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-interest-categories">
-      <value value="10"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-prod-per-task">
-      <value value="15"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="spatial-limit">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-users">
-      <value value="1350"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-tasks-mngt">
+    <enumeratedValueSet variable="chance-1-become-9">
+      <value value="0.01"/>
       <value value="0.1"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-of-tasks-reward-group-decided">
+    <enumeratedValueSet variable="initial-number-1s">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="platform-features">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-drop-a-lonely-or-no-tasks-project">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-a-project-hatches-a-project">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;one&quot;"/>
+      <value value="&quot;a few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-of-projects-reward-subjective">
       <value value="0.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="proportion-of-community-online">
+    <enumeratedValueSet variable="chance-forget-a-friend">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-unpopular-project-dies">
       <value value="0.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="user-time-without-products-to-consider-leaving">
-      <value value="1"/>
-      <value value="4"/>
+    <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
+      <value value="0.0010"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="oldness-of-user-to-consider-exit">
-      <value value="4"/>
-      <value value="26"/>
+    <enumeratedValueSet variable="new-90s-barrier">
+      <value value="0.75"/>
+      <value value="1.5"/>
+      <value value="3"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-products">
-      <value value="100"/>
+    <enumeratedValueSet variable="chance-9s-exit">
+      <value value="0.01"/>
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-of-finding-new-task">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-tasks">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-none-friend-task">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-forget-thanks">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-number-9s">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-1-burn-out">
+      <value value="0.0010"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="chance-90s-exit">
+      <value value="0.01"/>
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
+      <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
