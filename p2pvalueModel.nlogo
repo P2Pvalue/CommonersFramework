@@ -31,10 +31,7 @@
 ; MAIN UPDATES
 
 
-; thanks mechanism - ; give-out-reward, update -  two mechanims - 'thanks' and competitive - implement
-
-
-; exit rule - burn out/too old - implement once the 'thanks' is used - and use this - long time and no thanks = 9 and 1s leave (this replaces 'motivation' as reason for leaving for 1s, and 9s)
+; how is points and thanks used? currently only thanks in burnout...should it be added to other exits? and likelihood of contributions?
 
 
 
@@ -49,7 +46,7 @@
 ; can only drop one project at a time - can i make it more?
 
 
-
+; error on drop projects sometimes - contributors with my-tasks = 0
 
 
 
@@ -127,6 +124,7 @@ globals [
   
   ; num-prod-per-task                   ; max number of products produced per completed task (random x)
   
+  #1s-left
   #9s-left                              ; count of #9 who have left communuity
   #90s-left                             ; count of #90s who have left community
   
@@ -155,10 +153,11 @@ globals [
   
   #9-left-no-interest                   ; recording why #9 leave comm
   #9-left-#9-here
-  #9-left-no-links-and-old
+
   #9-left-drop-cons
   
   #1-left-burnout                       ; USED THIS???? recording why #1 left
+  #9-left-burnout
   
   time-with-no-#1s                      ; recording ticks with no agents
   time-with-no-#9
@@ -295,6 +294,8 @@ projects-own [
   likes                        ; used in position in list
   likes-history
   reward-type                  ; obj or group - how reward to each contributor is decided
+  reward-level                 ; amount of reward random 100
+  current-contributors
 ]
 
 t4sks-own [
@@ -302,7 +303,6 @@ t4sks-own [
   on-platform?                 ; yes/no - is the task on the platform?
   typ3                         ; mngt/prod - type of task, management or actual product - only prod tasks produce a product for #90s
   inter3st                     ; interest score - random num-interest-categories
-  reward-level                 ; amount of reward random 100
   time-required                ; time required to complete tasks random 1000
   skill-required               ; minimum skill required to contribute to task - random 100
   modularity                   ; contribution required by task per tick
@@ -367,8 +367,9 @@ to go
   contribute-to-tasks             ;; contributors regulate the number of tasks they have, and contribute
   drop-projects
   make-and-lose-friends           ;; friendships formed and broken
+  finish-tasks
   give-out-reward                 ;; tasks give out reward depending on reward mechanism
-  finished-tasks-and-projects-to-products    ;; completed tasks become products or improve existing ones - SHOULD THIS BE PROJECTS?
+  finished-projects               ;; completed tasks become products or improve existing ones - SHOULD THIS BE PROJECTS?
   tasks-identified                ;; creates new tasks from existing tasks, ie., find new ones by doing others
   projects-die                    ;; projects 'die' if no contributors or tasks
   calc-recent-activity            ;; projects calculate recent-activity
@@ -490,6 +491,7 @@ to create-#1
                                      if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                      if pref-prob >= 0.66 [ set typ3-preference "both" ]  
                                      set points 0 
+                                     set thanks "not received"
                                      set my-projects-1s (list (min-one-of projects [ distance myself ]))
                                      let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects-1s] of myself ) ] 
                                      if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ] [
@@ -522,6 +524,7 @@ to create-#9
                                    if pref-prob >= 0.66 [ set typ3-preference "both" ]
                                    set using-platform? "true"
                                    set points 0 
+                                   set thanks "not received"
                                    set my-projects (list (min-one-of projects [ distance myself ]))
                                    let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ] 
                                    if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ] [
@@ -569,7 +572,6 @@ to setup-globals
   set #1-to-#9-count 0
   set #9-left-no-interest 0
   set #9-left-#9-here 0
-  set #9-left-no-links-and-old 0
   set #1-left-burnout 0
   set time-with-no-#1s 0
   set time-with-no-#9 0
@@ -773,6 +775,12 @@ to contribute-to-tasks
   ; what about tasks that dont finish???
   
   
+  
+  
+  ask projects [ set my-tasks-projects t4sks with [ my-project = myself ]
+                 set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects ]
+  
+  
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
   if platform-features = FALSE and how-community-works-without-platform = "offline" []
@@ -887,13 +895,13 @@ to give-out-reward
   
   if reward-mechanism = "'thanks' only" [
     
-    ask projects [ if num-tasks = 0 and random-float 1 < 0.8 [ ask [ tasklink-neighbors ] of my-tasks-projects [ set thanks "received" ] ] ] 
+    ask projects [ 
+      if num-tasks = 0 [ 
+        ask current-contributors [ set thanks "received" ] ] ] 
     
     ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
     
     ask #9s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
-    
-    ask #90s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
   
   ]
   
@@ -901,37 +909,34 @@ to give-out-reward
   if reward-mechanism = "'points' only" [ 
     ask projects [ if num-tasks = 0 [ 
   
-      if reward-type = "subjective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
-      if reward-type = "objective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + [ reward-level ] of myself ] ] ]  ] ] 
+      if reward-type = "subjective" [ ask current-contributors [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
+      if reward-type = "objective" [ ask current-contributors [ set points points + [ reward-level ] of myself ] ] ]  ] ] 
   
   
   
   
   if reward-mechanism = "both" [ 
     
-    ask projects [ if num-tasks = 0 [ ask [ tasklink-neighbors ] of my-tasks-projects [ set thanks "received" ] ] ]
+    ask projects [ if num-tasks = 0 [ ask current-contributors [ set thanks "received" ] ] ]
     
     ask #1s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
     
     ask #9s [ if random-float 1 < 0.1 [ set thanks "not received" ] ]
-    
-    ask #90s [ if random-float 1 < 0.1 [ set thanks "not received" ] ] 
 
     ask projects [ if num-tasks = 0 [ 
   
-      if reward-type = "subjective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
-      if reward-type = "objective" [ ask [ tasklink-neighbors ] of my-tasks-projects [ set points points + [ reward-level ] of myself ] ] ]  ] ]
+      if reward-type = "subjective" [ ask current-contributors [ set points points + random-normal ([ reward-level ] of myself) 20 ] ]
+      if reward-type = "objective" [ ask current-contributors [ set points points + [ reward-level ] of myself ] ] ]  ] ]
   
   
   
 
 end
 
-to finished-tasks-and-projects-to-products
+to finish-tasks
   
-  ; when a task is finished - it improves its related project
+   ; when a task is finished - it improves its related project
   
-  ; this should be projects not tasks - ie., you get new products or improved products when a project is fisnihed.
   
   ask t4sks [ if time-required <= 0 [   
   
@@ -948,7 +953,10 @@ to finished-tasks-and-projects-to-products
   if my-project = nobody [die] 
   ]
   
-  
+end
+
+to finished-projects
+
   ;; a project is finshed it either improves its product, or creates a new one if it has no product
   
   ask projects [
@@ -1271,6 +1279,7 @@ to entry
       if pref-prob >= 0.66 [ set typ3-preference "both" ]
       set using-platform? "true"
       set points 0 
+      set thanks "not received"
       set my-projects (list (nobody))
       set my-tasks tasklink-neighbors
       
@@ -1340,11 +1349,19 @@ to exit
                     die ]
            ]
   
-  ;; #1s leave if motivation very low - this should now be like burnout described above - if thanks low...
+  ;; #1s and #9s leave if motivation very low - this should now be like burnout described above - if thanks low...
   
-;   ask #1s [ if 'thanks' = low [leave]]
+  if reward-mechanism = "'thanks' only" or reward-mechanism = "both" [
+    
+   ask #1s [ if thanks = "not received" and random-float 1 < 0.001 [  set #1s-left #1s-left + 1
+                                                                     set #1-left-burnout #1-left-burnout + 1
+                                                                     die ]]
+   
+   ask #9s [ if thanks = "not received" and random-float 1 < 0.0005 [  set #9s-left #9s-left + 1
+                                                                     set #9-left-burnout #9-left-burnout + 1
+                                                                     die ]]
   
-  
+  ]
   
   if platform-features = FALSE and how-community-works-without-platform = "online open" []
   if platform-features = FALSE and how-community-works-without-platform = "online closed" []
@@ -1379,7 +1396,7 @@ to change-breed
                                 if pref-prob >= 0.33 and pref-prob < 0.66 [ set typ3-preference "mngt" ]
                                 if pref-prob >= 0.66 [ set typ3-preference "both" ]
                                 set points 0 
-                                
+                                set thanks "not received"
                                 create-tasklink-with task-i-found [set color 3]
                                 set my-tasks tasklink-neighbors
                                 
@@ -1909,7 +1926,7 @@ PLOT
 1018
 754
 1138
-#1s' Reward
+#1s' Points
 NIL
 NIL
 0.0
@@ -1920,14 +1937,14 @@ true
 false
 "" ""
 PENS
-"default" 10.0 1 -2674135 true "" "histogram [ reward ] of #1s"
+"default" 10.0 1 -2674135 true "" "histogram [ points ] of #1s"
 
 PLOT
 1070
 1040
 1230
 1160
-#9s' Reward
+#9s' Points
 NIL
 NIL
 0.0
@@ -1938,14 +1955,14 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -13345367 true "" "histogram [ reward ] of #9s"
+"default" 1.0 1 -13345367 true "" "histogram [ points ] of #9s"
 
 PLOT
 1282
 1018
 1442
 1138
-Tasks' RewardLevel
+Projects' RewardLevel
 NIL
 NIL
 0.0
@@ -1956,7 +1973,7 @@ true
 false
 "" ""
 PENS
-"default" 5.0 1 -13840069 true "" "histogram [reward-level] of t4sks"
+"default" 5.0 1 -13840069 true "" "histogram [reward-level] of projects"
 
 PLOT
 1060
@@ -2004,7 +2021,7 @@ initial-products
 initial-products
 0
 100
-4
+55
 1
 1
 NIL
@@ -2200,9 +2217,9 @@ NIL
 1
 
 MONITOR
-1394
+1428
 270
-1494
+1528
 315
 NIL
 #90s-left
@@ -2211,9 +2228,9 @@ NIL
 11
 
 MONITOR
-1190
+1223
 270
-1290
+1323
 315
 NIL
 #9s-left
@@ -2222,10 +2239,10 @@ NIL
 11
 
 MONITOR
-1088
-269
-1190
-314
+1122
+270
+1224
+315
 NIL
 new-#9s-total
 0
@@ -2233,9 +2250,9 @@ new-#9s-total
 11
 
 MONITOR
-1290
+1323
 270
-1397
+1430
 315
 NIL
 new-#90s-total
@@ -2567,7 +2584,7 @@ PLOT
 898
 1602
 1018
-Tasks' RewardType
+Projects' RewardType
 NIL
 NIL
 0.0
@@ -2578,8 +2595,8 @@ true
 true
 "" ""
 PENS
-"Group" 1.0 0 -5825686 true "" "plot count t4sks with [reward-type = \"group\"]"
-"Obj" 1.0 0 -7500403 true "" "plot count t4sks with [reward-type = \"objective\" ]"
+"Group" 1.0 0 -5825686 true "" "plot count projects with [reward-type = \"subjective\"]"
+"Obj" 1.0 0 -7500403 true "" "plot count projects with [reward-type = \"objective\" ]"
 
 PLOT
 1602
@@ -2813,8 +2830,8 @@ PENS
 PLOT
 1985
 265
-2229
-385
+2230
+424
 Why #9s Leave
 NIL
 NIL
@@ -2827,10 +2844,9 @@ true
 "" ""
 PENS
 "no interest" 1.0 0 -16777216 true "" "plot #9-left-no-interest"
-"#9 here" 1.0 0 -13345367 true "" "plot #9-left-#9-here"
-"no links & old" 1.0 0 -2674135 true "" "plot #9-left-no-links-and-old"
 "Became #1" 1.0 0 -10899396 true "" "plot #9-to-#1-count"
 "Cons Dop" 1.0 0 -7500403 true "" "plot #9-left-drop-cons"
+"Burnout" 1.0 0 -955883 true "" "plot #9-left-burnout"
 
 PLOT
 1985
@@ -2997,10 +3013,10 @@ switching breed parameters
 1
 
 PLOT
-1985
-527
-2231
-700
+1984
+567
+2230
+740
 Why #9s Enter?
 NIL
 NIL
@@ -3158,7 +3174,7 @@ PLOT
 898
 1965
 1023
-HistoProjectsActivity
+HistoProjectsProdActivity
 NIL
 NIL
 -10.0
@@ -3169,7 +3185,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "histogram [recent-activity] of projects"
+"default" 1.0 1 -16777216 true "" "histogram [production-history] of projects"
 
 PLOT
 1820
@@ -3316,7 +3332,7 @@ CHOOSER
 reward-mechanism
 reward-mechanism
 "'thanks' only" "'points' only" "both"
-0
+2
 
 PLOT
 1545
@@ -3357,7 +3373,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "a few" "many"
-1
+2
 
 PLOT
 1545
@@ -3483,10 +3499,10 @@ PENS
 "#1s" 1.0 1 -2139308 true "" "histogram [ my-total-contribution-1s ] of #1s"
 
 PLOT
-1985
-385
-2230
-535
+1984
+424
+2229
+574
 Why #90s Leave?
 NIL
 NIL
@@ -3499,6 +3515,17 @@ true
 "" ""
 PENS
 "No product they liked" 1.0 0 -16777216 true "" "plot #90s-left-no-product"
+
+MONITOR
+1063
+269
+1122
+314
+NIL
+#1s-left
+0
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
