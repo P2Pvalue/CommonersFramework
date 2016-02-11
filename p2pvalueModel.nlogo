@@ -22,6 +22,7 @@ extensions [profiler]
 
 
 globals [
+
   ; platform-features                  ; chooser for current platform features turned on/off
 
   ; proportion-using-platform          ; proportion of 1/9/90 using the software platform
@@ -110,29 +111,9 @@ globals [
   ; chance-90-find-a-task                 ; chance a 90 sees a task that makes them decide to become a 9
                                         ; - higher with platform
 
-  community-prod-activity-t-10          ; history of community production activity
-  community-prod-activity-t-9
-  community-prod-activity-t-8
-  community-prod-activity-t-7
-  community-prod-activity-t-6
-  community-prod-activity-t-5
-  community-prod-activity-t-4
-  community-prod-activity-t-3
-  community-prod-activity-t-2
-  community-prod-activity-t-1
-  community-prod-activity-t
+  community-prod-activity-ls            ; list of the history of community production activity
 
-  community-con-activity-t-10           ; history of community consumption activity
-  community-con-activity-t-9
-  community-con-activity-t-8
-  community-con-activity-t-7
-  community-con-activity-t-6
-  community-con-activity-t-5
-  community-con-activity-t-4
-  community-con-activity-t-3
-  community-con-activity-t-2
-  community-con-activity-t-1
-  community-con-activity-t
+  community-con-activity-ls             ; list of the history of community consumption activity
 
 ]
 
@@ -295,9 +276,9 @@ to setup
                  ]
    let lonetasks-activity sum [ count my-lonetasklinks ] of loneTasks
    let total-prod-activity ( sum [production-activity] of projects + lonetasks-activity )
-   set community-prod-activity-t total-prod-activity
+   set community-prod-activity-ls replace-item 10 community-prod-activity-ls total-prod-activity
    let total-cons-activity sum [consumption-activity] of products
-   set community-con-activity-t total-cons-activity
+   set community-con-activity-ls replace-item  10 community-con-activity-ls total-cons-activity
 
    reset-ticks
 end
@@ -545,28 +526,8 @@ to setup-globals
   set loneTasksFinished 0
   set count-new-projects 0
   set product-had-no-consumer-so-left 0
-  set community-prod-activity-t-10 0
-  set community-prod-activity-t-9 0
-  set community-prod-activity-t-8 0
-  set community-prod-activity-t-7 0
-  set community-prod-activity-t-6 0
-  set community-prod-activity-t-5 0
-  set community-prod-activity-t-4 0
-  set community-prod-activity-t-3 0
-  set community-prod-activity-t-2 0
-  set community-prod-activity-t-1 0
-  set community-prod-activity-t 0
-  set community-con-activity-t-10 0
-  set community-con-activity-t-9 0
-  set community-con-activity-t-8 0
-  set community-con-activity-t-7 0
-  set community-con-activity-t-6 0
-  set community-con-activity-t-5 0
-  set community-con-activity-t-4 0
-  set community-con-activity-t-3 0
-  set community-con-activity-t-2 0
-  set community-con-activity-t-1 0
-  set community-con-activity-t 0
+  set community-prod-activity-ls [0 0 0 0 0 0 0 0 0 0 0]
+  set community-con-activity-ls [0 0 0 0 0 0 0 0 0 0 0]
 
   set num-skills 10
 
@@ -1319,22 +1280,8 @@ to entry
 
   ; 90s enter if see high recent consumption activity
 
-  if community-con-activity-t-10 != 0
-        [ if (( community-con-activity-t-2 +
-                community-con-activity-t-1 +
-                community-con-activity-t ) / 3 )
-                >
-             (( community-con-activity-t-10 +
-                community-con-activity-t-9 +
-                community-con-activity-t-8 +
-                community-con-activity-t-7 +
-                community-con-activity-t-6 +
-                community-con-activity-t-5 +
-                community-con-activity-t-4 +
-                community-con-activity-t-3 +
-                community-con-activity-t-2 +
-                community-con-activity-t-1 +
-                community-con-activity-t ) / 11 ) * new-90s-barrier
+  if ( item 0 community-con-activity-ls ) != 0
+        [ if ( mean sublist community-con-activity-ls 7 10 ) > ( mean community-con-activity-ls ) * new-90s-barrier
                       [ create-#90s ( round ( initial-number-90s / 10 )) [ set interest random num-interest-categories
                                                                            set xcor random 8 - 22
                                                                            set ycor -25 + interest
@@ -1363,21 +1310,7 @@ to entry
 
   ; 9 enter if see recent jump in consumption
 
-   if (( community-con-activity-t-2 +
-         community-con-activity-t-1 +
-         community-con-activity-t ) / 3 )
-        >
-     (( community-con-activity-t-10 +
-        community-con-activity-t-9 +
-        community-con-activity-t-8 +
-        community-con-activity-t-7 +
-        community-con-activity-t-6 +
-        community-con-activity-t-5 +
-        community-con-activity-t-4 +
-        community-con-activity-t-3 +
-        community-con-activity-t-2 +
-        community-con-activity-t-1 +
-        community-con-activity-t ) / 11 ) * new-9s-barrier
+   if (mean sublist community-con-activity-ls 7 10) > (mean community-con-activity-ls) * new-9s-barrier
               [ create-#9s max list 1 round ( initial-number-9s / 10 ) [ set interest random num-interest-categories
                                                               set xcor ( random 6 ) + 19
                                                               set ycor -25 + interest
@@ -1435,18 +1368,8 @@ to exit
 
   ;; 9s exit if consumption has dropped - ie., 90s have left,
 
-  ask #9s [ if ((( community-con-activity-t-2 +
-                   community-con-activity-t-1 +
-                   community-con-activity-t ) / 3 )
-                   <
-                (( community-con-activity-t-10 +
-                   community-con-activity-t-9 +
-                   community-con-activity-t-8 +
-                   community-con-activity-t-7 +
-                   community-con-activity-t-6 +
-                   community-con-activity-t-5 +
-                   community-con-activity-t-4 +
-                   community-con-activity-t-3 ) / 8 ) ) and random-float 1 < ( chance-9s-exit - feel-loved )
+  ask #9s [ if ( mean sublist community-con-activity-ls 7 10 ) < ( mean community-con-activity-ls )
+                and random-float 1 < ( chance-9s-exit - feel-loved )
                          [ set #9s-left #9s-left + 1
                            set #9-left-drop-cons #9-left-drop-cons + 1
                            die
@@ -1780,29 +1703,8 @@ to update-community-activity
   let total-prod-activity ( sum [production-activity] of projects + lonetasks-activity )
   let total-cons-activity sum [consumption-activity] of products
 
-  set community-prod-activity-t-10 community-prod-activity-t-9
-  set community-prod-activity-t-9 community-prod-activity-t-8
-  set community-prod-activity-t-8 community-prod-activity-t-7
-  set community-prod-activity-t-7 community-prod-activity-t-6
-  set community-prod-activity-t-6 community-prod-activity-t-5
-  set community-prod-activity-t-5 community-prod-activity-t-4
-  set community-prod-activity-t-4 community-prod-activity-t-3
-  set community-prod-activity-t-3 community-prod-activity-t-2
-  set community-prod-activity-t-2 community-prod-activity-t-1
-  set community-prod-activity-t-1 community-prod-activity-t
-  set community-prod-activity-t total-prod-activity
-
-  set community-con-activity-t-10 community-con-activity-t-9
-  set community-con-activity-t-9 community-con-activity-t-8
-  set community-con-activity-t-8 community-con-activity-t-7
-  set community-con-activity-t-7 community-con-activity-t-6
-  set community-con-activity-t-6 community-con-activity-t-5
-  set community-con-activity-t-5 community-con-activity-t-4
-  set community-con-activity-t-4 community-con-activity-t-3
-  set community-con-activity-t-3 community-con-activity-t-2
-  set community-con-activity-t-2 community-con-activity-t-1
-  set community-con-activity-t-1 community-con-activity-t
-  set community-con-activity-t total-cons-activity
+  set community-prod-activity-ls ( lput total-prod-activity (but-first community-prod-activity-ls) )
+  set community-con-activity-ls ( lput total-cons-activity (but-first community-con-activity-ls) )
 
 end
 
