@@ -1281,7 +1281,7 @@ to entry
   ; 90s enter if see high recent consumption activity
 
   if ( item 0 community-con-activity-ls ) != 0
-        [ if ( mean sublist community-con-activity-ls 7 10 ) > ( mean community-con-activity-ls ) * new-90s-barrier
+        [ if ( mean sublist community-con-activity-ls 8 11 ) > ( mean community-con-activity-ls ) * new-90s-barrier
                       [ create-#90s ( round ( initial-number-90s / 10 )) [ set interest random num-interest-categories
                                                                            set xcor random 8 - 22
                                                                            set ycor -25 + interest
@@ -1310,7 +1310,7 @@ to entry
 
   ; 9 enter if see recent jump in consumption
 
-   if (mean sublist community-con-activity-ls 7 10) > (mean community-con-activity-ls) * new-9s-barrier
+   if (mean sublist community-con-activity-ls 8 11) > (mean community-con-activity-ls) * new-9s-barrier
               [ create-#9s max list 1 round ( initial-number-9s / 10 ) [ set interest random num-interest-categories
                                                               set xcor ( random 6 ) + 19
                                                               set ycor -25 + interest
@@ -1368,7 +1368,7 @@ to exit
 
   ;; 9s exit if consumption has dropped - ie., 90s have left,
 
-  ask #9s [ if ( mean sublist community-con-activity-ls 7 10 ) < ( mean community-con-activity-ls )
+  ask #9s [ if ( mean sublist community-con-activity-ls 8 11 ) < ( mean sublist community-con-activity-ls 0 8 )
                 and random-float 1 < ( chance-9s-exit - feel-loved )
                          [ set #9s-left #9s-left + 1
                            set #9-left-drop-cons #9-left-drop-cons + 1
