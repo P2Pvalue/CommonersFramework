@@ -1368,7 +1368,7 @@ to exit
 
   ;; 9s exit if consumption has dropped - ie., 90s have left,
 
-  ask #9s [ if ( mean sublist community-con-activity-ls 8 11 ) < ( mean sublist community-con-activity-ls 0 8 )
+  ask #9s [ if (( mean sublist community-con-activity-ls 8 11 ) < ( mean sublist community-con-activity-ls 0 8 ))
                 and random-float 1 < ( chance-9s-exit - feel-loved )
                          [ set #9s-left #9s-left + 1
                            set #9-left-drop-cons #9-left-drop-cons + 1
@@ -1540,6 +1540,15 @@ end
 ;; Update Positions and Calculations ;; Update Positions and Calculations ;; Update Positions and Calculations ;; Update Positions and Calculations
 ;; Update Positions and Calculations ;; Update Positions and Calculations ;; Update Positions and Calculations ;; Update Positions and Calculations
 
+to like-project
+
+  let projects-i-like projects with [ inter3st < [ interest ] of myself + 3 and
+                                      inter3st > [ interest ] of myself - 3
+                                    ]
+  if any? projects-i-like and random-float 1 < 0.1 [ ask projects-i-like [ set likes likes + 1 ] ]
+
+end
+
 to update-project-position
 
 ;; different rules for when platform is on or off...
@@ -1569,23 +1578,11 @@ if platform-features = TRUE [
   ; with a probablity 1,9,90 give votes to projects with similar interest to theirs (but dont worry about skill etc)
   ; this is then used to push up position if recent history if likes is up
 
-  ask #1s [ let projects-i-like projects with [ inter3st < [ interest ] of myself + 3 and
-                                                inter3st > [ interest ] of myself - 3
-                                              ]
-            if any? projects-i-like and random-float 1 < 0.1 [ ask projects-i-like [ set likes likes + 1 ] ]
-          ]
+  ask #1s [like-project]
 
-  ask #9s [ let projects-i-like projects with [ inter3st < [ interest ] of myself + 3 and
-                                                inter3st > [ interest ] of myself - 3
-                                              ]
-            if any? projects-i-like and random-float 1 < 0.1 [ ask projects-i-like [ set likes likes + 1 ] ]
-          ]
+  ask #9s [like-project]
 
-  ask #90s [ let projects-i-like projects with [ inter3st < [ interest ] of myself + 3 and
-                                                 inter3st > [ interest ] of myself - 3
-                                               ]
-             if any? projects-i-like and random-float 1 < 0.1 [ ask projects-i-like [ set likes likes + 1 ] ]
-           ]
+  ask #90s [like-project]
 
   ask projects [ set likes-history lput likes likes-history
                  if length likes-history = 11 [ set likes-history but-first likes-history ]
