@@ -208,6 +208,8 @@ projects-own [
   reward-type                  ; obj or subj - how reward to each contributor is decided
   reward-level                 ; amount of reward random 100
   current-contributors         ; agentset of current contributors to tasks of this project
+  is-on-platform?              ; is the project on the platform?
+  is-private?                  ; is the project private?
 ]
 
 t4sks-own [
@@ -356,6 +358,12 @@ to create-existing-projects
                                      set inter3st random num-interest-categories
                                      set production-history []
                                      set reward-level random 100
+                                     ifelse random-float 1 < prop-of-projects-initially-private
+                                           [set is-private? true]
+                                           [set is-private? false]
+                                     ifelse random-float 1 < proportion-onplatform-projects
+                                           [set is-on-platform? true]
+                                           [set is-on-platform? false]
                                      ifelse random-float 1 < prop-of-projects-reward-subjective
                                            [ set reward-type "subjective" ]
                                            [ set reward-type "objective" ]
@@ -558,7 +566,7 @@ to find-projects
                     let new-project min-one-of other-projects [ distance myself + random 2 - 1 ]
                     if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
                   ]
-                  ; WITH PLATFORM...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
+                  ; WITH PLATFORM AND OFFLINE...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
                   if community-type = "offline"
                   [
                     let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
@@ -1116,6 +1124,16 @@ to #1-or-#9-hatch-project
                      set num-tasks random 10 + 2
                      set production-history []
                      set reward-level random 100
+                     ifelse random-float 1 < prop-of-projects-initially-private
+                                         [set is-private? true]
+                                         [set is-private? false]
+
+                     ifelse [using-platform?] of myself
+                       [ ifelse random-float 1 < proportion-onplatform-projects
+                                           [set is-on-platform? true]
+                                           [set is-on-platform? false]
+                       ]
+                       [ set is-on-platform? false ]
                      ifelse random-float 1 < prop-of-projects-reward-subjective [ set reward-type "subjective" ]
                                                                                 [ set reward-type "objective" ]
                      ifelse inter3st > 3 [ set inter3st [interest ] of myself + random 3 - random 3 ]
@@ -1157,6 +1175,12 @@ to project-hatch-a-project
                      set num-tasks random 10 + 2
                      set production-history []
                      set reward-level random 100
+                     ifelse random-float 1 < prop-of-projects-initially-private
+                                           [set is-private? true]
+                                           [set is-private? false]
+                     ifelse random-float 1 < proportion-onplatform-projects
+                                           [set is-on-platform? true]
+                                           [set is-on-platform? false]
                      ifelse random-float 1 < prop-of-projects-reward-subjective [ set reward-type "subjective" ]
                                                                                 [ set reward-type "objective" ]
                      ifelse inter3st > 3 [ set inter3st [inter3st ] of myself  + random 3 - random 3 ]
@@ -3019,7 +3043,7 @@ CHOOSER
 community-type
 community-type
 "online" "offline"
-0
+1
 
 CHOOSER
 8
@@ -3534,7 +3558,7 @@ chance-consumer-link-breaks
 chance-consumer-link-breaks
 0
 1
-0.05
+0.345
 0.005
 1
 NIL
@@ -3848,6 +3872,36 @@ chance-90-find-a-task
 1
 0.005
 0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1100
+1905
+1377
+1938
+prop-of-projects-initially-private
+prop-of-projects-initially-private
+0
+1
+0
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+275
+287
+308
+proportion-onplatform-projects
+proportion-onplatform-projects
+0
+1
+0.5
+0.05
 1
 NIL
 HORIZONTAL
