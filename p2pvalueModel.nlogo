@@ -353,49 +353,64 @@ to create-existing-product
                                    ]
 end
 
-to create-existing-projects
-  create-projects initial-projects [ set num-tasks random 10 + 2
-                                     set inter3st random num-interest-categories
-                                     set production-history []
-                                     set reward-level random 100
-                                     ifelse random-float 1 < prop-of-projects-initially-private
-                                           [set is-private? true]
-                                           [set is-private? false]
-                                     ifelse random-float 1 < proportion-onplatform-projects
-                                           [set is-on-platform? true]
-                                           [set is-on-platform? false]
-                                     ifelse random-float 1 < prop-of-projects-reward-subjective
-                                           [ set reward-type "subjective" ]
-                                           [ set reward-type "objective" ]
-                                     hatch-t4sks num-tasks [ set size 0.7
-                                                             set color green
-                                                             set shape "circle"
-                                                             set inter3st [inter3st] of myself
-                                                             set time-required random-normal mean-time-required ( mean-time-required / 4 )
-                                                             set modularity random max-modularity + 1
-                                                             set age 0
-                                                             set my-project myself
-                                                             t4sk-set-typ3
-                                                            ]
-                                     set my-tasks-projects t4sks with [ my-project = myself ]
-                                     set xcor 5
-                                     set ycor -25 + inter3st
-                                     set size 2.5
-                                     set color green - 2
-                                     set shape "target"
-                                     set age 0
-                                     set likes-history []
-                                     ask t4sks with [ my-project = myself ] [ set xcor [xcor] of myself
-                                                                              set ycor [ycor] of myself
-                                                                              set heading random 360
-                                                                              fd 1
-                                                                            ]
-                                     set my-product min-one-of products [ distance myself ]
-                                     create-projectproductlink-with my-product [ set color red ]
-                                     ask projectproductlink-neighbors [ set mon-project (list (projectproductlink-neighbors) ) ]
-                                     if any? products with [ mon-project = 0 ] [ ask products with [ mon-project = 0 ] [ set mon-project [] ] ]
 
-                                    ]
+to create-project
+    set count-new-projects count-new-projects
+    set num-tasks random 10 + 2
+    set production-history []
+    set reward-level random 100
+
+    ifelse random-float 1 < prop-of-projects-initially-private
+      [set is-private? true]
+      [set is-private? false]
+
+    ifelse random-float 1 < prop-of-projects-reward-subjective
+      [ set reward-type "subjective" ]
+      [ set reward-type "objective" ]
+
+    hatch-t4sks num-tasks [
+      set size 0.7
+      set color green
+      set shape "circle"
+      t4sk-set-typ3
+      set inter3st [inter3st] of myself
+      set time-required random-normal mean-time-required ( mean-time-required / 4 )
+      set modularity random max-modularity + 1
+      set age 0
+      set my-project myself
+    ]
+    set my-tasks-projects t4sks with [ my-project = myself ]
+    ;; TODO missing in create existing projects
+    set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects
+    set size 2.5
+    set color green - 2
+    set shape "target"
+    set age 0
+    set likes-history []
+    ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
+      set ycor [ycor] of myself
+      set heading random 360
+      fd 1
+    ]
+end
+
+to create-existing-projects
+  create-projects initial-projects [
+    create-project
+    set inter3st random num-interest-categories
+
+    ifelse random-float 1 < proportion-onplatform-projects
+      [set is-on-platform? true]
+      [set is-on-platform? false]
+
+    set xcor 5
+    set ycor -25 + inter3st
+
+    set my-product min-one-of products [ distance myself ]
+    create-projectproductlink-with my-product [ set color red ]
+    ask projectproductlink-neighbors [ set mon-project (list (projectproductlink-neighbors) ) ]
+    if any? products with [ mon-project = 0 ] [ ask products with [ mon-project = 0 ] [ set mon-project [] ] ]
+  ]
 end
 
 to create-lone-tasks
@@ -1120,99 +1135,51 @@ to new-projects
 end
 
 to #1-or-#9-hatch-project
-  hatch-projects 1 [ set count-new-projects count-new-projects + 1
-                     set num-tasks random 10 + 2
-                     set production-history []
-                     set reward-level random 100
-                     ifelse random-float 1 < prop-of-projects-initially-private
-                                         [set is-private? true]
-                                         [set is-private? false]
+  hatch-projects 1 [
+    create-project
+    ifelse [using-platform?] of myself
+      [ ifelse random-float 1 < proportion-onplatform-projects
+        [ set is-on-platform? true ]
+        [ set is-on-platform? false ]
+      ]
+      [ set is-on-platform? false ]
 
-                     ifelse [using-platform?] of myself
-                       [ ifelse random-float 1 < proportion-onplatform-projects
-                                           [set is-on-platform? true]
-                                           [set is-on-platform? false]
-                       ]
-                       [ set is-on-platform? false ]
-                     ifelse random-float 1 < prop-of-projects-reward-subjective [ set reward-type "subjective" ]
-                                                                                [ set reward-type "objective" ]
-                     ifelse inter3st > 3 [ set inter3st [interest ] of myself + random 3 - random 3 ]
-                                         [ set inter3st [interest ] of myself + random 3 ]
-                     hatch-t4sks num-tasks [ set size 0.7
-                                             set color green
-                                             set shape "circle"
-                                             t4sk-set-typ3
-                                             set inter3st [inter3st] of myself
-                                             set time-required random-normal mean-time-required ( mean-time-required / 4 )
-                                             set modularity random max-modularity + 1
-                                             set age 0
-                                             set my-project myself
-                                           ]
-                     set my-tasks-projects t4sks with [ my-project = myself ]
-                     set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects
-                     set xcor 5
-                     ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
-                     set size 2.5
-                     set color green - 2
-                     set shape "target"
-                     set age 0
-                     set likes-history []
-                     ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
-                                                             set ycor [ycor] of myself
-                                                             set heading random 360
-                                                             fd 1
-                                                            ]
-                     ifelse random-float 1 < 0.8 [ set my-product min-one-of products [distance myself]
-                                                   create-projectproductlink-with my-product [set color red]
-                                                   ask projectproductlink-neighbors [ set mon-project lput myself mon-project ]
-                                                 ]
-                                                 [ set my-product nobody ]
-                    ]
+    ;; TODO Why?
+    ifelse inter3st > 3
+      [ set inter3st [interest ] of myself + random 3 - random 3 ]
+      [ set inter3st [interest ] of myself + random 3 ]
+
+    set xcor 5
+    ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
+
+    ifelse random-float 1 < 0.8
+    [ set my-product min-one-of products [distance myself]
+      create-projectproductlink-with my-product [set color red]
+      ask projectproductlink-neighbors [ set mon-project lput myself mon-project ]
+    ]
+    [ set my-product nobody ]
+  ]
 end
 
 to project-hatch-a-project
-  hatch-projects 1 [ set count-new-projects count-new-projects + 1
-                     set num-tasks random 10 + 2
-                     set production-history []
-                     set reward-level random 100
-                     ifelse random-float 1 < prop-of-projects-initially-private
-                                           [set is-private? true]
-                                           [set is-private? false]
-                     ifelse random-float 1 < proportion-onplatform-projects
-                                           [set is-on-platform? true]
-                                           [set is-on-platform? false]
-                     ifelse random-float 1 < prop-of-projects-reward-subjective [ set reward-type "subjective" ]
-                                                                                [ set reward-type "objective" ]
-                     ifelse inter3st > 3 [ set inter3st [inter3st ] of myself  + random 3 - random 3 ]
-                                         [ set inter3st [inter3st ] of myself  + random 3 ]
-                     hatch-t4sks num-tasks [ set size 0.7
-                                             set color green
-                                             set shape "circle"
-                                             t4sk-set-typ3
-                                             set inter3st [inter3st] of myself
-                                             set time-required random-normal mean-time-required ( mean-time-required / 4 )
-                                             set modularity random max-modularity + 1
-                                             set age 0
-                                             set my-project myself
-                                           ]
-                     set my-tasks-projects t4sks with [ my-project = myself ]
-                     set current-contributors turtle-set [ tasklink-neighbors ] of my-tasks-projects
-                     set xcor [xcor] of myself
-                     ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor 25 ]
-                     set size 2.5
-                     set color green - 2
-                     set shape "target"
-                     set age 0
-                     set likes-history []
-                     ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
-                                                             set ycor [ycor] of myself
-                                                             set heading random 360
-                                                             fd 1
-                                                           ]
-                     if my-product != nobody [ create-projectproductlink-with my-product [set color red]
-                                               ask projectproductlink-neighbors [ set mon-project lput myself mon-project ]
-                                             ]
-                   ]
+  hatch-projects 1 [
+    create-project
+    ifelse random-float 1 < proportion-onplatform-projects
+      [set is-on-platform? true]
+      [set is-on-platform? false]
+
+    ;; Why?
+    ifelse inter3st > 3
+      [ set inter3st [interest ] of myself + random 3 - random 3 ]
+      [ set inter3st [interest ] of myself + random 3 ]
+    set xcor [xcor] of myself
+    ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor 25 ]
+
+    if my-product != nobody [
+      create-projectproductlink-with my-product [set color red]
+      ask projectproductlink-neighbors [ set mon-project lput myself mon-project ]
+    ]
+  ]
 end
 
 to birth-a-product
