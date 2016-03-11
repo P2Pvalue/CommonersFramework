@@ -1170,8 +1170,9 @@ to project-hatch-a-project
 
     ;; Why?
     ifelse inter3st > 3
-      [ set inter3st [interest ] of myself + random 3 - random 3 ]
-      [ set inter3st [interest ] of myself + random 3 ]
+      [ set inter3st [inter3st ] of myself + random 3 - random 3 ]
+      [ set inter3st [inter3st ] of myself + random 3 ]
+
     set xcor [xcor] of myself
     ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor 25 ]
 
