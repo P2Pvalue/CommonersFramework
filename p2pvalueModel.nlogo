@@ -211,6 +211,7 @@ projects-own [
   current-contributors         ; agentset of current contributors to tasks of this project
   is-on-platform?              ; is the project on the platform?
   is-private?                  ; is the project private?
+  bounty                       ; the bounty given to a project by its contributors
 ]
 
 t4sks-own [
@@ -292,6 +293,7 @@ end
 ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go
 
 to go
+  set-bounties                        ;; contributors can set a bounty to their project if they wish
   find-projects                       ;; contributors find projects - dependent on platform ON/OFF
   find-tasks                          ;; contributors find tasks - not dependent on platform, this is where actual decision
                                       ;; to defo contribute is made
@@ -576,28 +578,76 @@ end
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
 
-to find-projects
+to set-bounties
+  ;; if bounties is ON, projects set bounty (with some probability) to 10% of points if contributors
+  ;; contributors decrease their points accordingly
+  if reward-mechanism-2 = "bounties" [
+        ask projects [ if count current-contributors > 0 and 
+                          random-float 1 < prob-set-a-bounty and 
+                          ( sum [ points ] of current-contributors ) > ( mean [ sum [points] of current-contributors ] of projects ) [
+                       set bounty 0.1 * sum [ points ] of current-contributors
+                       ask current-contributors [ set points points - (0.1 * points) ]
+                     ] 
+                                                         ]
+                                      ]
+end
 
-  ask #1s [ if time > 0
+to find-projects
+  
+  ;; 1s and 9s find projects dependent on how close they are, but also reputation and bouties if these are on
+  
+  ;; need to make sure that if project has a bounty - these points are given when it is finished. if a project does not have a bounty - random?
+  ;; should we have reputation on or off when bounties exist??? currently off
+  
+  ;; bounties / points - points given when projects finished (including awareness of bounties) but tasks also give out points
+  ;; bounties / points - projects without bounties still give out points - should we make it low, or is it enough to say they are not attractive to contributors unless a bounty seti
+  
+   ask #1s [ if time > 0
              [ ; WITH PLATFORM...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
-               ; they use reputation also, if this dynamic is on
+               ; they use bounties and reputation if those dynamics are ON
                ; if 1 using platform
                ifelse using-platform?
-                 ;  look at all projects not currently in
-                [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
-                  ; if the average points is not zero (to aboid division by zero) and reputation dynamic is ON
-                  ifelse mean [ sum [ points ] of current-contributors ] of projects != 0 and reward-mechanism-2 = "reputation"
-                  ; find best project in combination of distance and reputation
-                 [ let new-project min-one-of other-projects [ ( distance myself ) - (( sum [ points ] of current-contributors ) / 
-                                                                                    ( mean [ sum [ points ] of current-contributors ] of projects )) ]
-                  ;if appropriate project found, join it.  
-                  if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
-                 ]
-                 ; if average points is zero, or reputation dynamic not on, find closest project and join it
-                 [ let new-project min-one-of other-projects [ distance myself ]
-                   if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
-                 ]
+               
+               [ if reward-mechanism-2 = "baseline-both" [
+                     let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+                     let new-project min-one-of other-projects [ distance myself ]
+                     if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                                                         ]
+                 if reward-mechanism-2 = "reputation" [
+                     let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+                     ; if the average points is not zero (to aboid division by zero) 
+                     ifelse mean [ sum [ points ] of current-contributors ] of projects != 0
+                           ; find best project in combination of distance and reputation
+                           [ let new-project min-one-of other-projects [ ( distance myself ) - (( sum [ points ] of current-contributors ) / 
+                                                                                               ( mean [ sum [ points ] of current-contributors ] of projects )) ]
+                     ;if appropriate project found, join it.  
+                      if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                           ]
+                     ; if average points is zero, find closest project and join it
+                     [ let new-project min-one-of other-projects [ distance myself ]
+                     if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                     ] 
+                                                       ]
+                 if reward-mechanism-2 = "bounties" [ 
+                     ;  look at all projects not currently in
+                     let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
+                     ; if the average bounty is not zero (to aboid division by zero) 
+                     ifelse mean [ bounty ] of projects != 0
+                           ; find best project in combination of distance and reputation
+                           [ let new-project min-one-of other-projects [ ( distance myself ) - (( bounty ) / 
+                                                                         ( mean [ bounty ] of projects )) ]
+                     ;if appropriate project found, join it.  
+                     if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                           ]
+                     ; if average bounty is zero, just find closest project and join it
+                     [ let new-project min-one-of other-projects [ distance myself ]
+                     if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                     ]
+                                                    ]
                 ]
+               
+               
+               ;; if 1 not using platform
                 [
                   ; WITHOUT PLATFORM AND ONLINE... 1s find projects - the closest to them but with some error/noise
                   if community-type = "online"
@@ -619,15 +669,6 @@ to find-projects
   ]
 
 
-;;; this first finding projects for 9s has a potential way of adding in influence (point on contributors used to select potential new project)
-;;; need to think if this makes sense as a mechanism?
-
-;;; if so need to build into all finding projects, and route it depending on the scenario...etc
-
-;;; where else might there be need to change code for rep? inside tasks too?
-
-
-
   ask #9s [ if time > 0
               ; WITH PLATFORM...9s find projects that are nearer the 'top of the list' but still close to them - ie., interest is nearby, and more to right
               ; and add them to a list
@@ -635,37 +676,46 @@ to find-projects
               
               ; if 9 is using platform
               [ ifelse using-platform?
-                ; look at all projects not currently in
-                [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
-                  ; if average points not zero (to avoid division by 0) and reputation dynamic is ON
-                  ifelse mean [ sum [ points ] of current-contributors ] of projects != 0 and reward-mechanism-2 = "reputation"
-                  ; find the projects with best combination of closeness and reputation
-                  [ let new-project min-one-of other-projects [ ( distance myself ) - (( sum [ points ] of current-contributors ) / 
-                                                                                    ( mean [ sum [ points ] of current-contributors ] of projects )) ] 
-                  ; if identified an appropriate project, join it with some probability dependent on its distance
-                  if other-projects != nobody and new-project != nobody
-                          ;; random number < prob / ( distance of new project / distance furthest project )
-                          ;; ie., relative closeness of new project increases chance of joining it
-                        [ if random-float 1 < ( prob-9-decides-to-join-project / ( ( [ distance myself ] of new-project ) /
-                                                                                   ( [ distance myself ] of max-one-of projects [ distance myself ] )
-                                                                                 )
-                                              )
-                              [ set my-projects lput new-project my-projects ]
-                        ]
-                  ]
-                  ; if average points is zero, or reputation dynamic is OFF, find closest project, and join it with some prob, dependent on its distance
-                  [ let new-project min-one-of other-projects [ distance myself ]
-                  if other-projects != nobody and new-project != nobody
-                          ;; random number < prob / ( distance of new project / distance furthest project )
-                          ;; ie., relative closeness of new project increases chance of joining it
-                        [ if random-float 1 < ( prob-9-decides-to-join-project / ( ( [ distance myself ] of new-project ) /
-                                                                                   ( [ distance myself ] of max-one-of projects [ distance myself ] )
-                                                                                 )
-                                              )
-                              [ set my-projects lput new-project my-projects ]
-                        ]
-                  ]
-                  ]
+                
+                 [ if reward-mechanism-2 = "baseline-both" [
+                     let other-projects projects with [ not member? self [ my-projects ] of myself ]
+                     let new-project min-one-of other-projects [ distance myself ]
+                     if other-projects != nobody [ set my-projects lput new-project my-projects ]
+                                                         ]
+                 if reward-mechanism-2 = "reputation" [
+                     let other-projects projects with [ not member? self [ my-projects ] of myself ]
+                     ; if the average points is not zero (to aboid division by zero) 
+                     ifelse mean [ sum [ points ] of current-contributors ] of projects != 0
+                           ; find best project in combination of distance and reputation
+                           [ let new-project min-one-of other-projects [ ( distance myself ) - (( sum [ points ] of current-contributors ) / 
+                                                                                               ( mean [ sum [ points ] of current-contributors ] of projects )) ]
+                     ;if appropriate project found, join it.  
+                      if other-projects != nobody [ set my-projects lput new-project my-projects ]
+                           ]
+                     ; if average points is zero, find closest project and join it
+                     [ let new-project min-one-of other-projects [ distance myself ]
+                     if other-projects != nobody [ set my-projects lput new-project my-projects ]
+                     ] 
+                                                       ]
+                 if reward-mechanism-2 = "bounties" [ 
+                     ;  look at all projects not currently in
+                     let other-projects projects with [ not member? self [ my-projects ] of myself ]
+                     ; if the average bounty is not zero (to aboid division by zero) 
+                     ifelse mean [ bounty ] of projects != 0
+                           ; find best project in combination of distance and reputation
+                           [ let new-project min-one-of other-projects [ ( distance myself ) - (( bounty ) / 
+                                                                         ( mean [ bounty ] of projects )) ]
+                     ;if appropriate project found, join it.  
+                     if other-projects != nobody [ set my-projects lput new-project my-projects ]
+                           ]
+                     ; if average bounty is zero, just find closest project and join it
+                     [ let new-project min-one-of other-projects [ distance myself ]
+                     if other-projects != nobody [ set my-projects lput new-project my-projects ]
+                     ]
+                                                    ]
+                ]
+   
+              ; if 9 not using platform
                 [
                   ; WITHOUT PLATFORM AND ONLINE... 9s find projects that are near them but with error/noise
                   ; again relative distance used to caclulate chance of joining the project
@@ -1088,15 +1138,20 @@ to give-out-reward
     [ ;; points given out at end of project
       ;; some projects all give same points, some give with some variation
       ask projects [ if num-tasks = 0
-        [ if reward-type = "subjective"
-          [ ask current-contributors
-            [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
-          ]
-          if reward-type = "objective"
-          [ ask current-contributors
-            [ set points points + [ reward-level ] of myself ]
-          ]
-        ]          ]
+        [ ifelse bounty != 0 
+            [ ask current-contributors [ set points points + ( [ bounty ] of myself / count [ current-contributors ] of myself ) ] ]
+        
+          [ if reward-type = "subjective"
+                [ ask current-contributors
+                      [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
+                 ] 
+            if reward-type = "objective"
+                [ ask current-contributors
+                      [ set points points + [ reward-level ] of myself ]
+                ]
+           ]
+        ] 
+                  ]
      ]
 
   if reward-mechanism = "both"
@@ -1111,15 +1166,20 @@ to give-out-reward
       ask #9s [ if random-float 1 < chance-forget-thanks [ set thanks "not received" ] ]
 
       ask projects [ if num-tasks = 0
-        [ if reward-type = "subjective"
-          [ ask current-contributors
-            [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
-          ]
-          if reward-type = "objective"
-          [ ask current-contributors
-            [ set points points + [ reward-level ] of myself ]
-          ]
-        ]          ]
+        [ ifelse bounty != 0 
+            [ ask current-contributors [ set points points + ( [ bounty ] of myself / count [ current-contributors ] of myself ) ] ]
+        
+          [ if reward-type = "subjective"
+                [ ask current-contributors
+                      [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
+                 ] 
+            if reward-type = "objective"
+                [ ask current-contributors
+                      [ set points points + [ reward-level ] of myself ]
+                ]
+           ]
+        ] 
+                  ]
     ]
 end
 
@@ -1731,7 +1791,9 @@ if platform-features = TRUE [
 
   ask projects [ if xcor < -4 [ set xcor -4 ]
                  if xcor > 17 [ set xcor 17 ]
-                 set label round sum [ points ] of current-contributors
+                 if reward-mechanism-2 = "reputation" [ set label round sum [ points ] of current-contributors ]
+                 if reward-mechanism-2 = "bounties" [ set label round bounty ]
+                 
                ]
 
   ; tasks need to go with their project
@@ -3970,7 +4032,7 @@ CHOOSER
 reward-mechanism-2
 reward-mechanism-2
 "baseline-both" "reputation" "bounties"
-1
+2
 
 SLIDER
 640
@@ -3981,7 +4043,7 @@ prob-9-finds-featured-need
 prob-9-finds-featured-need
 0
 1
-0.1
+0
 0.05
 1
 NIL
@@ -4028,8 +4090,8 @@ true
 true
 "" ""
 PENS
-"% of tasks features" 1.0 0 -13840069 true "" "plot ( ( count t4sks with [ featured? = TRUE ] ) / ( count t4sks ) ) * 100"
-"% of current #9s ever using featured feature" 1.0 0 -13345367 true "" "plot ( ( count #9s with [ i-used-featured? = TRUE ] ) / ( count #9s ) ) * 100"
+"% of tasks features" 1.0 0 -13840069 true "" "if count t4sks > 0 [ plot ( ( count t4sks with [ featured? = TRUE ] ) / ( count t4sks ) ) * 100 ]"
+"% of current #9s ever using featured feature" 1.0 0 -13345367 true "" "if count #9s > 0 [ plot ( ( count #9s with [ i-used-featured? = TRUE ] ) / ( count #9s ) ) * 100 ]"
 
 PLOT
 855
@@ -4048,6 +4110,62 @@ false
 "" ""
 PENS
 "default" 1.0 1 -13210332 true "" "if mean [ sum [ points ] of current-contributors ] of projects != 0 [ histogram [ ( sum [ points ] of current-contributors ) / ( mean [ sum [ points ] of current-contributors ] of projects ) ] of projects   ]"
+
+PLOT
+1305
+830
+1645
+980
+Projects' Bounty / Ave Bounty
+Bounty / Ave Bounty
+Freq
+0.0
+50.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -14439633 true "" "if mean [ bounty ] of projects > 0 [ histogram [ bounty / mean [ bounty ] of projects ] of projects ]"
+
+SLIDER
+640
+1245
+880
+1278
+prob-set-a-bounty
+prob-set-a-bounty
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+PLOT
+1645
+845
+1905
+995
+Average Points of Contributors
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"#1s" 1.0 0 -2674135 true "" "plot mean [points] of #1s"
+"#9s" 1.0 0 -13345367 true "" "plot mean [points] of #9s"
+"1s max" 1.0 0 -3026479 true "" "plot ( max [points] of #1s )"
+"1s min" 1.0 0 -3026479 true "" "plot ( min [points] of #1s )"
+"9s max" 1.0 0 -3026479 true "" "plot ( max [points] of #9s )"
+"9s min" 1.0 0 -3026479 true "" "plot ( min [points] of #9s )"
 
 @#$#@#$#@
 ## WHAT IS IT?
