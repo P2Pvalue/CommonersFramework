@@ -1803,10 +1803,10 @@ NIL
 1
 
 SLIDER
-8
-447
-248
-480
+20
+675
+260
+708
 initial-number-1s
 initial-number-1s
 0
@@ -1818,25 +1818,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-8
-484
-247
-517
+20
+712
+259
+745
 initial-number-9s
 initial-number-9s
 0
 1000
-5
+9
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-8
-600
-248
-633
+20
+828
+260
+861
 initial-tasks
 initial-tasks
 0
@@ -2014,15 +2014,15 @@ NIL
 1
 
 SLIDER
-8
-517
-248
-550
+20
+745
+260
+778
 initial-number-90s
 initial-number-90s
 0
 5000
-45
+90
 50
 1
 NIL
@@ -2727,20 +2727,20 @@ TEXTBOX
 1
 
 TEXTBOX
-4
-117
-274
-135
----INPUT: PLATFORM FEATURES---
+16
+95
+286
+113
+---INPUT: PLATFORM ADOPTION---
 14
 0.0
 1
 
 TEXTBOX
-12
-310
-249
-328
+24
+538
+261
+556
 ---INPUT: COMMUNITY TYPE---
 14
 0.0
@@ -2777,10 +2777,10 @@ TEXTBOX
 1
 
 SLIDER
-8
-566
-248
-599
+20
+794
+260
+827
 initial-projects
 initial-projects
 0
@@ -2973,10 +2973,10 @@ PENS
 "Task" 1.0 0 -7500403 true "" "if count tasklinks > 0 [ plot mean [ageTL] of tasklinks ]"
 
 CHOOSER
-8
-187
-248
-232
+25
+375
+260
+420
 reward-mechanism
 reward-mechanism
 "none" "'thanks' only" "'points' only" "both"
@@ -3004,20 +3004,20 @@ PENS
 "Time Contributed 9s (hrs)" 1.0 0 -14730904 true "" "if count #9s > 0 [ plot time-contributed-by-9s / count #9s ]"
 
 CHOOSER
-8
-337
-248
-382
+20
+565
+260
+610
 community-type
 community-type
 "online" "offline"
 1
 
 CHOOSER
-8
-387
-248
-432
+20
+615
+260
+660
 number-of-products
 number-of-products
 "one" "a few" "many"
@@ -3065,10 +3065,10 @@ PENS
 "loneTasks" 1.0 0 -1184463 true "" "plot loneTasksFinished"
 
 SWITCH
-8
-147
-248
-180
+20
+125
+260
+158
 platform-features
 platform-features
 0
@@ -3144,10 +3144,10 @@ MONITOR
 11
 
 SLIDER
-8
-237
-248
-270
+20
+165
+260
+198
 proportion-using-platform
 proportion-using-platform
 0
@@ -3860,10 +3860,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-10
-275
-287
-308
+20
+205
+260
+238
 proportion-onplatform-projects
 proportion-onplatform-projects
 0
@@ -3873,6 +3873,37 @@ proportion-onplatform-projects
 1
 NIL
 HORIZONTAL
+
+TEXTBOX
+10
+290
+270
+321
+---INPUT: FEATURE SCENARIOS---
+14
+0.0
+1
+
+SWITCH
+25
+330
+260
+363
+featured-needs?
+featured-needs?
+1
+1
+-1000
+
+CHOOSER
+25
+430
+260
+475
+reward-mechanism-2
+reward-mechanism-2
+"baseline-both" "reputation" "bounties"
+0
 
 @#$#@#$#@
 ## WHAT IS IT?
