@@ -409,6 +409,12 @@ to create-existing-projects
 
     set xcor 5
     set ycor -25 + inter3st
+    
+     ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
+      set ycor [ycor] of myself
+      set heading random 360
+      fd 1
+    ]
 
     set my-product min-one-of products [ distance myself ]
     create-projectproductlink-with my-product [ set color red ]
@@ -982,7 +988,7 @@ to advertise-featured-tasks
                                                               ]
                         ]
                   ;; remove featured needs from list
-                  let taskNoLongerNeedsAdvertising my-tasks-projects with [ count tasklink-neighbors > 1 and featured? = TRUE ]
+                  let taskNoLongerNeedsAdvertising my-tasks-projects with [ count tasklink-neighbors > 0 and featured? = TRUE ]
                   if any? taskNoLongerNeedsAdvertising
                         [ ask one-of taskNoLongerNeedsAdvertising [ set featured? FALSE
                                                                     set color color - 4 
@@ -1870,7 +1876,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-1
+3
 1
 1
 NIL
@@ -1885,7 +1891,7 @@ initial-number-9s
 initial-number-9s
 0
 1000
-9
+27
 1
 1
 NIL
@@ -1900,7 +1906,7 @@ initial-tasks
 initial-tasks
 0
 100
-1
+3
 1
 1
 NIL
@@ -2081,7 +2087,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-90
+270
 50
 1
 NIL
