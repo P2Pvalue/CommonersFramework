@@ -185,6 +185,7 @@ undirected-link-breed [projectproductlinks projectproductlink]
   my-total-contribution-9s     ; count of previous contributions
   my-total-contribution-1s     ; used when changing breed
   feel-loved
+  i-used-featured?             ; did the 9 ever find a featured need
 ]
 
 #90s-own [
@@ -486,6 +487,7 @@ to create-#9
                                  set time my-time
                                  set skill (n-of 3 (n-values num-skills [?]))
                                  set using-platform? set-using-platform
+                                 set i-used-featured? FALSE
                                  set points 0
                                  set thanks "not received"
                                  set my-projects (list (min-one-of projects [ distance myself ]))
@@ -753,6 +755,8 @@ end
 to find-featured-tasks
   ;; 9s only? can find featured/advertised tasks directly. ie., they are not focusing so much on interest, but also skills required.
   
+  ;;possible todos - only low contributors use featured needs service?
+  
   ;; if the right scenario
   if platform-features = TRUE and featured-needs? = TRUE 
         ;; only 9s using TEEM
@@ -769,6 +773,7 @@ to find-featured-tasks
                                                        ;; the project then also becomes one of their projects?
                                                        let new-project [ my-project ] of new-FeaturedTask
                                                        set my-projects lput new-project my-projects 
+                                                       set i-used-featured? TRUE
                                                      ] 
                            ] 
                      ] 
@@ -1377,6 +1382,7 @@ to entry
                                                               set time my-time
                                                               set skill (n-of 3 (n-values num-skills [?]))
                                                               set using-platform? set-using-platform
+                                                              set i-used-featured? FALSE
                                                               set points 0
                                                               set thanks "not received"
                                                               set my-projects (list (nobody))
@@ -1526,6 +1532,7 @@ to change-breed
                   set time my-time
                   set skill (n-of 3 (n-values num-skills [?]))
                   set points 0
+                  set i-used-featured? FALSE
                   set thanks "not received"
                   create-tasklink-with task-i-found [set color 3]
                   set my-tasks tasklink-neighbors
@@ -1579,6 +1586,7 @@ to change-breed
                    set size 1
                    set color blue
                    set my-time 1 + random 20
+                   set i-used-featured? FALSE
                    set time my-time
                    set my-projects [my-projects-1s] of self
                    set my-tasks [ my-tasks-1s ] of self
@@ -2931,62 +2939,6 @@ TEXTBOX
 1
 
 PLOT
-856
-560
-1081
-680
-Aggregate Consumption
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"10" 1.0 0 -16777216 true "" "plot community-con-activity-t-10"
-"9" 1.0 0 -7500403 true "" "plot community-con-activity-t-9"
-"8" 1.0 0 -2674135 true "" "plot community-con-activity-t-8"
-"7" 1.0 0 -955883 true "" "plot community-con-activity-t-7"
-"6" 1.0 0 -6459832 true "" "plot community-con-activity-t-6"
-"5" 1.0 0 -1184463 true "" "plot community-con-activity-t-5"
-"4" 1.0 0 -10899396 true "" "plot community-con-activity-t-4"
-"3" 1.0 0 -13840069 true "" "plot community-con-activity-t-3"
-"2" 1.0 0 -14835848 true "" "plot community-con-activity-t-2"
-"1" 1.0 0 -11221820 true "" "plot community-con-activity-t-1"
-"t" 1.0 0 -13791810 true "" "plot community-con-activity-t"
-
-PLOT
-1078
-560
-1304
-681
-Aggregate Production
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot community-prod-activity-t-10"
-"pen-1" 1.0 0 -7500403 true "" "plot community-prod-activity-t-9"
-"pen-2" 1.0 0 -2674135 true "" "plot community-prod-activity-t-8"
-"pen-3" 1.0 0 -955883 true "" "plot community-prod-activity-t-7"
-"pen-4" 1.0 0 -6459832 true "" "plot community-prod-activity-t-6"
-"pen-5" 1.0 0 -1184463 true "" "plot community-prod-activity-t-5"
-"pen-6" 1.0 0 -10899396 true "" "plot community-prod-activity-t-4"
-"pen-7" 1.0 0 -13840069 true "" "plot community-prod-activity-t-3"
-"pen-8" 1.0 0 -14835848 true "" "plot community-prod-activity-t-2"
-"pen-9" 1.0 0 -11221820 true "" "plot community-prod-activity-t-1"
-"pen-10" 1.0 0 -13791810 true "" "plot community-prod-activity-t"
-
-PLOT
 854
 440
 1080
@@ -3334,10 +3286,10 @@ PENS
 "#1s Thanks from #1s" 1.0 0 -5298144 true "" "plot count #1s with [ thanks = \"received from #1\" ]"
 
 PLOT
-857
-684
-1307
-804
+855
+560
+1305
+680
 Mean Consumption History of Products
 NIL
 NIL
@@ -4011,11 +3963,11 @@ NIL
 HORIZONTAL
 
 PLOT
-1075
-835
-1275
-985
-% of Needs Featured
+855
+680
+1305
+830
+Featured Needs
 NIL
 NIL
 0.0
@@ -4023,10 +3975,11 @@ NIL
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -13840069 true "" "plot ( ( count t4sks with [ featured? = TRUE ] ) / ( count t4sks ) ) * 100"
+"% of tasks features" 1.0 0 -13840069 true "" "plot ( ( count t4sks with [ featured? = TRUE ] ) / ( count t4sks ) ) * 100"
+"% of current #9s ever using featured feature" 1.0 0 -13345367 true "" "plot ( ( count #9s with [ i-used-featured? = TRUE ] ) / ( count #9s ) ) * 100"
 
 @#$#@#$#@
 ## WHAT IS IT?
