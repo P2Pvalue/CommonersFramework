@@ -1181,7 +1181,7 @@ to birth-a-product
 
  if number-of-products = "one" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
                                                     set xcor -10
-                                                    ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
+                                                    set ycor -25 + inter3st
                                                     set size 2
                                                     set color orange
                                                     set shape "box"
@@ -3841,7 +3841,7 @@ HORIZONTAL
 SLIDER
 1100
 1905
-1377
+1380
 1938
 prop-of-projects-initially-private
 prop-of-projects-initially-private
@@ -3863,6 +3863,21 @@ proportion-onplatform-projects
 0
 1
 0.5
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1100
+1950
+1380
+1983
+prop-productless-proj
+prop-productless-proj
+0
+1
+0.8
 0.05
 1
 NIL
