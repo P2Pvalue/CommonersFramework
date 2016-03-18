@@ -350,6 +350,7 @@ to create-existing-product
                                      set volume random 100
                                      set age 0
                                      set consumption-history []
+                                     set mon-project []
                                    ]
 end
 
@@ -409,7 +410,6 @@ to create-existing-projects
     set my-product min-one-of products [ distance myself ]
     create-projectproductlink-with my-product [ set color red ]
     ask projectproductlink-neighbors [ set mon-project (list (projectproductlink-neighbors) ) ]
-    if any? products with [ mon-project = 0 ] [ ask products with [ mon-project = 0 ] [ set mon-project [] ] ]
   ]
 end
 
@@ -1144,13 +1144,10 @@ to #1-or-#9-hatch-project
       ]
       [ set is-on-platform? false ]
 
-    ;; TODO Why?
-    ifelse inter3st > 3
-      [ set inter3st [interest ] of myself + random 3 - random 3 ]
-      [ set inter3st [interest ] of myself + random 3 ]
+    set inter3st ([interest] of myself + random 3 - random 3) mod 50
 
+    set ycor -25 + inter3st
     set xcor 5
-    ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor -28 + inter3st]
 
     ifelse random-float 1 < 0.8
     [ set my-product min-one-of products [distance myself]
@@ -1168,13 +1165,10 @@ to project-hatch-a-project
       [set is-on-platform? true]
       [set is-on-platform? false]
 
-    ;; Why?
-    ifelse inter3st > 3
-      [ set inter3st [inter3st ] of myself + random 3 - random 3 ]
-      [ set inter3st [inter3st ] of myself + random 3 ]
+    set inter3st ([inter3st] of myself + random 3 - random 3) mod 50
 
+    set ycor -25 + inter3st
     set xcor [xcor] of myself
-    ifelse inter3st < 50 [ set ycor -25 + inter3st ] [ set ycor 25 ]
 
     if my-product != nobody [
       create-projectproductlink-with my-product [set color red]
