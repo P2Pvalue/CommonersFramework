@@ -1179,7 +1179,7 @@ end
 
 to birth-a-product
 
- if number-of-products = "one" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
+hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
                                                     set xcor -10
                                                     set ycor -25 + inter3st
                                                     set size 2
@@ -1193,39 +1193,6 @@ to birth-a-product
                                                     create-projectproductlink-with one-of mon-project [ set color red ]
                                                     set new-products-count new-products-count + 1
                                                   ]
-                                 ]
-
- if number-of-products = "a few" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
-                                                     set xcor -10
-                                                     set ycor -25 + inter3st
-                                                     set size 2
-                                                     set color orange
-                                                     set shape "box"
-                                                     set volume random 100
-                                                     set age 0
-                                                     set mon-project (list (myself))
-                                                     set consumption-history
-                                                           (n-values 10 [ random count [ current-contributors ] of myself * random 20  ])
-                                                     create-projectproductlink-with one-of mon-project [ set color red ]
-                                                     set new-products-count new-products-count + 1
-                                                    ]
-                                 ]
-
- if number-of-products = "many" [ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
-                                                     set xcor -10
-                                                     set ycor -25 + inter3st
-                                                     set size 2
-                                                     set color orange
-                                                     set shape "box"
-                                                     set volume random 100
-                                                     set age 0
-                                                     set mon-project (list (myself))
-                                                     set consumption-history
-                                                           (n-values 10 [ random count [ current-contributors ] of myself * random 20  ])
-                                                     create-projectproductlink-with one-of mon-project [ set color red ]
-                                                     set new-products-count new-products-count + 1
-                                                  ]
-                                 ]
 end
 
 to consume-products
