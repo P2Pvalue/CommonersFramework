@@ -580,10 +580,23 @@ to find-projects
 
   ask #1s [ if time > 0
              [ ; WITH PLATFORM...1s find projects - the 1 closest to them (i.e, top of their list), if they have time...
+               ; they use reputation also, if this dynamic is on
+               ; if 1 using platform
                ifelse using-platform?
+                 ;  look at all projects not currently in
                 [ let other-projects projects with [ not member? self [ my-projects-1s ] of myself ]
-                  let new-project min-one-of other-projects [ distance myself ]
+                  ; if the average points is not zero (to aboid division by zero) and reputation dynamic is ON
+                  ifelse mean [ sum [ points ] of current-contributors ] of projects != 0 and reward-mechanism-2 = "reputation"
+                  ; find best project in combination of distance and reputation
+                 [ let new-project min-one-of other-projects [ ( distance myself ) - (( sum [ points ] of current-contributors ) / 
+                                                                                    ( mean [ sum [ points ] of current-contributors ] of projects )) ]
+                  ;if appropriate project found, join it.  
                   if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                 ]
+                 ; if average points is zero, or reputation dynamic not on, find closest project and join it
+                 [ let new-project min-one-of other-projects [ distance myself ]
+                   if other-projects != nobody [ set my-projects-1s lput new-project my-projects-1s ]
+                 ]
                 ]
                 [
                   ; WITHOUT PLATFORM AND ONLINE... 1s find projects - the closest to them but with some error/noise
@@ -606,12 +619,30 @@ to find-projects
   ]
 
 
+;;; this first finding projects for 9s has a potential way of adding in influence (point on contributors used to select potential new project)
+;;; need to think if this makes sense as a mechanism?
+
+;;; if so need to build into all finding projects, and route it depending on the scenario...etc
+
+;;; where else might there be need to change code for rep? inside tasks too?
+
+
+
   ask #9s [ if time > 0
               ; WITH PLATFORM...9s find projects that are nearer the 'top of the list' but still close to them - ie., interest is nearby, and more to right
               ; and add them to a list
+              ; if reputation dynamic is on, they use reputation to pick which projects also
+              
+              ; if 9 is using platform
               [ ifelse using-platform?
+                ; look at all projects not currently in
                 [ let other-projects projects with [ not member? self [ my-projects ] of myself ]
-                  let new-project min-one-of other-projects [ distance myself ]
+                  ; if average points not zero (to avoid division by 0) and reputation dynamic is ON
+                  ifelse mean [ sum [ points ] of current-contributors ] of projects != 0 and reward-mechanism-2 = "reputation"
+                  ; find the projects with best combination of closeness and reputation
+                  [ let new-project min-one-of other-projects [ ( distance myself ) - (( sum [ points ] of current-contributors ) / 
+                                                                                    ( mean [ sum [ points ] of current-contributors ] of projects )) ] 
+                  ; if identified an appropriate project, join it with some probability dependent on its distance
                   if other-projects != nobody and new-project != nobody
                           ;; random number < prob / ( distance of new project / distance furthest project )
                           ;; ie., relative closeness of new project increases chance of joining it
@@ -621,7 +652,20 @@ to find-projects
                                               )
                               [ set my-projects lput new-project my-projects ]
                         ]
-                ]
+                  ]
+                  ; if average points is zero, or reputation dynamic is OFF, find closest project, and join it with some prob, dependent on its distance
+                  [ let new-project min-one-of other-projects [ distance myself ]
+                  if other-projects != nobody and new-project != nobody
+                          ;; random number < prob / ( distance of new project / distance furthest project )
+                          ;; ie., relative closeness of new project increases chance of joining it
+                        [ if random-float 1 < ( prob-9-decides-to-join-project / ( ( [ distance myself ] of new-project ) /
+                                                                                   ( [ distance myself ] of max-one-of projects [ distance myself ] )
+                                                                                 )
+                                              )
+                              [ set my-projects lput new-project my-projects ]
+                        ]
+                  ]
+                  ]
                 [
                   ; WITHOUT PLATFORM AND ONLINE... 9s find projects that are near them but with error/noise
                   ; again relative distance used to caclulate chance of joining the project
@@ -756,6 +800,8 @@ to find-featured-tasks
   ;; 9s only? can find featured/advertised tasks directly. ie., they are not focusing so much on interest, but also skills required.
   
   ;;possible todos - only low contributors use featured needs service?
+  
+  ;; possible todo - some needs more likely to be found? age?
   
   ;; if the right scenario
   if platform-features = TRUE and featured-needs? = TRUE 
@@ -981,6 +1027,9 @@ end
 
 to advertise-featured-tasks
   ;; projects with tasks that are not getting done 'feature' them if scenario on
+  
+  ;; potential to do - sorting the order of advetsied needs - some more visible?
+  
   if platform-features = TRUE and featured-needs? = TRUE 
   [
   ;; find tasks with no contributors and not already advertised
@@ -1682,6 +1731,7 @@ if platform-features = TRUE [
 
   ask projects [ if xcor < -4 [ set xcor -4 ]
                  if xcor > 17 [ set xcor 17 ]
+                 set label round sum [ points ] of current-contributors
                ]
 
   ; tasks need to go with their project
@@ -1884,7 +1934,7 @@ initial-number-1s
 initial-number-1s
 0
 100
-3
+5
 1
 1
 NIL
@@ -1899,7 +1949,7 @@ initial-number-9s
 initial-number-9s
 0
 1000
-27
+45
 1
 1
 NIL
@@ -1914,7 +1964,7 @@ initial-tasks
 initial-tasks
 0
 100
-3
+5
 1
 1
 NIL
@@ -2095,7 +2145,7 @@ initial-number-90s
 initial-number-90s
 0
 5000
-270
+450
 50
 1
 NIL
@@ -3125,7 +3175,7 @@ NIL
 0.0
 10.0
 false
-false
+true
 "" ""
 PENS
 "#9s" 1.0 1 -13791810 true "" "histogram [ my-total-contribution-9s ] of #9s"
@@ -3169,7 +3219,7 @@ proportion-using-platform
 proportion-using-platform
 0
 1
-1
+0.5
 0.1
 1
 NIL
@@ -3920,7 +3970,7 @@ CHOOSER
 reward-mechanism-2
 reward-mechanism-2
 "baseline-both" "reputation" "bounties"
-0
+1
 
 SLIDER
 640
@@ -3980,6 +4030,24 @@ true
 PENS
 "% of tasks features" 1.0 0 -13840069 true "" "plot ( ( count t4sks with [ featured? = TRUE ] ) / ( count t4sks ) ) * 100"
 "% of current #9s ever using featured feature" 1.0 0 -13345367 true "" "plot ( ( count #9s with [ i-used-featured? = TRUE ] ) / ( count #9s ) ) * 100"
+
+PLOT
+855
+830
+1305
+980
+Projects' Sum Points of Contributors / Average Sum Points of Contributors
+Sum Points / Average Sum Points
+Freq
+0.0
+50.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -13210332 true "" "if mean [ sum [ points ] of current-contributors ] of projects != 0 [ histogram [ ( sum [ points ] of current-contributors ) / ( mean [ sum [ points ] of current-contributors ] of projects ) ] of projects   ]"
 
 @#$#@#$#@
 ## WHAT IS IT?
