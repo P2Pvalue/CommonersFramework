@@ -219,6 +219,7 @@ t4sks-own [
   time-required                ; time required to complete tasks random normal 50 10
   modularity                   ; contribution required by task per tick
   age                          ; time task has been in community
+  featured?                    ; is the task currently being featured?
 ]
 
 loneTasks-own [
@@ -293,9 +294,11 @@ to go
   find-projects                       ;; contributors find projects - dependent on platform ON/OFF
   find-tasks                          ;; contributors find tasks - not dependent on platform, this is where actual decision
                                       ;; to defo contribute is made
+  find-featured-tasks                 ;; 9s can find featured tasks if scenario is on
   contribute-to-tasks                 ;; contributors regulate the number of tasks they have, and record contribute
   drop-projects                       ;; contributors drop projects if lonely/unpopular/no tasks for them
   make-and-lose-friends               ;; friendships formed and broken
+  advertise-featured-tasks            ;; projects/contrbutors decide which tasks they might want to 'feature'
   finish-tasks                        ;; finished tasks improve their product a bit, and die
   give-out-reward                     ;; projects give out reward and/or thanks when all their tasks are finshed
   finished-projects                   ;; finsihed project improve their product or birth a new product
@@ -378,6 +381,7 @@ to create-project
       set modularity random max-modularity + 1
       set age 0
       set my-project myself
+      set featured? FALSE
     ]
     set my-tasks-projects t4sks with [ my-project = myself ]
     ;; TODO missing in create existing projects
@@ -740,6 +744,33 @@ to find-tasks
            ]
 end
 
+to find-featured-tasks
+  ;; 9s only? can find featured/advertised tasks directly. ie., they are not focusing so much on interest, but also skills required.
+  
+  ;; if the right scenario
+  if platform-features = TRUE and featured-needs? = TRUE 
+        ;; only 9s using TEEM
+        [ ask #9s with [ using-platform? = true ]
+              ;; if they have time, and are active
+              [ if time > 0 and contribution-history-9s != 0
+                    ;; look at featured tasks and with some probability, make a connection to one i have skills for
+                    [ let featuredTasks t4sks with [ featured? = TRUE ] 
+                    ;; need to exlude tasks already joined? nope - nothing happens if you join twice
+                    if any? featuredTasks and random-float 1 < prob-9-finds-featured-need + ( 0.01 * sum contribution-history-9s )
+                          [ let new-FeaturedTask featuredTasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                            if any? new-FeaturedTask [ create-tasklink-with one-of new-FeaturedTask [ set color 3 ]
+                                                       set my-tasks tasklink-neighbors 
+                                                       ;; the project then also becomes one of their projects?
+                                                       let new-project [ my-project ] of new-FeaturedTask
+                                                       set my-projects lput new-project my-projects 
+                                                     ] 
+                           ] 
+                     ] 
+                ] 
+          ] 
+                                                         
+end
+
 to contribute-to-tasks
 
   ; 1s and 9s update time availability, if no time left, drop tasks
@@ -936,6 +967,34 @@ to make-and-lose-friends
                                             ]
           ]
 end
+
+to advertise-featured-tasks
+  ;; projects with tasks that are not getting done 'feature' them if scenario on
+  if platform-features = TRUE and featured-needs? = TRUE 
+  [
+  ;; find tasks with no contributors and not already advertised
+  ask projects [  let taskInNeedOfAdvertising my-tasks-projects with [ count tasklink-neighbors = 0 and featured? = FALSE ]
+                  ;; with some probability
+                  if any? taskInNeedOfAdvertising and random-float 1 < prob-project-advertises-a-task 
+                        ;; ask that task to become features
+                        [ ask one-of taskInNeedOfAdvertising [ set featured? TRUE
+                                                               set color color + 4 
+                                                              ]
+                        ]
+                  ;; remove featured needs from list
+                  let taskNoLongerNeedsAdvertising my-tasks-projects with [ count tasklink-neighbors > 1 and featured? = TRUE ]
+                  if any? taskNoLongerNeedsAdvertising
+                        [ ask one-of taskNoLongerNeedsAdvertising [ set featured? FALSE
+                                                                    set color color - 4 
+                                                                  ]
+                        ]
+                
+                ]
+  ]
+end
+
+
+
 
 to give-out-reward
 
@@ -2717,10 +2776,10 @@ PENS
 "#90s by chance" 1.0 0 -2674135 true "" "plot new-#90s-chance"
 
 TEXTBOX
-222
-1116
-542
-1160
+145
+1110
+465
+1154
 ---ADVANCED PARAMETERS---
 14
 0.0
@@ -3868,7 +3927,7 @@ proportion-onplatform-projects
 proportion-onplatform-projects
 0
 1
-0.5
+0.55
 0.05
 1
 NIL
@@ -3891,7 +3950,7 @@ SWITCH
 363
 featured-needs?
 featured-needs?
-1
+0
 1
 -1000
 
@@ -3904,6 +3963,64 @@ reward-mechanism-2
 reward-mechanism-2
 "baseline-both" "reputation" "bounties"
 0
+
+SLIDER
+640
+1160
+872
+1193
+prob-9-finds-featured-need
+prob-9-finds-featured-need
+0
+1
+0.1
+0.05
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+615
+1100
+880
+1131
+---ADVANCED PARAMETERS 2---
+14
+0.0
+1
+
+SLIDER
+640
+1200
+887
+1233
+prob-project-advertises-a-task
+prob-project-advertises-a-task
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+PLOT
+1075
+835
+1275
+985
+% of Needs Featured
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -13840069 true "" "plot ( ( count t4sks with [ featured? = TRUE ] ) / ( count t4sks ) ) * 100"
 
 @#$#@#$#@
 ## WHAT IS IT?
