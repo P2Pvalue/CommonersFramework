@@ -185,6 +185,7 @@ undirected-link-breed [projectproductlinks projectproductlink]
   my-total-contribution-9s     ; count of previous contributions
   my-total-contribution-1s     ; used when changing breed
   feel-loved
+  i-used-featured?             ; did the 9 ever find a featured need
 ]
 
 #90s-own [
@@ -210,6 +211,7 @@ projects-own [
   current-contributors         ; agentset of current contributors to tasks of this project
   is-on-platform?              ; is the project on the platform?
   is-private?                  ; is the project private?
+  bounty                       ; the bounty given to a project by its contributors
 ]
 
 t4sks-own [
@@ -219,6 +221,7 @@ t4sks-own [
   time-required                ; time required to complete tasks random normal 50 10
   modularity                   ; contribution required by task per tick
   age                          ; time task has been in community
+  featured?                    ; is the task currently being featured?
 ]
 
 loneTasks-own [
@@ -290,12 +293,15 @@ end
 ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go ; Go
 
 to go
+  set-bounties                        ;; contributors can set a bounty to their project if they wish
   find-projects                       ;; contributors find projects - dependent on platform ON/OFF
   find-tasks                          ;; contributors find tasks - not dependent on platform, this is where actual decision
                                       ;; to defo contribute is made
+  find-featured-tasks                 ;; 9s can find featured tasks if scenario is on
   contribute-to-tasks                 ;; contributors regulate the number of tasks they have, and record contribute
   drop-projects                       ;; contributors drop projects if lonely/unpopular/no tasks for them
   make-and-lose-friends               ;; friendships formed and broken
+  advertise-featured-tasks            ;; projects/contrbutors decide which tasks they might want to 'feature'
   finish-tasks                        ;; finished tasks improve their product a bit, and die
   give-out-reward                     ;; projects give out reward and/or thanks when all their tasks are finshed
   finished-projects                   ;; finsihed project improve their product or birth a new product
@@ -379,6 +385,7 @@ to create-project
       set modularity random max-modularity + 1
       set age 0
       set my-project myself
+      set featured? FALSE
     ]
     set my-tasks-projects t4sks with [ my-project = myself ]
     ;; TODO missing in create existing projects
@@ -406,6 +413,12 @@ to create-existing-projects
 
     set xcor 5
     set ycor -25 + inter3st
+
+     ask t4sks with [my-project = myself ] [ set xcor [xcor] of myself
+      set ycor [ycor] of myself
+      set heading random 360
+      fd 1
+    ]
 
     set my-product min-one-of products [ distance myself ]
     create-projectproductlink-with my-product [ set color red ]
@@ -476,6 +489,7 @@ to create-#9
                                  set time my-time
                                  set skill (n-of 3 (n-values num-skills [?]))
                                  set using-platform? set-using-platform
+                                 set i-used-featured? FALSE
                                  set points 0
                                  set thanks "not received"
                                  set my-projects (list (min-one-of projects [ distance myself ]))
@@ -564,17 +578,67 @@ end
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
 
+to set-bounties
+  ;; if bounties is ON, projects set bounty (with some probability) to 10% of points if contributors
+  ;; contributors decrease their points accordingly
+  if reward-mechanism-2 = "bounties" [
+        ask projects [ if count current-contributors > 0 and
+                          random-float 1 < prob-set-a-bounty and
+                          ( sum [ points ] of current-contributors ) > ( mean [ sum [points] of current-contributors ] of projects ) [
+                       set bounty 0.1 * sum [ points ] of current-contributors
+                       ask current-contributors [ set points points - (0.1 * points) ]
+                     ]
+                                                         ]
+                                      ]
+end
+
 to-report project-distance
+
   let noise? (
     (not using-platform?) or
     (community-type = "offline") or
     is-private?
   )
 
+  let bounties? (
+    using-platform? and
+    reward-mechanism-2 = "bounties" and
+    not is-private?
+  )
+
+  let reputation? (
+    using-platform? and
+    reward-mechanism-2 = "reputation" and
+    not is-private?
+  )
+
   let dist distance myself
 
   if noise?
     [ set dist dist + random max-noise - (max-noise / 2)]
+
+
+  if (bounties? and bounty) [
+    let avgBounties
+      mean [ sum [ points ] of current-contributors ] of projects
+
+
+    if (avgBounties != 0) [
+      ;; TODO: Is the attractive of a bounty proportional to the relation with the average?
+      ;; should we take logarithms instead?
+      set dist dist - dist * bountiesEffect * (bounty / avgBounties)
+    ]
+  ]
+
+  if (reputation?) [
+    let avgReputation
+      mean [ sum [ points ] of current-contributors ] of projects
+    if (avgReputation != 0) [
+      ;; TODO: Is the attractive of a project due to its reputation proportional to the relation with the average?
+      ;; should we take logarithms instead?
+      set dist dist - dist * reputationEffect * (points / avgReputation)
+    ]
+  ]
 
   report dist
 end
@@ -708,6 +772,38 @@ to find-tasks
                       ]
                 ]
            ]
+end
+
+to find-featured-tasks
+  ;; 9s only? can find featured/advertised tasks directly. ie., they are not focusing so much on interest, but also skills required.
+
+  ;;possible todos - only low contributors use featured needs service?
+
+  ;; possible todo - some needs more likely to be found? age?
+
+  ;; if the right scenario
+  if platform-features = TRUE and featured-needs? = TRUE
+        ;; only 9s using TEEM
+        [ ask #9s with [ using-platform? = true ]
+              ;; if they have time, and are active
+              [ if time > 0 and contribution-history-9s != 0
+                    ;; look at featured tasks and with some probability, make a connection to one i have skills for
+                    [ let featuredTasks t4sks with [ featured? = TRUE ]
+                    ;; need to exlude tasks already joined? nope - nothing happens if you join twice
+                    if any? featuredTasks and random-float 1 < prob-9-finds-featured-need + ( 0.01 * sum contribution-history-9s )
+                          [ let new-FeaturedTask featuredTasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                            if any? new-FeaturedTask [ create-tasklink-with one-of new-FeaturedTask [ set color 3 ]
+                                                       set my-tasks tasklink-neighbors
+                                                       ;; the project then also becomes one of their projects?
+                                                       let new-project [ my-project ] of new-FeaturedTask
+                                                       set my-projects lput new-project my-projects
+                                                       set i-used-featured? TRUE
+                                                     ]
+                           ]
+                     ]
+                ]
+          ]
+
 end
 
 to contribute-to-tasks
@@ -907,6 +1003,37 @@ to make-and-lose-friends
           ]
 end
 
+to advertise-featured-tasks
+  ;; projects with tasks that are not getting done 'feature' them if scenario on
+
+  ;; potential to do - sorting the order of advetsied needs - some more visible?
+
+  if platform-features = TRUE and featured-needs? = TRUE
+  [
+  ;; find tasks with no contributors and not already advertised
+  ask projects [  let taskInNeedOfAdvertising my-tasks-projects with [ count tasklink-neighbors = 0 and featured? = FALSE ]
+                  ;; with some probability
+                  if any? taskInNeedOfAdvertising and random-float 1 < prob-project-advertises-a-task
+                        ;; ask that task to become features
+                        [ ask one-of taskInNeedOfAdvertising [ set featured? TRUE
+                                                               set color color + 4
+                                                              ]
+                        ]
+                  ;; remove featured needs from list
+                  let taskNoLongerNeedsAdvertising my-tasks-projects with [ count tasklink-neighbors > 0 and featured? = TRUE ]
+                  if any? taskNoLongerNeedsAdvertising
+                        [ ask one-of taskNoLongerNeedsAdvertising [ set featured? FALSE
+                                                                    set color color - 4
+                                                                  ]
+                        ]
+
+                ]
+  ]
+end
+
+
+
+
 to give-out-reward
 
   ; two types of reward mechanism - points and thanks
@@ -939,15 +1066,20 @@ to give-out-reward
     [ ;; points given out at end of project
       ;; some projects all give same points, some give with some variation
       ask projects [ if num-tasks = 0
-        [ if reward-type = "subjective"
-          [ ask current-contributors
-            [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
-          ]
-          if reward-type = "objective"
-          [ ask current-contributors
-            [ set points points + [ reward-level ] of myself ]
-          ]
-        ]          ]
+        [ ifelse bounty != 0
+            [ ask current-contributors [ set points points + ( [ bounty ] of myself / count [ current-contributors ] of myself ) ] ]
+
+          [ if reward-type = "subjective"
+                [ ask current-contributors
+                      [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
+                 ]
+            if reward-type = "objective"
+                [ ask current-contributors
+                      [ set points points + [ reward-level ] of myself ]
+                ]
+           ]
+        ]
+                  ]
      ]
 
   if reward-mechanism = "both"
@@ -962,15 +1094,20 @@ to give-out-reward
       ask #9s [ if random-float 1 < chance-forget-thanks [ set thanks "not received" ] ]
 
       ask projects [ if num-tasks = 0
-        [ if reward-type = "subjective"
-          [ ask current-contributors
-            [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
-          ]
-          if reward-type = "objective"
-          [ ask current-contributors
-            [ set points points + [ reward-level ] of myself ]
-          ]
-        ]          ]
+        [ ifelse bounty != 0
+            [ ask current-contributors [ set points points + ( [ bounty ] of myself / count [ current-contributors ] of myself ) ] ]
+
+          [ if reward-type = "subjective"
+                [ ask current-contributors
+                      [ set points points + random-normal ([ reward-level ] of myself) ([ reward-level ] of myself / 2) ]
+                 ]
+            if reward-type = "objective"
+                [ ask current-contributors
+                      [ set points points + [ reward-level ] of myself ]
+                ]
+           ]
+        ]
+                  ]
     ]
 end
 
@@ -1243,6 +1380,7 @@ to entry
                                                               set time my-time
                                                               set skill (n-of 3 (n-values num-skills [?]))
                                                               set using-platform? set-using-platform
+                                                              set i-used-featured? FALSE
                                                               set points 0
                                                               set thanks "not received"
                                                               set my-projects (list (nobody))
@@ -1392,6 +1530,7 @@ to change-breed
                   set time my-time
                   set skill (n-of 3 (n-values num-skills [?]))
                   set points 0
+                  set i-used-featured? FALSE
                   set thanks "not received"
                   create-tasklink-with task-i-found [set color 3]
                   set my-tasks tasklink-neighbors
@@ -1445,6 +1584,7 @@ to change-breed
                    set size 1
                    set color blue
                    set my-time 1 + random 20
+                   set i-used-featured? FALSE
                    set time my-time
                    set my-projects [my-projects-1s] of self
                    set my-tasks [ my-tasks-1s ] of self
@@ -1540,6 +1680,9 @@ if platform-features = TRUE [
 
   ask projects [ if xcor < -4 [ set xcor -4 ]
                  if xcor > 17 [ set xcor 17 ]
+                 if reward-mechanism-2 = "reputation" [ set label round sum [ points ] of current-contributors ]
+                 if reward-mechanism-2 = "bounties" [ set label round bounty ]
+
                ]
 
   ; tasks need to go with their project
@@ -1734,29 +1877,14 @@ NIL
 1
 
 SLIDER
-8
-447
-248
-480
+20
+675
+260
+708
 initial-number-1s
 initial-number-1s
 0
 100
-1
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-8
-484
-247
-517
-initial-number-9s
-initial-number-9s
-0
-1000
 5
 1
 1
@@ -1764,15 +1892,30 @@ NIL
 HORIZONTAL
 
 SLIDER
-8
-600
-248
-633
+20
+712
+259
+745
+initial-number-9s
+initial-number-9s
+0
+1000
+45
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+828
+260
+861
 initial-tasks
 initial-tasks
 0
 100
-1
+5
 1
 1
 NIL
@@ -1945,15 +2088,15 @@ NIL
 1
 
 SLIDER
-8
-517
-248
-550
+20
+745
+260
+778
 initial-number-90s
 initial-number-90s
 0
 5000
-45
+450
 50
 1
 NIL
@@ -2648,30 +2791,30 @@ PENS
 "#90s by chance" 1.0 0 -2674135 true "" "plot new-#90s-chance"
 
 TEXTBOX
-222
-1116
-542
-1160
+145
+1110
+465
+1154
 ---ADVANCED PARAMETERS---
 14
 0.0
 1
 
 TEXTBOX
-4
-117
-274
-135
----INPUT: PLATFORM FEATURES---
+16
+95
+286
+113
+---INPUT: PLATFORM ADOPTION---
 14
 0.0
 1
 
 TEXTBOX
-12
-310
-249
-328
+24
+538
+261
+556
 ---INPUT: COMMUNITY TYPE---
 14
 0.0
@@ -2708,10 +2851,10 @@ TEXTBOX
 1
 
 SLIDER
-8
-566
-248
-599
+20
+794
+260
+827
 initial-projects
 initial-projects
 0
@@ -2797,62 +2940,6 @@ TEXTBOX
 1
 
 PLOT
-856
-560
-1081
-680
-Aggregate Consumption
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"10" 1.0 0 -16777216 true "" "plot community-con-activity-t-10"
-"9" 1.0 0 -7500403 true "" "plot community-con-activity-t-9"
-"8" 1.0 0 -2674135 true "" "plot community-con-activity-t-8"
-"7" 1.0 0 -955883 true "" "plot community-con-activity-t-7"
-"6" 1.0 0 -6459832 true "" "plot community-con-activity-t-6"
-"5" 1.0 0 -1184463 true "" "plot community-con-activity-t-5"
-"4" 1.0 0 -10899396 true "" "plot community-con-activity-t-4"
-"3" 1.0 0 -13840069 true "" "plot community-con-activity-t-3"
-"2" 1.0 0 -14835848 true "" "plot community-con-activity-t-2"
-"1" 1.0 0 -11221820 true "" "plot community-con-activity-t-1"
-"t" 1.0 0 -13791810 true "" "plot community-con-activity-t"
-
-PLOT
-1078
-560
-1304
-681
-Aggregate Production
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot community-prod-activity-t-10"
-"pen-1" 1.0 0 -7500403 true "" "plot community-prod-activity-t-9"
-"pen-2" 1.0 0 -2674135 true "" "plot community-prod-activity-t-8"
-"pen-3" 1.0 0 -955883 true "" "plot community-prod-activity-t-7"
-"pen-4" 1.0 0 -6459832 true "" "plot community-prod-activity-t-6"
-"pen-5" 1.0 0 -1184463 true "" "plot community-prod-activity-t-5"
-"pen-6" 1.0 0 -10899396 true "" "plot community-prod-activity-t-4"
-"pen-7" 1.0 0 -13840069 true "" "plot community-prod-activity-t-3"
-"pen-8" 1.0 0 -14835848 true "" "plot community-prod-activity-t-2"
-"pen-9" 1.0 0 -11221820 true "" "plot community-prod-activity-t-1"
-"pen-10" 1.0 0 -13791810 true "" "plot community-prod-activity-t"
-
-PLOT
 854
 440
 1080
@@ -2904,10 +2991,10 @@ PENS
 "Task" 1.0 0 -7500403 true "" "if count tasklinks > 0 [ plot mean [ageTL] of tasklinks ]"
 
 CHOOSER
-8
-187
-248
-232
+25
+375
+260
+420
 reward-mechanism
 reward-mechanism
 "none" "'thanks' only" "'points' only" "both"
@@ -2935,20 +3022,20 @@ PENS
 "Time Contributed 9s (hrs)" 1.0 0 -14730904 true "" "if count #9s > 0 [ plot time-contributed-by-9s / count #9s ]"
 
 CHOOSER
-8
-337
-248
-382
+20
+565
+260
+610
 community-type
 community-type
 "online" "offline"
 1
 
 CHOOSER
-8
-387
-248
-432
+20
+615
+260
+660
 number-of-products
 number-of-products
 "one" "a few" "many"
@@ -2996,10 +3083,10 @@ PENS
 "loneTasks" 1.0 0 -1184463 true "" "plot loneTasksFinished"
 
 SWITCH
-8
-147
-248
-180
+20
+125
+260
+158
 platform-features
 platform-features
 0
@@ -3039,7 +3126,7 @@ NIL
 0.0
 10.0
 false
-false
+true
 "" ""
 PENS
 "#9s" 1.0 1 -13791810 true "" "histogram [ my-total-contribution-9s ] of #9s"
@@ -3075,15 +3162,15 @@ MONITOR
 11
 
 SLIDER
-8
-237
-248
-270
+20
+165
+260
+198
 proportion-using-platform
 proportion-using-platform
 0
 1
-1
+0.1
 0.1
 1
 NIL
@@ -3200,10 +3287,10 @@ PENS
 "#1s Thanks from #1s" 1.0 0 -5298144 true "" "plot count #1s with [ thanks = \"received from #1\" ]"
 
 PLOT
-857
-684
-1307
-804
+855
+560
+1305
+680
 Mean Consumption History of Products
 NIL
 NIL
@@ -3791,15 +3878,156 @@ NIL
 HORIZONTAL
 
 SLIDER
-10
-275
-287
-308
+20
+205
+260
+238
 proportion-onplatform-projects
 proportion-onplatform-projects
 0
 1
-0.5
+0.55
+0.05
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+10
+290
+270
+321
+---INPUT: FEATURE SCENARIOS---
+14
+0.0
+1
+
+SWITCH
+25
+330
+260
+363
+featured-needs?
+featured-needs?
+0
+1
+-1000
+
+CHOOSER
+25
+430
+260
+475
+reward-mechanism-2
+reward-mechanism-2
+"baseline-both" "reputation" "bounties"
+2
+
+SLIDER
+640
+1160
+872
+1193
+prob-9-finds-featured-need
+prob-9-finds-featured-need
+0
+1
+0
+0.05
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+615
+1100
+880
+1131
+---ADVANCED PARAMETERS 2---
+14
+0.0
+1
+
+SLIDER
+640
+1200
+887
+1233
+prob-project-advertises-a-task
+prob-project-advertises-a-task
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+PLOT
+855
+680
+1305
+830
+Featured Needs
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"% of tasks features" 1.0 0 -13840069 true "" "if count t4sks > 0 [ plot ( ( count t4sks with [ featured? = TRUE ] ) / ( count t4sks ) ) * 100 ]"
+"% of current #9s ever using featured feature" 1.0 0 -13345367 true "" "if count #9s > 0 [ plot ( ( count #9s with [ i-used-featured? = TRUE ] ) / ( count #9s ) ) * 100 ]"
+
+PLOT
+855
+830
+1305
+980
+Projects' Sum Points of Contributors / Average Sum Points of Contributors
+Sum Points / Average Sum Points
+Freq
+0.0
+50.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -13210332 true "" "if mean [ sum [ points ] of current-contributors ] of projects != 0 [ histogram [ ( sum [ points ] of current-contributors ) / ( mean [ sum [ points ] of current-contributors ] of projects ) ] of projects   ]"
+
+PLOT
+1305
+830
+1645
+980
+Projects' Bounty / Ave Bounty
+Bounty / Ave Bounty
+Freq
+0.0
+50.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -14439633 true "" "if mean [ bounty ] of projects > 0 [ histogram [ bounty / mean [ bounty ] of projects ] of projects ]"
+
+SLIDER
+640
+1245
+880
+1278
+prob-set-a-bounty
+prob-set-a-bounty
+0
+1
+0.1
 0.05
 1
 NIL
@@ -3820,6 +4048,29 @@ prop-productless-proj
 NIL
 HORIZONTAL
 
+PLOT
+1645
+845
+1905
+995
+Average Points of Contributors
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"#1s" 1.0 0 -2674135 true "" "plot mean [points] of #1s"
+"#9s" 1.0 0 -13345367 true "" "plot mean [points] of #9s"
+"1s max" 1.0 0 -3026479 true "" "plot ( max [points] of #1s )"
+"1s min" 1.0 0 -3026479 true "" "plot ( min [points] of #1s )"
+"9s max" 1.0 0 -3026479 true "" "plot ( max [points] of #9s )"
+"9s min" 1.0 0 -3026479 true "" "plot ( min [points] of #9s )"
+
 SLIDER
 1100
 1995
@@ -3831,6 +4082,36 @@ max-noise
 15
 5
 1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+390
+695
+562
+728
+bountiesEffect
+bountiesEffect
+0
+0.25
+0.1
+0.02
+1
+NIL
+HORIZONTAL
+
+SLIDER
+390
+740
+562
+773
+reputationEffect
+reputationEffect
+0
+0.3
+0.1
+0.02
 1
 NIL
 HORIZONTAL
