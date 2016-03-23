@@ -214,7 +214,7 @@ projects-own [
   current-contributors         ; agentset of current contributors to tasks of this project
   is-on-platform?              ; is the project on the platform?
   is-private?                  ; is the project private?
-  bounty                       ; the bounty given to a project by its contributors
+  total-bounty                 ; the combined bounty of tasks within this project
 ]
 
 t4sks-own [
@@ -225,6 +225,7 @@ t4sks-own [
   modularity                   ; contribution required by task per tick
   age                          ; time task has been in community
   featured?                    ; is the task currently being featured?
+  bounty                       ; the bounty given to a task by its project's contributors
 ]
 
 loneTasks-own [
@@ -583,16 +584,19 @@ end
 ;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures;Go Procedures
 
 to set-bounties
-  ;; if bounties is ON, projects set bounty (with some probability) to 10% of points if contributors
+  ;; if bounties is ON, tasks set a bounty (with some probability) to 10% of points of contributors to its project
   ;; contributors decrease their points accordingly
   if reward-mechanism-2 = "bounties" [
-        ask projects [ if count current-contributors > 0 and
-                          random-float 1 < prob-set-a-bounty and
-                          ( sum [ points ] of current-contributors ) > ( mean [ sum [points] of current-contributors ] of projects ) [
-                       set bounty 0.1 * sum [ points ] of current-contributors
-                       ask current-contributors [ set points points - (0.1 * points) ]
-                     ]
-                                                         ]
+        ask t4sks [ let myProjectsPoints [ sum [ points ] of current-contributors ] of my-project
+                    let avProjectsPoints mean [ sum [ points ] of current-contributors ] of projects 
+                    if count tasklink-neighbors = 0 and
+                       random-float 1 < prob-set-a-bounty and
+                       myProjectsPoints > avProjectsPoints [
+                             set bounty 0.1 * myProjectsPoints
+                             ask [ current-contributors ] of my-project [ set points points - (0.1 * points) ]
+                                                          ]
+                    ]
+        ask projects [ set total-bounty sum [ bounty ] of t4sks with [ my-project = myself ] ]
                                       ]
 end
 
@@ -622,15 +626,17 @@ to-report project-distance
     [ set dist dist + random max-noise - (max-noise / 2)]
 
 
-  if (bounties? and bounty != 0) [
+  if (bounties? and total-bounty != 0) [
     let avgBounties
-      mean [ sum [ points ] of current-contributors ] of projects
+      mean [ total-bounty ] of projects
 
 
     if (avgBounties != 0) [
       ;; TODO: Is the attractive of a bounty proportional to the relation with the average?
       ;; should we take logarithms instead?
-      set dist dist - dist * bountiesEffect * (bounty / avgBounties)
+      
+      ;; todo, should total bounties affect distance here? or should they go straight for bounties in tasks
+      set dist dist - dist * bountiesEffect * (total-bounty / avgBounties)
     ]
   ]
 
@@ -732,15 +738,18 @@ to find-tasks
                                   let contributors-to-new-task turtle-set [ tasklink-neighbors ] of new-task$
                                   let contributors-to-new-tasks-that-are-my-friend
                                         contributors-to-new-task with [ member? myself friendlink-neighbors ]
+                                        
+                                  ;; 9 goes for the taks with highest bounty / contributors
+                                   
                                   ifelse any? contributors-to-new-tasks-that-are-my-friend and contribution-history-9s != 0
                                         [ if ( random-float 1 < ( prob-9-contributes-to-friends-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) )
-                                              [ create-tasklink-with one-of turtle-set
-                                                    [ tasklink-neighbors ] of contributors-to-new-tasks-that-are-my-friend
+                                              [ let mostBountyOfFriendsTask max-one-of turtle-set [ tasklink-neighbors ] of contributors-to-new-tasks-that-are-my-friend [ bounty / count tasklink-neighbors ]
+                                                create-tasklink-with mostBountyOfFriendsTask
                                                          [set color 3]
                                               ]
                                         ]
                                         [ if contribution-history-9s != 0 [ if ( random-float 1 < ( prob-9-contributes-to-none-friend-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) )
-                                              [ create-tasklink-with one-of new-task$ [set color 3] ] ]
+                                              [ create-tasklink-with max-one-of new-task$ [ ifelse-value ( count tasklink-neighbors != 0 ) [ bounty / count tasklink-neighbors ] [ bounty ] ] [set color 3] ] ]
                                         ]
                                   set my-tasks tasklink-neighbors
                                 ]
@@ -1104,8 +1113,6 @@ to give-out-reward
     [ ;; points given out at end of project
       ;; some projects all give same points, some give with some variation
       ask projects [ if num-tasks = 0
-        [ ifelse bounty != 0
-            [ ask current-contributors [ set points points + ( [ bounty ] of myself / count [ current-contributors ] of myself ) ] ]
 
           [ if reward-type = "subjective"
                 [ ask current-contributors
@@ -1118,7 +1125,7 @@ to give-out-reward
            ]
         ]
                   ]
-     ]
+     
 
   if reward-mechanism = "both"
     [ ;; previous two combined when both mechanims being used
@@ -1132,8 +1139,6 @@ to give-out-reward
       ask #9s [ if random-float 1 < chance-forget-thanks [ set thanks "not received" ] ]
 
       ask projects [ if num-tasks = 0
-        [ ifelse bounty != 0
-            [ ask current-contributors [ set points points + ( [ bounty ] of myself / count [ current-contributors ] of myself ) ] ]
 
           [ if reward-type = "subjective"
                 [ ask current-contributors
@@ -1146,32 +1151,37 @@ to give-out-reward
            ]
         ]
                   ]
-    ]
+    
 end
 
 to finish-tasks
 
   ; when a task is finished - it improves volume of its product
   ; volume is used in products position (ie., appeal to 90s)
+  
+  ; when it finishes it gives out its bounty
 
   ask t4sks [ if time-required <= 0 [ ifelse number-of-products = "many"
                                           [ ask products with [ mon-project = [ my-project ] of myself ]
-                                                [ set volume volume + ( volume / 10 ) ]
+                                                [ set volume volume + ( volume * 0.01 ) ]
                                           ]
                                           [ ask products with [  mon-project != nobody and mon-project != 0 and member? [ my-project ] of myself mon-project ]
-                                                [ set volume volume + ( volume / 10 ) ]
+                                                [ set volume volume + ( volume * 0.01 ) ]
                                           ]
                                       ;; points given out at end of task
-                                      if reward-mechanism = "points" OR reward-mechanism = "both"
-                                            [ ask tasklink-neighbors [ set points points + random ( [ [ reward-level ] of my-project ] of myself / 5 )  ] ]
-                                      set tasks-completed tasks-completed + 1
-                                      ask turtle-set my-project [ set num-tasks num-tasks - 1 ]
-                                      die
-                                    ]
-              if my-project = nobody [die]
-            ]
+                                      if reward-mechanism = "points" OR reward-mechanism = "both" [
+                                        if reward-mechanism-2 = "bounties"
+                                            [ ask tasklink-neighbors [ set points points + ( [ bounty ] of myself / [ count tasklink-neighbors ] of myself )   ] 
+                                              set tasks-completed tasks-completed + 1
+                                              ask turtle-set my-project [ set num-tasks num-tasks - 1 ]
+                                              die
+                                            ]
+                                        if my-project = nobody [die]
+                                                                                                  ]
+                                   ]
+           ]
 
-  ask loneTasks [ if time-required <= 0 [ ask my-product-L [ set volume volume + ( volume / 10 ) ]
+  ask loneTasks [ if time-required <= 0 [ ask my-product-L [ set volume volume + ( volume * 0.01 ) ]
                                           if reward-mechanism = "points" OR reward-mechanism = "both"
                                                 [ ask lonetasklink-neighbors [ set points points + random ( [ modularity ] of myself * 3 )  ] ]
                                           set loneTasksFinished loneTasksFinished + 1
@@ -1184,7 +1194,7 @@ to finished-projects
 
   ;; a project is finshed it either improves its product volume, or creates a new product if it is not connected to one
 
-  ask projects [ if num-tasks = 0 and my-product != nobody [ ask my-product [ set volume volume + ( volume / 3 ) ]
+  ask projects [ if num-tasks = 0 and my-product != nobody [ ask my-product [ set volume volume + ( volume * 0.05 ) ]
                                                              set projects-finished projects-finished + 1
                                                              die ]
                  if num-tasks = 0 and my-product = nobody [ birth-a-product
@@ -1720,7 +1730,7 @@ if platform-features = TRUE [
   ask projects [ if xcor < -4 [ set xcor -4 ]
                  if xcor > 17 [ set xcor 17 ]
                  if reward-mechanism-2 = "reputation" [ set label round sum [ points ] of current-contributors ]
-                 if reward-mechanism-2 = "bounties" [ set label round bounty ]
+                 if reward-mechanism-2 = "bounties" [ set label round total-bounty ]
 
                ]
 
@@ -3961,7 +3971,7 @@ CHOOSER
 reward-mechanism-2
 reward-mechanism-2
 "baseline-both" "reputation" "bounties"
-2
+1
 
 SLIDER
 554
@@ -4045,18 +4055,19 @@ PLOT
 830
 1645
 980
-Projects' Bounty / Ave Bounty
-Bounty / Ave Bounty
+T4sks' Bounty
+Bounty
 Freq
 0.0
-50.0
+100.0
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 1 -14439633 true "" "if mean [ bounty ] of projects > 0 [ histogram [ bounty / mean [ bounty ] of projects ] of projects ]"
+"t4sks" 5.0 1 -14439633 true "" "histogram [ bounty ] of t4sks"
+"projects" 10.0 1 -15575016 true "" "histogram [ total-bounty ] of projects"
 
 SLIDER
 554
