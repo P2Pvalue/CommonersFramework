@@ -1963,10 +1963,10 @@ PENS
 "Exit#9s" 1.0 0 -14730904 true "" "if ticks > 0 [ plot #9s-left / ticks]"
 
 SLIDER
-116
-1213
-388
-1246
+30
+1025
+302
+1058
 prop-of-projects-reward-subjective
 prop-of-projects-reward-subjective
 0
@@ -2176,10 +2176,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [consumption] of #90s"
 
 SLIDER
-130
-2225
-403
-2258
+44
+2037
+317
+2070
 prop-consumed-each-time
 prop-consumed-each-time
 0
@@ -2191,10 +2191,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-118
-1155
-391
-1188
+32
+967
+305
+1000
 num-interest-categories
 num-interest-categories
 0
@@ -2791,10 +2791,10 @@ PENS
 "#90s by chance" 1.0 0 -2674135 true "" "plot new-#90s-chance"
 
 TEXTBOX
-145
-1110
-465
-1154
+59
+922
+379
+966
 ---ADVANCED PARAMETERS---
 14
 0.0
@@ -2886,10 +2886,10 @@ TEXTBOX
 1
 
 SLIDER
-130
-2109
-403
-2142
+44
+1921
+317
+1954
 chance-of-finding-new-task
 chance-of-finding-new-task
 0
@@ -3188,10 +3188,10 @@ New #1s
 11
 
 SLIDER
-133
-2345
-403
-2378
+47
+2157
+317
+2190
 new-90s-barrier
 new-90s-barrier
 0
@@ -3341,10 +3341,10 @@ PENS
 "default" 5.0 1 -16777216 true "" "histogram [ time-with-no-links] of #9s"
 
 SLIDER
-123
-2035
-398
-2068
+37
+1847
+312
+1880
 mean-time-required
 mean-time-required
 10
@@ -3356,10 +3356,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-123
-1999
-398
-2032
+37
+1811
+312
+1844
 max-modularity
 max-modularity
 1
@@ -3371,10 +3371,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-116
-1273
-391
-1306
+30
+1085
+305
+1118
 prob-9-decides-to-join-project
 prob-9-decides-to-join-project
 0.1
@@ -3386,10 +3386,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-116
-1313
-393
-1346
+30
+1125
+307
+1158
 prob-9-contributes-to-friends-task
 prob-9-contributes-to-friends-task
 0
@@ -3401,55 +3401,55 @@ NIL
 HORIZONTAL
 
 SLIDER
-116
+30
+1160
+310
+1193
+prob-9-contributes-to-none-friend-task
+prob-9-contributes-to-none-friend-task
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+30
+1215
+310
+1248
+prob-1-drop-lonely-project
+prob-1-drop-lonely-project
+0
+1
+0.01
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+30
+1250
+310
+1283
+prob-9-drop-a-lonely-or-no-tasks-project
+prob-9-drop-a-lonely-or-no-tasks-project
+0
+1
+0.05
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+36
+1315
+311
 1348
-396
-1381
-prob-9-contributes-to-none-friend-task
-prob-9-contributes-to-none-friend-task
-0
-1
-0.05
-0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-116
-1403
-396
-1436
-prob-1-drop-lonely-project
-prob-1-drop-lonely-project
-0
-1
-0.01
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-116
-1438
-396
-1471
-prob-9-drop-a-lonely-or-no-tasks-project
-prob-9-drop-a-lonely-or-no-tasks-project
-0
-1
-0.05
-0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-122
-1503
-397
-1536
 chance-forget-a-friend
 chance-forget-a-friend
 0
@@ -3461,10 +3461,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-122
-1563
-397
-1596
+36
+1375
+311
+1408
 chance-forget-thanks
 chance-forget-thanks
 0
@@ -3476,10 +3476,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-122
-1618
-402
-1651
+36
+1430
+316
+1463
 chance-unpopular-project-dies
 chance-unpopular-project-dies
 0
@@ -3491,10 +3491,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-122
-1673
-437
-1706
+36
+1485
+351
+1518
 chance-contributor-proposes-a-new-project
 chance-contributor-proposes-a-new-project
 0
@@ -3506,10 +3506,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-122
-1708
-407
-1741
+36
+1520
+321
+1553
 chance-a-project-hatches-a-project
 chance-a-project-hatches-a-project
 0
@@ -3521,10 +3521,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-122
-1742
-407
-1775
+36
+1554
+321
+1587
 chance-90-picks-another-product
 chance-90-picks-another-product
 0
@@ -3536,10 +3536,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-121
-1805
-406
-1838
+35
+1617
+320
+1650
 chance-consumer-link-breaks
 chance-consumer-link-breaks
 0
@@ -3551,10 +3551,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-133
-2312
-403
-2345
+47
+2124
+317
+2157
 new-9s-barrier
 new-9s-barrier
 0.5
@@ -3566,10 +3566,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-133
-2382
-403
-2415
+47
+2194
+317
+2227
 chance-9s-exit
 chance-9s-exit
 0
@@ -3581,10 +3581,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-133
-2415
-403
-2448
+47
+2227
+317
+2260
 chance-90s-exit
 chance-90s-exit
 0
@@ -3596,10 +3596,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-133
-2452
-403
-2485
+47
+2264
+317
+2297
 chance-1-burn-out
 chance-1-burn-out
 0
@@ -3611,10 +3611,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-123
-1889
-348
-1922
+37
+1701
+262
+1734
 chance-9-become-1
 chance-9-become-1
 0
@@ -3626,10 +3626,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-123
-1925
-353
-1958
+37
+1737
+267
+1770
 chance-1-become-9
 chance-1-become-9
 0
@@ -3641,10 +3641,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-130
-2189
-405
-2222
+44
+2001
+319
+2034
 chance-products-die
 chance-products-die
 0
@@ -3656,140 +3656,140 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-425
-1163
-592
-1183
+339
+975
+506
+995
 keep at 50
 11
 0.0
 1
 
 TEXTBOX
-425
-1222
-592
-1251
+339
+1034
+506
+1063
 something to investiagte later perhaps
 11
 0.0
 1
 
 TEXTBOX
-419
-1275
-586
-1304
+333
+1087
+500
+1116
 seems to have little effect - leave at 0.5
 11
 0.0
 1
 
 TEXTBOX
-413
-1336
-580
-1356
+327
+1148
+494
+1168
 these two, to be investigated
 11
 0.0
 1
 
 TEXTBOX
-413
-1425
-580
-1454
+327
+1237
+494
+1266
 these two also to be investigated
 11
 0.0
 1
 
 TEXTBOX
-416
-1543
-583
-1563
+330
+1355
+497
+1375
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-423
-1652
-590
-1672
+337
+1464
+504
+1484
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-416
-1733
-583
-1753
+330
+1545
+497
+1565
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-423
-1815
-590
-1835
+337
+1627
+504
+1647
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-363
-1928
-788
-1955
+277
+1740
+702
+1767
 should be kept higher than 0.01 otherwise 1s can grow in number, 0.1 seems ok - stops 1s from ever spiralling away
 11
 0.0
 1
 
 TEXTBOX
-360
-1888
-688
-1918
+274
+1700
+602
+1730
 0.1 seems to allow 1s to gorw high, 0.01 keeps 1s very low, perhaps in between is good - 0.4?
 11
 0.0
 1
 
 TEXTBOX
-415
-2022
-768
-2060
+329
+1834
+682
+1872
 to be investigated - mean time required - intuitivekly seems to need to be over 200 for projects not too just all disappear
 11
 0.0
 1
 
 TEXTBOX
-430
-2172
-597
-2192
+344
+1984
+511
+2004
 all 3 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-420
-2320
-833
-2422
+334
+2132
+747
+2234
 new9s barrier - should be between 0.5 and 1.5, nearer 1.5\n\nnew90s barrier - circa 1.5 seems good, 3 and no growth, 0.75 and never no growth
 11
 0.0
@@ -3833,10 +3833,10 @@ PENS
 "#1s" 1.0 1 -2674135 true "" "histogram [count friendlink-neighbors] of #1s"
 
 SLIDER
-132
-2508
-402
-2541
+46
+2320
+316
+2353
 chance-new-loneTask
 chance-new-loneTask
 0
@@ -3848,10 +3848,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-635
-1663
-832
-1696
+35
+1655
+232
+1688
 chance-90-find-a-task
 chance-90-find-a-task
 0
@@ -3863,10 +3863,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1100
-1905
-1380
-1938
+555
+1190
+835
+1223
 prop-of-projects-initially-private
 prop-of-projects-initially-private
 0
@@ -3924,10 +3924,10 @@ reward-mechanism-2
 2
 
 SLIDER
-640
-1160
-872
-1193
+554
+972
+786
+1005
 prob-9-finds-featured-need
 prob-9-finds-featured-need
 0
@@ -3939,20 +3939,20 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-615
-1100
-880
-1131
+529
+912
+794
+943
 ---ADVANCED PARAMETERS 2---
 14
 0.0
 1
 
 SLIDER
-640
-1200
-887
-1233
+554
+1012
+801
+1045
 prob-project-advertises-a-task
 prob-project-advertises-a-task
 0
@@ -4019,10 +4019,10 @@ PENS
 "default" 1.0 1 -14439633 true "" "if mean [ bounty ] of projects > 0 [ histogram [ bounty / mean [ bounty ] of projects ] of projects ]"
 
 SLIDER
-640
-1245
-880
-1278
+554
+1057
+794
+1090
 prob-set-a-bounty
 prob-set-a-bounty
 0
@@ -4034,10 +4034,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1100
-1950
-1380
-1983
+555
+1235
+835
+1268
 prop-productless-proj
 prop-productless-proj
 0
@@ -4072,10 +4072,10 @@ PENS
 "9s min" 1.0 0 -3026479 true "" "plot ( min [points] of #9s )"
 
 SLIDER
-1100
-1995
-1272
-2028
+555
+1280
+727
+1313
 max-noise
 max-noise
 0
@@ -4087,10 +4087,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-390
-695
-562
-728
+554
+1102
+726
+1135
 bountiesEffect
 bountiesEffect
 0
@@ -4102,10 +4102,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-390
-740
-562
-773
+554
+1147
+726
+1180
 reputationEffect
 reputationEffect
 0
