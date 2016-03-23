@@ -69,6 +69,8 @@ globals [
   #9-to-#1-count                        ; count of #9 turned into #1
   #1-to-#9-count                        ; count of #1s turned to #9
   #90-to-#9-count
+  
+  #90-used-featured-needs               ; count of 90s using featured needs
 
   new-#9-attracted-by-#90s              ; recored why a 9 entered
 
@@ -194,6 +196,7 @@ undirected-link-breed [projectproductlinks projectproductlink]
   time-in-community            ; count ticks/weeks spent in community
   time-without-products        ; count ticks with no product to consume
   using-platform?              ; yes/no - is the #90 using the platform?
+  skill                        ; skill types - 3 values from a possible 10
 ]
 
 projects-own [
@@ -526,6 +529,7 @@ to create-#90
                                     set ycor -25 + interest
                                     set size 1
                                     set color yellow
+                                    set skill (n-of 3 (n-values num-skills [?]))
                                     set consumption 0
                                     set using-platform? set-using-platform
                                     create-consumerlink-with min-one-of products [ distance myself ]
@@ -777,9 +781,9 @@ to find-tasks
 end
 
 to find-featured-tasks
-  ;; 9s only? can find featured/advertised tasks directly. ie., they are not focusing so much on interest, but also skills required.
+  ;; 9s and 90s only? can find featured/advertised tasks directly. ie., they are not focusing so much on interest, but also skills required.
 
-  ;;possible todos - only low contributors use featured needs service?
+  ;; possible todos - only low contributors use featured needs service?
 
   ;; possible todo - some needs more likely to be found? age?
 
@@ -804,7 +808,39 @@ to find-featured-tasks
                            ]
                      ]
                 ]
-          ]
+            
+          ask #90s with [ using-platform? = true ]
+               
+                ;; to do? how does chance of 90 become 9 here, relate to chance in change breed
+                
+                [ let featuredTasks t4sks with [ featured? = TRUE ]
+                  if any? featuredTasks and random-float 1 < chance-90-find-a-task
+                        [ let new-FeaturedTask featuredTasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
+                          if any? new-FeaturedTask [  set breed #9s
+                                                      set xcor ( random 6 ) + 19
+                                                      set ycor -25 + interest
+                                                      set size 1
+                                                      set color blue
+                                                      set my-time 1 + random 20
+                                                      set time my-time
+                                                      set points 0
+                                                      set thanks "not received"
+                                                      
+                                                      create-tasklink-with one-of new-FeaturedTask [ set color 3 ]
+                                                      set my-tasks tasklink-neighbors
+                                                      ;; the project then also becomes one of their projects?
+                                                      let new-project [ my-project ] of new-FeaturedTask
+                                                      set my-projects (list (new-project))
+                                                      set contribution-history-9s (list (0))
+                                                      ask my-consumerlinks [die]
+                                                      set #90-used-featured-needs #90-used-featured-needs + 1
+                                                      set #90-to-#9-count #90-to-#9-count + 1
+                                                      set i-used-featured? TRUE
+                                                   ]
+                           ]
+                  ]
+                ]
+          
 
 end
 
@@ -1349,6 +1385,7 @@ to entry
                                                                            set ycor -25 + interest
                                                                            set size 1
                                                                            set color yellow
+                                                                           set skill (n-of 3 (n-values num-skills [?]))
                                                                            set consumption 0
                                                                            set using-platform? set-using-platform
                                                                            set new-#90s-total new-#90s-total + 1
@@ -1363,6 +1400,7 @@ to entry
                                                                           set ycor -25 + interest
                                                                           set size 1
                                                                           set color yellow
+                                                                          set skill (n-of 3 (n-values num-skills [?]))
                                                                           set consumption 0
                                                                           set using-platform? set-using-platform
                                                                           set new-#90s-total new-#90s-total + 1
@@ -1530,7 +1568,6 @@ to change-breed
                   set color blue
                   set my-time 1 + random 20
                   set time my-time
-                  set skill (n-of 3 (n-values num-skills [?]))
                   set points 0
                   set i-used-featured? FALSE
                   set thanks "not received"
@@ -2435,14 +2472,14 @@ PLOT
 NIL
 NIL
 0.0
-100.0
+10.0
 0.0
 10.0
 true
 false
 "" ""
 PENS
-"default" 10.0 1 -2674135 true "" "histogram [ skill ] of #1s"
+"default" 1.0 1 -2674135 true "" "histogram [ skill ] of #1s"
 
 PLOT
 1318
@@ -3114,6 +3151,7 @@ PENS
 "#90->#9" 1.0 0 -16777216 true "" "plot #90-to-#9-count"
 "#9->#1" 1.0 0 -7500403 true "" "plot #9-to-#1-count"
 "#1->#9" 1.0 0 -2674135 true "" "plot #1-to-#9-count"
+"#90 featuredNeed" 1.0 0 -955883 true "" "plot #90-used-featured-needs"
 
 PLOT
 1307
@@ -3396,7 +3434,7 @@ prob-9-contributes-to-friends-task
 prob-9-contributes-to-friends-task
 0
 1
-0.1
+0.5
 0.05
 1
 NIL
@@ -3923,7 +3961,7 @@ CHOOSER
 reward-mechanism-2
 reward-mechanism-2
 "baseline-both" "reputation" "bounties"
-1
+2
 
 SLIDER
 554
@@ -4000,7 +4038,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -13210332 true "" "if mean [ sum [ points ] of current-contributors ] of projects != 0 [ histogram [ ( sum [ points ] of current-contributors ) / ( mean [ sum [ points ] of current-contributors ] of projects ) ] of projects   ]"
+"default" 1.0 1 -13210332 true "" "if count projects > 0 and mean [ sum [ points ] of current-contributors ] of projects != 0 [ histogram [ ( sum [ points ] of current-contributors ) / ( mean [ sum [ points ] of current-contributors ] of projects ) ] of projects   ]"
 
 PLOT
 1305
