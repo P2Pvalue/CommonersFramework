@@ -595,19 +595,19 @@ end
 to-report project-distance
 
   let noise? (
-    (not using-platform?) or
+    (not [ using-platform? ] of myself) or
     (community-type = "offline") or
     is-private?
   )
 
   let bounties? (
-    using-platform? and
+    [ using-platform? ] of myself and
     reward-mechanism-2 = "bounties" and
     not is-private?
   )
 
   let reputation? (
-    using-platform? and
+    [ using-platform? ] of myself and
     reward-mechanism-2 = "reputation" and
     not is-private?
   )
@@ -618,7 +618,7 @@ to-report project-distance
     [ set dist dist + random max-noise - (max-noise / 2)]
 
 
-  if (bounties? and bounty) [
+  if (bounties? and bounty != 0) [
     let avgBounties
       mean [ sum [ points ] of current-contributors ] of projects
 
@@ -633,10 +633,12 @@ to-report project-distance
   if (reputation?) [
     let avgReputation
       mean [ sum [ points ] of current-contributors ] of projects
+    let myReputation
+      sum [ points ] of current-contributors
     if (avgReputation != 0) [
       ;; TODO: Is the attractive of a project due to its reputation proportional to the relation with the average?
       ;; should we take logarithms instead?
-      set dist dist - dist * reputationEffect * (points / avgReputation)
+      set dist dist - dist * reputationEffect * (myReputation / avgReputation)
     ]
   ]
 
@@ -3029,7 +3031,7 @@ CHOOSER
 community-type
 community-type
 "online" "offline"
-1
+0
 
 CHOOSER
 20
@@ -3170,7 +3172,7 @@ proportion-using-platform
 proportion-using-platform
 0
 1
-0.1
+0.5
 0.1
 1
 NIL
@@ -3921,7 +3923,7 @@ CHOOSER
 reward-mechanism-2
 reward-mechanism-2
 "baseline-both" "reputation" "bounties"
-2
+1
 
 SLIDER
 554
