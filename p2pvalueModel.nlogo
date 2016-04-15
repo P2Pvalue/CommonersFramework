@@ -1879,10 +1879,10 @@ to t4sk-set-typ3
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-319
-245
-708
-655
+322
+227
+711
+637
 25
 25
 7.4314
@@ -1906,10 +1906,10 @@ ticks
 30.0
 
 BUTTON
-24
-13
-90
-46
+343
+22
+443
+71
 NIL
 setup
 NIL
@@ -1923,10 +1923,10 @@ NIL
 1
 
 BUTTON
-96
-12
-159
-45
+445
+22
+545
+71
 NIL
 go
 T
@@ -1940,10 +1940,10 @@ NIL
 1
 
 SLIDER
-20
-675
-260
-708
+35
+480
+275
+513
 initial-number-1s
 initial-number-1s
 0
@@ -1955,10 +1955,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-20
-712
-259
-745
+35
+514
+274
+547
 initial-number-9s
 initial-number-9s
 0
@@ -1970,10 +1970,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-20
-828
-260
-861
+34
+613
+274
+646
 initial-tasks
 initial-tasks
 0
@@ -1987,8 +1987,8 @@ HORIZONTAL
 PLOT
 864
 62
-1309
-202
+1310
+350
 Size of Community
 NIL
 NIL
@@ -2113,10 +2113,10 @@ PENS
 "default" 5.0 1 -13840069 true "" "histogram [reward-level] of projects"
 
 PLOT
-854
-290
-1304
-440
+2034
+251
+2532
+397
 Tasks&Products
 NIL
 NIL
@@ -2134,10 +2134,10 @@ PENS
 "LoneTasks" 1.0 0 -1184463 true "" "plot count loneTasks"
 
 BUTTON
-167
-12
-247
-46
+547
+22
+645
+71
 go once
 go
 NIL
@@ -2151,10 +2151,10 @@ NIL
 1
 
 SLIDER
-20
-745
-260
-778
+35
+546
+275
+579
 initial-number-90s
 initial-number-90s
 0
@@ -2202,10 +2202,10 @@ PENS
 "default" 5.0 1 -13345367 true "" "histogram [time] of #9s"
 
 PLOT
-2022
-222
-2260
-342
+3207
+261
+3445
+381
 Overtime
 NIL
 NIL
@@ -2247,7 +2247,7 @@ prop-consumed-each-time
 prop-consumed-each-time
 0
 1
-0.001
+0.0010
 0.001
 1
 NIL
@@ -2269,10 +2269,10 @@ NIL
 HORIZONTAL
 
 PLOT
-2021
-61
-2259
-181
+3207
+101
+3445
+221
 Ave No. Links
 NIL
 NIL
@@ -2289,10 +2289,10 @@ PENS
 "#90s" 1.0 0 -13840069 true "" "if count #90s > 0 [ plot mean [ count link-neighbors ] of #90s ]"
 
 BUTTON
-22
-50
-249
-83
+344
+75
+646
+125
 Obey Power Law (based on 1s)
 set initial-number-9s initial-number-1s * 9\nset initial-number-90s initial-number-1s * 90\nset initial-tasks initial-number-1s\nset initial-products initial-number-1s
 NIL
@@ -2306,10 +2306,10 @@ NIL
 1
 
 MONITOR
-1208
+2387
+157
+2457
 202
-1278
-247
 #90s Left
 #90s-left
 0
@@ -2317,10 +2317,10 @@ MONITOR
 11
 
 MONITOR
-1073
+2251
+157
+2316
 202
-1138
-247
 #9s Left
 #9s-left
 17
@@ -2328,10 +2328,10 @@ MONITOR
 11
 
 MONITOR
-1008
+2187
+157
+2252
 202
-1073
-247
 New #9s
 new-#9s-total
 0
@@ -2339,10 +2339,10 @@ new-#9s-total
 11
 
 MONITOR
-1143
+2321
+157
+2386
 202
-1208
-247
 New #90s
 new-#90s-total
 0
@@ -2350,10 +2350,10 @@ new-#90s-total
 11
 
 MONITOR
-399
-25
-479
-70
+1834
+247
+1914
+292
 NIL
 count #1s
 0
@@ -2361,10 +2361,10 @@ count #1s
 11
 
 MONITOR
-399
-69
-479
-114
+1834
+291
+1914
+336
 NIL
 count #9s
 0
@@ -2372,10 +2372,10 @@ count #9s
 11
 
 MONITOR
-399
-115
-479
-160
+1834
+337
+1914
+382
 NIL
 count #90s
 0
@@ -2383,10 +2383,10 @@ count #90s
 11
 
 MONITOR
-576
-70
-668
-115
+1871
+147
+1963
+192
 NIL
 count t4sks
 0
@@ -2394,10 +2394,10 @@ count t4sks
 11
 
 MONITOR
-576
-115
-669
-160
+1871
+194
+1964
+239
 NIL
 count products
 0
@@ -2741,10 +2741,10 @@ PENS
 "default" 10.0 1 -955883 true "" "histogram [age] of products"
 
 MONITOR
-479
-25
-559
-70
+1914
+247
+1994
+292
 % #1s
 ( count #1s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2752,10 +2752,10 @@ MONITOR
 11
 
 MONITOR
-479
-70
-558
-115
+1914
+291
+1993
+336
 % #9s
 ( count #9s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2763,10 +2763,10 @@ MONITOR
 11
 
 MONITOR
-479
-115
-558
-160
+1914
+337
+1993
+382
 % #90s
 ( count #90s / ( count #1s + count #9s + count #90s )) * 100
 1
@@ -2774,10 +2774,10 @@ MONITOR
 11
 
 PLOT
-2022
-478
-2266
-615
+3207
+517
+3451
+654
 Long time Members
 NIL
 NIL
@@ -2794,10 +2794,10 @@ PENS
 "2 years" 1.0 0 -8431303 true "" "plot (( count #1s with [ time-in-community > 104 ] ) + ( count #9s with [ time-in-community > 104 ]) + ( count #90s with [ time-in-community > 104 ] )) / ( count #1s + count #9s + count #90s )"
 
 PLOT
-1647
-215
-1902
-374
+2834
+254
+3089
+413
 Why #9s Left
 NIL
 NIL
@@ -2815,10 +2815,10 @@ PENS
 "Burnout" 1.0 0 -955883 true "" "plot #9-left-burnout"
 
 PLOT
-1647
-62
-1902
-212
+2834
+101
+3089
+251
 Why #1s Left
 NIL
 NIL
@@ -2834,10 +2834,10 @@ PENS
 "Became #9s" 1.0 0 -13345367 true "" "plot #1-to-#9-count"
 
 PLOT
-1647
-535
-1902
-690
+2834
+574
+3089
+729
 Why #9s and #90s Enter?
 NIL
 NIL
@@ -2864,20 +2864,20 @@ TEXTBOX
 1
 
 TEXTBOX
-16
-95
-286
-113
+33
+39
+303
+57
 ---INPUT: PLATFORM ADOPTION---
 14
 0.0
 1
 
 TEXTBOX
-24
-538
-261
-556
+38
+364
+275
+382
 ---INPUT: COMMUNITY TYPE---
 14
 0.0
@@ -2894,30 +2894,30 @@ TEXTBOX
 1
 
 TEXTBOX
-1657
-22
-1892
-42
+2844
+61
+3079
+81
 ---OUTPUT: WHY EXIT/ENTER---
 14
 0.0
 1
 
 TEXTBOX
-2012
-18
-2285
-53
+3197
+57
+3470
+92
 ---OUTPUT: LINKS-STRUCTURE---
 14
 0.0
 1
 
 SLIDER
-20
-794
-260
-827
+34
+579
+274
+612
 initial-projects
 initial-projects
 0
@@ -2929,21 +2929,21 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-758
-229
-774
-681
-^\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\ni\nn\nt\ne\nr\ne\ns\nt\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\nV\n
+739
+224
+761
+914
+/\\\n |\n |\n |\n |\n |\n |\n i \n n\n t\n e\n r\n e\n s\n t\n |\n |\n |\n |\n |\n |\n |\n\\/\n
 14
 0.0
 1
 
 TEXTBOX
-349
-180
-749
-236
-                 Products                                             \n                 <--More                      Projects\n#90s          Appealing-          ---Higher in list--->        #1s   #9s
+344
+172
+723
+220
+                 Products                                             \n                 <--More                      Projects\n#90s          Appealing-          ---Higher in list--->       #1s   #9s
 12
 0.0
 1
@@ -2957,7 +2957,7 @@ chance-of-finding-new-task
 chance-of-finding-new-task
 0
 1
-0.001
+0.0010
 0.001
 1
 NIL
@@ -3003,10 +3003,10 @@ TEXTBOX
 1
 
 PLOT
-854
-440
-1080
-561
+2034
+394
+2260
+515
 Count Links
 NIL
 NIL
@@ -3023,10 +3023,10 @@ PENS
 "Cons" 1.0 0 -13840069 true "" "plot count consumerlinks"
 
 MONITOR
-576
-25
-669
-70
+1871
+104
+1964
+149
 NIL
 count projects
 17
@@ -3034,10 +3034,10 @@ count projects
 11
 
 PLOT
-1078
-440
-1304
-560
+2257
+394
+2483
+514
 AgesOfLinks
 NIL
 NIL
@@ -3054,20 +3054,20 @@ PENS
 "Task" 1.0 0 -7500403 true "" "if count tasklinks > 0 [ plot mean [ageTL] of tasklinks ]"
 
 CHOOSER
-25
-375
-260
-420
+36
+253
+276
+299
 reward-mechanism
 reward-mechanism
 "none" "'thanks' only" "'points' only" "both"
 3
 
 PLOT
-1307
-64
-1647
-224
+2494
+104
+2834
+264
 Average Contributions Made
 NIL
 NIL
@@ -3085,30 +3085,30 @@ PENS
 "Time Contributed 9s (hrs)" 1.0 0 -14730904 true "" "if count #9s > 0 [ plot time-contributed-by-9s / count #9s ]"
 
 CHOOSER
-20
-565
-260
-610
+35
+389
+277
+435
 community-type
 community-type
 "online" "offline"
 0
 
 CHOOSER
-20
-615
-260
-660
+35
+435
+275
+480
 number-of-products
 number-of-products
 "one" "a few" "many"
 1
 
 PLOT
-2018
-695
-2273
-845
+3204
+734
+3459
+884
 Dropped Projects&Tasks
 NIL
 NIL
@@ -3126,10 +3126,10 @@ PENS
 "9 project" 1.0 0 -5325092 true "" "plot #9-dropped-a-project"
 
 PLOT
-2025
-348
-2266
-469
+3214
+391
+3455
+512
 Projects Finished & Died
 NIL
 NIL
@@ -3146,10 +3146,10 @@ PENS
 "loneTasks" 1.0 0 -1184463 true "" "plot loneTasksFinished"
 
 SWITCH
-20
-125
-260
-158
+36
+69
+276
+102
 platform-features
 platform-features
 0
@@ -3157,10 +3157,10 @@ platform-features
 -1000
 
 PLOT
-1307
-224
-1647
-344
+2494
+264
+2834
+384
 ChangeRole
 NIL
 NIL
@@ -3178,10 +3178,10 @@ PENS
 "#90 featuredNeed" 1.0 0 -955883 true "" "plot #90-used-featured-needs"
 
 PLOT
-1307
-344
-1647
-529
+2494
+384
+2834
+569
 ContributionsHisto
 NIL
 NIL
@@ -3197,10 +3197,10 @@ PENS
 "#1s" 1.0 1 -2139308 true "" "histogram [ my-total-contribution-1s ] of #1s"
 
 PLOT
-1647
-382
-1902
-532
+2834
+421
+3089
+571
 Why #90s Leave?
 NIL
 NIL
@@ -3215,10 +3215,10 @@ PENS
 "No product 4 them" 1.0 0 -16777216 true "" "plot #90s-left-no-product"
 
 MONITOR
-943
+2121
+157
+2183
 202
-1005
-247
 #1s Left
 #1s-left
 0
@@ -3226,10 +3226,10 @@ MONITOR
 11
 
 SLIDER
-20
-165
-260
-198
+36
+103
+276
+136
 proportion-using-platform
 proportion-using-platform
 0
@@ -3241,10 +3241,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-884
+2064
+157
+2126
 202
-946
-247
 New #1s
 #9-to-#1-count
 0
@@ -3267,10 +3267,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-1208
-247
-1278
-292
+2387
+204
+2457
+249
 #90->#9
 #90-to-#9-count
 0
@@ -3278,10 +3278,10 @@ MONITOR
 11
 
 MONITOR
-1075
-247
-1140
-292
+2254
+204
+2319
+249
 #9->#1
 #9-to-#1-count
 0
@@ -3289,10 +3289,10 @@ MONITOR
 11
 
 MONITOR
-945
+2124
+201
+2187
 246
-1008
-291
 #1->#9
 #1-to-#9-count
 0
@@ -3300,10 +3300,10 @@ MONITOR
 11
 
 PLOT
-1642
-692
-1902
-842
+2827
+731
+3087
+881
 PointsHisto
 NIL
 NIL
@@ -3319,10 +3319,10 @@ PENS
 "#1s" 1.0 1 -2674135 true "" "histogram [points] of #1s"
 
 MONITOR
-2022
-620
-2184
-665
+3207
+657
+3369
+702
 NIL
 products-out-competed
 0
@@ -3330,10 +3330,10 @@ products-out-competed
 11
 
 PLOT
-1307
-528
-1647
-793
+2494
+567
+2834
+832
 Thanks Counts
 NIL
 NIL
@@ -3351,10 +3351,10 @@ PENS
 "#1s Thanks from #1s" 1.0 0 -5298144 true "" "plot count #1s with [ thanks = \"received from #1\" ]"
 
 PLOT
-855
-560
-1305
-680
+2034
+514
+2484
+634
 Mean Consumption History of Products
 NIL
 NIL
@@ -3563,7 +3563,7 @@ chance-contributor-proposes-a-new-project
 chance-contributor-proposes-a-new-project
 0
 1
-0.001
+0.0010
 0.0005
 1
 NIL
@@ -3668,7 +3668,7 @@ chance-1-burn-out
 chance-1-burn-out
 0
 1
-0.001
+0.0010
 0.0005
 1
 NIL
@@ -3683,7 +3683,7 @@ chance-9-become-1
 chance-9-become-1
 0
 1
-0.005
+0.0050
 0.005
 1
 NIL
@@ -3698,7 +3698,7 @@ chance-1-become-9
 chance-1-become-9
 0
 1
-0.005
+0.0050
 0.005
 1
 NIL
@@ -3920,7 +3920,7 @@ chance-90-find-a-task
 chance-90-find-a-task
 0
 1
-0.005
+0.0050
 0.01
 1
 NIL
@@ -3942,10 +3942,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-20
-205
-260
-238
+36
+136
+276
+169
 proportion-onplatform-projects
 proportion-onplatform-projects
 0
@@ -3957,20 +3957,20 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-10
-290
-270
-321
+33
+192
+293
+223
 ---INPUT: FEATURE SCENARIOS---
 14
 0.0
 1
 
 SWITCH
-25
-330
-260
-363
+36
+219
+276
+253
 featured-needs?
 featured-needs?
 0
@@ -3978,10 +3978,10 @@ featured-needs?
 -1000
 
 CHOOSER
-25
-430
-260
-475
+36
+298
+278
+344
 reward-mechanism-2
 reward-mechanism-2
 "baseline-both" "reputation" "bounties"
@@ -4028,10 +4028,10 @@ NIL
 HORIZONTAL
 
 PLOT
-855
-680
-1305
-830
+2034
+634
+2484
+784
 Featured Needs
 NIL
 NIL
@@ -4047,10 +4047,10 @@ PENS
 "% of current #9s ever using featured feature" 1.0 0 -13345367 true "" "if count #9s > 0 [ plot ( ( count #9s with [ i-used-featured? = TRUE ] ) / ( count #9s ) ) * 100 ]"
 
 PLOT
-855
-830
-1305
-980
+2034
+787
+2484
+937
 Projects' Sum Points of Contributors / Average Sum Points of Contributors
 Sum Points / Average Sum Points
 Freq
@@ -4065,10 +4065,10 @@ PENS
 "default" 1.0 1 -13210332 true "" "if count projects > 0 and mean [ sum [ points ] of current-contributors ] of projects != 0 [ histogram [ ( sum [ points ] of current-contributors ) / ( mean [ sum [ points ] of current-contributors ] of projects ) ] of projects   ]"
 
 PLOT
-1305
-830
-1645
-980
+2491
+867
+2831
+1017
 T4sks' Bounty
 Bounty
 Freq
@@ -4114,10 +4114,10 @@ NIL
 HORIZONTAL
 
 PLOT
-1645
-845
-1905
-995
+2831
+884
+3091
+1034
 Average Points of Contributors
 NIL
 NIL
@@ -4195,6 +4195,26 @@ task-project-volume-increment-ratio
 1
 NIL
 HORIZONTAL
+
+TEXTBOX
+1821
+41
+2206
+85
+------ADDITIONAL OUTPUTS--------
+14
+0.0
+1
+
+TEXTBOX
+893
+482
+1339
+534
+MEASURE OF SILO / CENTRALITY / SOCIAL STRUCTURE HERE
+14
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -4539,7 +4559,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3
+NetLogo 5.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -4640,16 +4660,16 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
       <value value="0.075"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
@@ -4681,7 +4701,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="1.3"/>
@@ -4690,7 +4710,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -4710,7 +4730,7 @@ NetLogo 5.3
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -4722,7 +4742,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.01"/>
       <value value="0.1"/>
     </enumeratedValueSet>
@@ -4822,17 +4842,17 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
       <value value="0.075"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
       <value value="0.075"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
@@ -4864,7 +4884,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="0.5"/>
@@ -4875,7 +4895,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -4893,7 +4913,7 @@ NetLogo 5.3
       <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -4905,7 +4925,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
@@ -5004,17 +5024,17 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
       <value value="0.075"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
       <value value="0.075"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
@@ -5046,7 +5066,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="0.5"/>
@@ -5057,7 +5077,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -5075,7 +5095,7 @@ NetLogo 5.3
       <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -5087,7 +5107,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
@@ -5186,16 +5206,16 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
       <value value="1"/>
@@ -5227,7 +5247,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="0.5"/>
@@ -5236,7 +5256,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -5254,7 +5274,7 @@ NetLogo 5.3
       <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -5266,7 +5286,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
@@ -5365,10 +5385,10 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
@@ -5405,7 +5425,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="1.3"/>
@@ -5414,7 +5434,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -5432,7 +5452,7 @@ NetLogo 5.3
       <value value="3"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -5542,16 +5562,16 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
       <value value="2"/>
@@ -5582,7 +5602,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="1.3"/>
@@ -5591,7 +5611,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -5609,7 +5629,7 @@ NetLogo 5.3
       <value value="3"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -5720,16 +5740,16 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
       <value value="2"/>
@@ -5760,7 +5780,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="1.3"/>
@@ -5769,7 +5789,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -5787,7 +5807,7 @@ NetLogo 5.3
       <value value="3"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -5897,16 +5917,16 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
       <value value="2"/>
@@ -5937,7 +5957,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="1.3"/>
@@ -5946,7 +5966,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -5964,7 +5984,7 @@ NetLogo 5.3
       <value value="3"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -6074,16 +6094,16 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
       <value value="1"/>
@@ -6115,7 +6135,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="0.5"/>
@@ -6124,7 +6144,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -6142,7 +6162,7 @@ NetLogo 5.3
       <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -6154,7 +6174,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
@@ -6253,10 +6273,10 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
@@ -6294,7 +6314,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="0.5"/>
@@ -6303,7 +6323,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -6321,7 +6341,7 @@ NetLogo 5.3
       <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -6333,7 +6353,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
@@ -6432,10 +6452,10 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
@@ -6473,7 +6493,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="1.3"/>
@@ -6482,7 +6502,7 @@ NetLogo 5.3
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -6500,7 +6520,7 @@ NetLogo 5.3
       <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -6512,7 +6532,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
@@ -6611,10 +6631,10 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="max-modularity">
       <value value="20"/>
@@ -6652,7 +6672,7 @@ NetLogo 5.3
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="new-90s-barrier">
       <value value="1.3"/>
@@ -6661,7 +6681,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-tasks">
       <value value="10"/>
@@ -6679,7 +6699,7 @@ NetLogo 5.3
       <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -6691,7 +6711,7 @@ NetLogo 5.3
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
@@ -6723,7 +6743,7 @@ setup</setup>
       <value value="&quot;online&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-burn-out">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="num-interest-categories">
       <value value="50"/>
@@ -6738,7 +6758,7 @@ setup</setup>
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-contributor-proposes-a-new-project">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prob-9-contributes-to-friends-task">
       <value value="0.1"/>
@@ -6753,7 +6773,7 @@ setup</setup>
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prop-consumed-each-time">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="platform-features">
       <value value="true"/>
@@ -6783,7 +6803,7 @@ setup</setup>
       <value value="0.03"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-1-become-9">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="mean-time-required">
       <value value="200"/>
@@ -6792,10 +6812,10 @@ setup</setup>
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-90-find-a-task">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-9-become-1">
-      <value value="0.005"/>
+      <value value="0.0050"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-number-1s">
       <value value="1"/>
@@ -6813,7 +6833,7 @@ setup</setup>
       <value value="1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="chance-of-finding-new-task">
-      <value value="0.001"/>
+      <value value="0.0010"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
