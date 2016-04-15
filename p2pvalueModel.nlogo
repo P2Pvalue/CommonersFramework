@@ -729,7 +729,17 @@ to find-tasks
                           let my-projects-tasks t4sks with [ member? ( [ my-project ] of self ) ( [my-projects] of myself ) ]
                           if any? my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
                                 [ let new-task$ my-projects-tasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
-
+                                  
+                                  ;; 9 might be attracted to an appropriate tasks just by the bounty (but still needs to be in one of their projects and right skill
+                                  let aveBounty mean [ bounty ] of t4sks
+                                  let aveContributors mean [ count tasklink-neighbors ] of t4sks
+                                  
+                                  ifelse any? new-task$ with [ ( ifelse-value ( count tasklink-neighbors != 0 ) [ bounty / count tasklink-neighbors ] [ bounty ] ) > 
+                                                                                                            ( aveBounty / aveContributors ) and random-float 1 < chance-9-chases-a-bounty ]
+                                   [ create-tasklink-with max-one-of new-task$ [ ifelse-value ( count tasklink-neighbors != 0 ) [ bounty / count tasklink-neighbors ] [ bounty ] ] [set color 3]
+                                     set my-tasks tasklink-neighbors
+                                   ]
+                                  [
                                   ; using contribution-history-9s increases chance of contribution with prev contributions
                                   ; using feel-loved increases chance of contribution with thanks/points
                                   ; higher chance when there are contributors who are my friend, and when i have contributors who
@@ -737,11 +747,11 @@ to find-tasks
 
                                   let contributors-to-new-task turtle-set [ tasklink-neighbors ] of new-task$
                                   let contributors-to-new-tasks-that-are-my-friend
-                                        contributors-to-new-task with [ member? myself friendlink-neighbors ]
-
+                                        contributors-to-new-task with [ member? myself friendlink-neighbors ]                             
+                                  
                                   ;; 9 goes for the taks with highest bounty / contributors
 
-                                  ifelse any? contributors-to-new-tasks-that-are-my-friend and contribution-history-9s != 0
+                                  ifelse any? contributors-to-new-tasks-that-are-my-friend and contribution-history-9s != 0 and random-float 1 < chance-9-picks-tasks-with-friends
                                         [ if ( random-float 1 < ( prob-9-contributes-to-friends-task + ( 0.01 * sum contribution-history-9s ) + feel-loved ) )
                                               [ let mostBountyOfFriendsTask max-one-of turtle-set [ tasklink-neighbors ] of contributors-to-new-tasks-that-are-my-friend [ bounty / count tasklink-neighbors ]
                                                 create-tasklink-with mostBountyOfFriendsTask
@@ -755,6 +765,8 @@ to find-tasks
                                 ]
                         ]
            ]
+  
+  ]
 
   ;; find lone tasks - 1s with easily online and with some error offline
   ;; 9s with some error online and randomly for offline
@@ -4182,10 +4194,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-640
-2268
-962
-2301
+637
+2267
+959
+2300
 task-project-volume-increment-ratio
 task-project-volume-increment-ratio
 0
@@ -4235,6 +4247,36 @@ TEXTBOX
 14
 0.0
 1
+
+SLIDER
+637
+2299
+957
+2333
+chance-9-chases-a-bounty
+chance-9-chases-a-bounty
+0
+100
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+637
+2330
+907
+2364
+chance-9-picks-tasks-with-friends
+chance-9-picks-tasks-with-friends
+0
+1
+0.8
+0.1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
