@@ -1160,7 +1160,7 @@ to-report random-pareto [alpha mm]
 end
 
 to-report project-volume-increment
-  report random-pareto 2 0
+  report max-project-initial-volume * volume-increment-to-initial-volume-ratio * random-pareto 2 0
 end
 
 to-report task-volume-increment
@@ -1211,7 +1211,8 @@ to finished-projects
   ask projects [ if num-tasks = 0 and my-product != nobody [ ask my-product [ set volume volume + project-volume-increment ]
                                                              set projects-finished projects-finished + 1
                                                              die ]
-                 if num-tasks = 0 and my-product = nobody [ birth-a-product
+                 if num-tasks = 0 and my-product = nobody [ birth-a-product project-volume-increment
+
                                                             set projects-finished projects-finished + 1
                                                             die ]
                ]
@@ -1346,7 +1347,7 @@ to project-hatch-a-project
   ]
 end
 
-to birth-a-product
+to birth-a-product [initial-volume]
 
 hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
                                                     set xcor -10
@@ -1354,7 +1355,7 @@ hatch-products 1 [ set inter3st ( [ inter3st ] of myself )
                                                     set size 2
                                                     set color orange
                                                     set shape "box"
-                                                    set volume random 100
+                                                    set volume initial-volume
                                                     set age 0
                                                     set mon-project (list (myself))
                                                     set consumption-history
@@ -4182,16 +4183,46 @@ NIL
 HORIZONTAL
 
 SLIDER
-370
-2340
-692
-2373
+855
+2240
+1195
+2273
 task-project-volume-increment-ratio
 task-project-volume-increment-ratio
 0
 1
-0.1
+0.2
 0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+855
+2205
+1195
+2238
+max-project-initial-volume
+max-project-initial-volume
+0
+200
+100
+5
+1
+NIL
+HORIZONTAL
+
+SLIDER
+855
+2170
+1195
+2203
+volume-increment-to-initial-volume-ratio
+volume-increment-to-initial-volume-ratio
+0
+3
+1
+0.1
 1
 NIL
 HORIZONTAL
