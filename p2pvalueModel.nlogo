@@ -805,7 +805,7 @@ to find-featured-tasks
                     ;; look at featured tasks and with some probability, make a connection to one i have skills for
                     [ let featuredTasks t4sks with [ featured? = TRUE ]
                     ;; need to exlude tasks already joined? nope - nothing happens if you join twice
-                    if any? featuredTasks and random-float 1 < prob-9-finds-featured-need + ( 0.01 * sum contribution-history-9s )
+                    if any? featuredTasks and random-float 1 < prob-9-finds-featured-need
                           [ let new-FeaturedTask featuredTasks with [ member? ( [ typ3 ] of self ) ( [ skill ] of myself ) ]
                             if any? new-FeaturedTask [ create-tasklink-with one-of new-FeaturedTask [ set color 3 ]
                                                        set my-tasks tasklink-neighbors
