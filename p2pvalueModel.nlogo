@@ -2005,10 +2005,10 @@ PENS
 "#90s" 1.0 0 -1184463 true "" "plot count #90s"
 
 PLOT
-2213
-1096
-2458
-1271
+2848
+1098
+3093
+1273
 Entry&Exit Per Tick
 NIL
 NIL
@@ -2026,25 +2026,25 @@ PENS
 "Exit#9s" 1.0 0 -14730904 true "" "if ticks > 0 [ plot #9s-left / ticks]"
 
 SLIDER
-30
-1025
-302
-1058
+1164
+929
+1436
+962
 prop-of-projects-reward-subjective
 prop-of-projects-reward-subjective
 0
 1
-0.5
+1
 0.1
 1
 NIL
 HORIZONTAL
 
 PLOT
-1846
-1235
-2006
-1355
+2481
+1236
+2641
+1356
 Tasks' TimeReq
 NIL
 NIL
@@ -2059,10 +2059,10 @@ PENS
 "default" 100.0 1 -13840069 true "" "histogram [time-required] of t4sks"
 
 PLOT
-998
-1219
-1158
-1339
+1633
+1221
+1793
+1341
 #1s' Points
 NIL
 NIL
@@ -2077,10 +2077,10 @@ PENS
 "default" 10.0 1 -2674135 true "" "histogram [ points ] of #1s"
 
 PLOT
-1473
-1243
-1633
-1363
+2108
+1246
+2268
+1366
 #9s' Points
 NIL
 NIL
@@ -2095,10 +2095,10 @@ PENS
 "default" 1.0 1 -13345367 true "" "histogram [ points ] of #9s"
 
 PLOT
-1846
-1099
-2006
-1219
+2481
+1101
+2641
+1221
 Projects' RewardLevel
 NIL
 NIL
@@ -2166,10 +2166,10 @@ NIL
 HORIZONTAL
 
 PLOT
-998
-1099
-1158
-1219
+1633
+1101
+1793
+1221
 #1s' Time
 NIL
 NIL
@@ -2184,10 +2184,10 @@ PENS
 "default" 5.0 1 -2674135 true "" "histogram [ time ] of #1s"
 
 PLOT
-998
-1356
-1158
-1476
+1633
+1358
+1793
+1478
 #9s' Time
 NIL
 NIL
@@ -2221,10 +2221,10 @@ PENS
 "#9s" 1.0 0 -13345367 true "" "plot count #9s with [ time < 0 ]"
 
 PLOT
-1153
-1513
-1313
-1633
+1788
+1516
+1948
+1636
 #90s' Consumption
 NIL
 NIL
@@ -2239,10 +2239,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [consumption] of #90s"
 
 SLIDER
-44
-2037
-317
-2070
+640
+2009
+913
+2042
 prop-consumed-each-time
 prop-consumed-each-time
 0
@@ -2254,10 +2254,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-32
-967
-305
-1000
+1163
+889
+1436
+922
 num-interest-categories
 num-interest-categories
 0
@@ -2405,10 +2405,10 @@ count products
 11
 
 PLOT
-2329
-1299
-2574
-1449
+2963
+1301
+3208
+1451
 ProdCons&TasksCompl
 NIL
 NIL
@@ -2424,10 +2424,10 @@ PENS
 "Tasks" 1.0 0 -13840069 true "" "plot tasks-completed"
 
 PLOT
-2329
-1449
-2574
-1599
+2963
+1451
+3208
+1601
 NewProd&Tasks
 NIL
 NIL
@@ -2444,10 +2444,10 @@ PENS
 "Projects" 1.0 0 -15575016 true "" "plot count-new-projects"
 
 MONITOR
-2229
-1359
-2329
-1404
+2863
+1361
+2963
+1406
 NIL
 products-consumed
 0
@@ -2455,10 +2455,10 @@ products-consumed
 11
 
 MONITOR
-2229
-1405
-2329
-1450
+2863
+1406
+2963
+1451
 NIL
 tasks-completed
 0
@@ -2466,10 +2466,10 @@ tasks-completed
 11
 
 MONITOR
-2225
-1555
-2330
-1600
+2858
+1556
+2963
+1601
 NIL
 new-tasks-count
 0
@@ -2477,10 +2477,10 @@ new-tasks-count
 11
 
 MONITOR
-2225
-1509
-2330
-1554
+2858
+1511
+2963
+1556
 NIL
 new-products-count
 0
@@ -2488,10 +2488,10 @@ new-products-count
 11
 
 PLOT
-1158
-1099
-1318
-1219
+1793
+1101
+1953
+1221
 #1s' Skill
 NIL
 NIL
@@ -2506,10 +2506,10 @@ PENS
 "default" 1.0 1 -2674135 true "" "histogram [ skill ] of #1s"
 
 PLOT
-1318
-1099
-1478
-1219
+1953
+1101
+2113
+1221
 #1s' Interest
 NIL
 NIL
@@ -2524,10 +2524,10 @@ PENS
 "default" 1.0 1 -2674135 true "" "histogram [interest] of #1s"
 
 PLOT
-1158
-1356
-1318
-1476
+1793
+1358
+1953
+1478
 #9s' Skill
 NIL
 NIL
@@ -2542,10 +2542,10 @@ PENS
 "default" 10.0 1 -13345367 true "" "histogram [skill] of #9s"
 
 PLOT
-1318
-1356
+1953
+1358
+2113
 1478
-1476
 #9s' Interest
 NIL
 NIL
@@ -2560,10 +2560,10 @@ PENS
 "default" 1.0 1 -13345367 true "" "histogram [interest] of #9s"
 
 PLOT
-1478
-1099
-1638
-1219
+2113
+1101
+2273
+1221
 #1s' Time in Comm
 NIL
 NIL
@@ -2578,10 +2578,10 @@ PENS
 "default" 10.0 1 -2674135 true "" "histogram [time-in-community] of #1s"
 
 PLOT
-1478
-1359
-1638
-1479
+2113
+1361
+2273
+1481
 #9s' Time in Comm
 NIL
 NIL
@@ -2596,10 +2596,10 @@ PENS
 "default" 10.0 1 -13345367 true "" "histogram [time-in-community] of #9s"
 
 PLOT
-993
-1513
-1153
-1633
+1628
+1516
+1788
+1636
 #90s' Interest
 NIL
 NIL
@@ -2614,10 +2614,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [interest] of #90s"
 
 PLOT
-1313
-1513
-1473
-1633
+1948
+1516
+2108
+1636
 #90s' Time in Comm
 NIL
 NIL
@@ -2632,10 +2632,10 @@ PENS
 "default" 5.0 1 -13840069 true "" "histogram [time-in-community] of #90s"
 
 PLOT
-2003
-1353
-2163
-1473
+2638
+1356
+2798
+1476
 Tasks' Interest
 NIL
 NIL
@@ -2650,10 +2650,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [inter3st] of t4sks"
 
 PLOT
-1686
-1099
-1846
-1219
+2321
+1101
+2481
+1221
 Projects' RewardType
 NIL
 NIL
@@ -2669,10 +2669,10 @@ PENS
 "Obj" 1.0 0 -7500403 true "" "plot count projects with [reward-type = \"objective\" ]"
 
 PLOT
-1686
-1355
-1846
-1475
+2321
+1356
+2481
+1476
 Tasks' Modularity
 NIL
 NIL
@@ -2687,10 +2687,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [modularity] of t4sks"
 
 PLOT
-1846
-1355
-2006
-1475
+2481
+1356
+2641
+1476
 Tasks' Age
 NIL
 NIL
@@ -2705,10 +2705,10 @@ PENS
 "default" 100.0 1 -13840069 true "" "histogram [age] of t4sks"
 
 PLOT
-1686
-1489
-1846
-1609
+2321
+1491
+2481
+1611
 Prod's Interest
 NIL
 NIL
@@ -2723,10 +2723,10 @@ PENS
 "default" 1.0 1 -955883 true "" "histogram [inter3st] of products"
 
 PLOT
-1846
-1492
-2006
-1612
+2481
+1493
+2641
+1613
 Prod's Age
 NIL
 NIL
@@ -2854,11 +2854,11 @@ PENS
 "#90s by chance" 1.0 0 -2674135 true "" "plot new-#90s-chance"
 
 TEXTBOX
-59
-922
-379
-966
----ADVANCED PARAMETERS---
+45
+845
+580
+890
+---ADVANCED PARAMETERS SET USING DATA / PLAUSABILITY---
 14
 0.0
 1
@@ -2929,9 +2929,9 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-739
+724
 224
-761
+746
 914
 /\\\n |\n |\n |\n |\n |\n |\n i \n n\n t\n e\n r\n e\n s\n t\n |\n |\n |\n |\n |\n |\n |\n\\/\n
 14
@@ -2949,10 +2949,10 @@ TEXTBOX
 1
 
 SLIDER
-44
-1921
-317
-1954
+642
+1930
+915
+1963
 chance-of-finding-new-task
 chance-of-finding-new-task
 0
@@ -2964,10 +2964,10 @@ NIL
 HORIZONTAL
 
 PLOT
-2003
-1099
-2163
-1220
+2638
+1101
+2798
+1222
 HistoProjectsNumTasks
 NIL
 NIL
@@ -2982,10 +2982,10 @@ PENS
 "default" 1.0 1 -13840069 true "" "histogram [num-tasks] of projects"
 
 MONITOR
-2225
-1468
-2330
-1513
+2858
+1471
+2963
+1516
 NIL
 count-new-projects
 0
@@ -2993,10 +2993,10 @@ count-new-projects
 11
 
 TEXTBOX
-1289
-1056
-1794
-1075
+1923
+1058
+2428
+1077
 -------UNINTERESTING OUTPUTS & DIAGNOSTICS----------
 15
 0.0
@@ -3252,10 +3252,10 @@ New #1s
 11
 
 SLIDER
-47
-2157
-317
-2190
+639
+2080
+909
+2113
 new-90s-barrier
 new-90s-barrier
 0
@@ -3369,10 +3369,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "if count products > 0 [ plot mean [sum consumption-history] of products ]"
 
 PLOT
-1683
-1223
-1843
-1343
+2318
+1226
+2478
+1346
 Histo Current Contributors
 NIL
 NIL
@@ -3387,10 +3387,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram [ count current-contributors]  of projects"
 
 PLOT
-1313
-1243
-1473
-1363
+1948
+1246
+2108
+1366
 #9s Time with No Links
 NIL
 NIL
@@ -3405,10 +3405,10 @@ PENS
 "default" 5.0 1 -16777216 true "" "histogram [ time-with-no-links] of #9s"
 
 SLIDER
-37
-1847
-312
-1880
+638
+1882
+913
+1915
 mean-time-required
 mean-time-required
 10
@@ -3420,25 +3420,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-37
-1811
-312
-1844
+638
+1845
+913
+1878
 max-modularity
 max-modularity
 1
 80
-20
+1
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-30
-1085
-305
-1118
+635
+895
+910
+928
 prob-9-decides-to-join-project
 prob-9-decides-to-join-project
 0.1
@@ -3450,10 +3450,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-30
-1125
-307
-1158
+635
+939
+912
+972
 prob-9-contributes-to-friends-task
 prob-9-contributes-to-friends-task
 0
@@ -3465,10 +3465,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-30
-1160
-310
-1193
+635
+974
+915
+1007
 prob-9-contributes-to-none-friend-task
 prob-9-contributes-to-none-friend-task
 0
@@ -3480,10 +3480,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-30
-1215
-310
-1248
+637
+1013
+917
+1046
 prob-1-drop-lonely-project
 prob-1-drop-lonely-project
 0
@@ -3495,10 +3495,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-30
-1250
-310
-1283
+637
+1048
+917
+1081
 prob-9-drop-a-lonely-or-no-tasks-project
 prob-9-drop-a-lonely-or-no-tasks-project
 0
@@ -3510,10 +3510,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-36
-1315
-311
-1348
+635
+1410
+910
+1443
 chance-forget-a-friend
 chance-forget-a-friend
 0
@@ -3525,10 +3525,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-36
-1375
-311
-1408
+635
+1449
+910
+1482
 chance-forget-thanks
 chance-forget-thanks
 0
@@ -3540,10 +3540,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-36
-1430
-316
-1463
+635
+1494
+915
+1527
 chance-unpopular-project-dies
 chance-unpopular-project-dies
 0
@@ -3555,10 +3555,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-36
-1485
-351
-1518
+635
+1549
+950
+1582
 chance-contributor-proposes-a-new-project
 chance-contributor-proposes-a-new-project
 0
@@ -3570,10 +3570,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-36
-1520
-321
-1553
+635
+1584
+920
+1617
 chance-a-project-hatches-a-project
 chance-a-project-hatches-a-project
 0
@@ -3585,10 +3585,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-36
-1554
-321
-1587
+635
+1619
+920
+1652
 chance-90-picks-another-product
 chance-90-picks-another-product
 0
@@ -3600,10 +3600,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-35
-1617
-320
-1650
+634
+1682
+919
+1715
 chance-consumer-link-breaks
 chance-consumer-link-breaks
 0
@@ -3615,10 +3615,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-47
-2124
-317
-2157
+639
+2048
+909
+2081
 new-9s-barrier
 new-9s-barrier
 0.5
@@ -3630,10 +3630,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-47
-2194
-317
-2227
+639
+2118
+909
+2151
 chance-9s-exit
 chance-9s-exit
 0
@@ -3645,10 +3645,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-47
-2227
-317
-2260
+639
+2150
+909
+2183
 chance-90s-exit
 chance-90s-exit
 0
@@ -3660,10 +3660,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-47
-2264
-317
-2297
+639
+2188
+909
+2221
 chance-1-burn-out
 chance-1-burn-out
 0
@@ -3675,10 +3675,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-37
-1701
-262
-1734
+637
+1765
+862
+1798
 chance-9-become-1
 chance-9-become-1
 0
@@ -3690,10 +3690,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-37
-1737
-267
-1770
+637
+1802
+867
+1835
 chance-1-become-9
 chance-1-become-9
 0
@@ -3705,10 +3705,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-44
-2001
-319
-2034
+640
+1973
+915
+2006
 chance-products-die
 chance-products-die
 0
@@ -3720,150 +3720,150 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-339
-975
-506
-995
+1470
+897
+1637
+917
 keep at 50
 11
 0.0
 1
 
 TEXTBOX
-339
-1034
-506
-1063
+1474
+939
+1641
+968
 something to investiagte later perhaps
 11
 0.0
 1
 
 TEXTBOX
-333
-1087
-500
-1116
+939
+898
+1106
+927
 seems to have little effect - leave at 0.5
 11
 0.0
 1
 
 TEXTBOX
-327
-1148
-494
-1168
+933
+963
+1100
+983
 these two, to be investigated
 11
 0.0
 1
 
 TEXTBOX
-327
-1237
-494
-1266
+934
+1035
+1101
+1064
 these two also to be investigated
 11
 0.0
 1
 
 TEXTBOX
-330
-1355
-497
-1375
+929
+1450
+1096
+1470
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-337
-1464
-504
-1484
+937
+1529
+1104
+1549
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-330
-1545
-497
-1565
+929
+1609
+1096
+1629
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-337
-1627
-504
-1647
+937
+1692
+1104
+1712
 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-277
-1740
-702
-1767
+877
+1804
+1302
+1831
 should be kept higher than 0.01 otherwise 1s can grow in number, 0.1 seems ok - stops 1s from ever spiralling away
 11
 0.0
 1
 
 TEXTBOX
-274
-1700
-602
-1730
+874
+1764
+1202
+1794
 0.1 seems to allow 1s to gorw high, 0.01 keeps 1s very low, perhaps in between is good - 0.4?
 11
 0.0
 1
 
 TEXTBOX
-329
-1834
-682
-1872
+930
+1869
+1283
+1907
 to be investigated - mean time required - intuitivekly seems to need to be over 200 for projects not too just all disappear
 11
 0.0
 1
 
 TEXTBOX
-344
-1984
-511
-2004
+942
+1994
+1109
+2014
 all 3 to be investigated
 11
 0.0
 1
 
 TEXTBOX
-334
-2132
-747
-2234
+927
+2055
+1340
+2157
 new9s barrier - should be between 0.5 and 1.5, nearer 1.5\n\nnew90s barrier - circa 1.5 seems good, 3 and no growth, 0.75 and never no growth
 11
 0.0
 1
 
 PLOT
-2658
-1132
-2818
-1252
+3293
+1133
+3453
+1253
 histogramTimesWorkedTogether
 NIL
 NIL
@@ -3878,10 +3878,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram [ times-worked-together ] of friendlinks"
 
 PLOT
-2663
-1256
-2863
-1406
+3298
+1258
+3498
+1408
 friendLinks
 NIL
 NIL
@@ -3897,10 +3897,10 @@ PENS
 "#1s" 1.0 1 -2674135 true "" "histogram [count friendlink-neighbors] of #1s"
 
 SLIDER
-46
-2320
-316
-2353
+639
+2227
+909
+2260
 chance-new-loneTask
 chance-new-loneTask
 0
@@ -3912,10 +3912,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-35
-1655
-232
-1688
+634
+1719
+919
+1753
 chance-90-find-a-task
 chance-90-find-a-task
 0
@@ -3927,10 +3927,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-555
-1190
-835
-1223
+638
+1290
+918
+1323
 prop-of-projects-initially-private
 prop-of-projects-initially-private
 0
@@ -3988,35 +3988,35 @@ reward-mechanism-2
 1
 
 SLIDER
-554
-972
-786
-1005
+638
+1087
+916
+1121
 prob-9-finds-featured-need
 prob-9-finds-featured-need
 0
 1
-0
+0.05
 0.05
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-529
-912
-794
-943
----ADVANCED PARAMETERS 2---
+667
+848
+1054
+881
+---ADVANCED PARAMETERS TO BE CALIBRATED---
 14
 0.0
 1
 
 SLIDER
-554
-1012
-801
-1045
+638
+1127
+918
+1161
 prob-project-advertises-a-task
 prob-project-advertises-a-task
 0
@@ -4084,10 +4084,10 @@ PENS
 "projects" 10.0 1 -15575016 true "" "histogram [ total-bounty ] of projects"
 
 SLIDER
-554
-1057
-794
-1090
+637
+1168
+916
+1202
 prob-set-a-bounty
 prob-set-a-bounty
 0
@@ -4099,15 +4099,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-555
-1235
-835
-1268
+638
+1333
+918
+1366
 prop-productless-proj
 prop-productless-proj
 0
 1
-0.8
+0.25
 0.05
 1
 NIL
@@ -4137,10 +4137,10 @@ PENS
 "9s min" 1.0 0 -3026479 true "" "plot ( min [points] of #9s )"
 
 SLIDER
-555
-1280
-727
-1313
+637
+1372
+921
+1406
 max-noise
 max-noise
 0
@@ -4152,10 +4152,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-554
-1102
-726
-1135
+638
+1210
+917
+1244
 bountiesEffect
 bountiesEffect
 0
@@ -4167,10 +4167,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-554
-1147
-726
-1180
+638
+1252
+915
+1286
 reputationEffect
 reputationEffect
 0
@@ -4182,10 +4182,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-370
-2340
-692
-2373
+640
+2268
+962
+2301
 task-project-volume-increment-ratio
 task-project-volume-increment-ratio
 0
@@ -4207,11 +4207,31 @@ TEXTBOX
 1
 
 TEXTBOX
-893
-482
-1339
-534
-MEASURE OF SILO / CENTRALITY / SOCIAL STRUCTURE HERE
+910
+375
+1270
+645
+----------------------------------------------------------------------------------------------------------------\n\n\n\n\n\n\n\n\n			MEASURE OF SILO / CENTRALITY / SOCIAL STRUCTURE HERE\n\n\n\n\n\n\n\n----------------------------------------------------------------------------------------------------------------
+14
+0.0
+0
+
+TEXTBOX
+1137
+844
+1590
+902
+---ADVANCED PARAMETERS NOT TO EXPLORE---
+14
+0.0
+1
+
+TEXTBOX
+104
+915
+437
+954
+;;; CAN WE PUT ANYTHING IN HERE? ;;;
 14
 0.0
 1
