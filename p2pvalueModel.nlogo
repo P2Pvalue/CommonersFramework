@@ -144,7 +144,6 @@ undirected-link-breed [projectproductlinks projectproductlink]
   my-projects-1s               ; list (actual list) of projects 1 attached to
   my-tasks-1s                  ; list (agentset) of tasks currently contributing to
   my-lone-tasks-1s             ; list (agentset) of lonetasks currently contributing to
-  my-friends-1s                ; list (agentset) of other 9s currently friends with
   my-projects                  ;
   my-tasks                     ; these 4 used when changing breeds
   my-lone-tasks
@@ -172,7 +171,6 @@ undirected-link-breed [projectproductlinks projectproductlink]
   my-projects-1s               ;
   my-tasks-1s                  ; used when changing breeds
   my-lone-tasks-1s
-  my-friends-1s                ;
   my-time                      ; static time availability for community - random 40
   time                         ; current spare time available (not being used on tasks already)
   skill                        ; skill types - 3 values from a possible 10
@@ -479,7 +477,7 @@ to create-#1
                                  let new-friends other turtle-set [ tasklink-neighbors ] of my-tasks-1s
                                  create-friendlinks-with n-of round ( count new-friends / 2 ) new-friends [set color red
                                                                                                            set times-worked-together 1]
-                                 set my-friends-1s friendlink-neighbors
+                                 set my-friends friendlink-neighbors
                                ]
 end
 
@@ -1030,7 +1028,7 @@ to make-and-lose-friends
                                                                                  [ ask one-of friendlinks with [ times-worked-together > 4 ] [ die ] ]
                                                                             ]
                                                                         ]
-                                               set my-friends-1s friendlink-neighbors
+                                               set my-friends friendlink-neighbors
                                             ]
           ]
 
@@ -1469,6 +1467,7 @@ to entry
                                                                                        [ friendlink-neighbors ] of mentor [ set color blue set times-worked-together 1 ]
                                                                                  ]
                                                               set contribution-history-9s (list (0))
+                                                              set my-friends friendlink-neighbors
                                                               set new-#9s-total new-#9s-total + 1
                                                               set new-#9-attracted-by-#90s new-#9-attracted-by-#90s + 1
                                                              ]
@@ -1614,6 +1613,7 @@ to change-breed
                   set my-projects (list (new-project))
                   set contribution-history-9s (list (0))
                   ask my-consumerlinks [die]
+                  set my-friends friendlink-neighbors
                   set #90-to-#9-count #90-to-#9-count + 1
                 ]
             ]
@@ -1638,7 +1638,6 @@ to change-breed
                    set my-projects-1s [my-projects] of self
                    set my-tasks-1s [ my-tasks ] of self
                    set my-lone-tasks-1s [ my-lone-tasks ] of self
-                   set my-friends-1s [my-friends] of self
                    set #9-to-#1-count #9-to-#1-count + 1
                  ]                               ]
           ]
@@ -1667,7 +1666,6 @@ to change-breed
                    set my-lone-tasks [ my-lone-tasks-1s ] of self
                    set contribution-history-9s (list (0))
                    set my-total-contribution-9s 0
-                   set my-friends [my-friends-1s] of self
                    set #1-to-#9-count #1-to-#9-count + 1
                   ]                                 ]
           ]
@@ -4308,6 +4306,24 @@ volume-increment-to-initial-volume-ratio
 1
 NIL
 HORIZONTAL
+
+PLOT
+865
+365
+1310
+515
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "let contributors (turtle-set #9s #1s)\nlet numContribs (count contributors)\nplot sum [numContribs - 1 - count my-friends] of contributors / ( ( numContribs - 1 ) * ( numContribs - 2 ) )"
 
 @#$#@#$#@
 ## WHAT IS IT?
