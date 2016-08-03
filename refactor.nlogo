@@ -42,7 +42,6 @@ projects-own [
 
 t4sks-own [
   skill
-  interest
   time-required
   age
 ]
@@ -79,6 +78,7 @@ projectproductlinks-own [
 
 to setup
   clear-all
+  reset-ticks
 
    ;; colour lines to mark projects and products spaces
    ask patches with [pxcor = 0] [set pcolor white]
@@ -164,7 +164,6 @@ to create-task
 
   t4sk-set-skill
 
-  set interest [interest] of myself
   set age 0
   set time-required random-normal mean-time-required ( mean-time-required / 4 )
 
@@ -223,8 +222,10 @@ to create-commoner
   set skills (n-of 3 (n-values num-skills [?]))
 
   ;; An initial project per commoner
-  create-commonerprojectlink-with one-of consumerlink-neighbors
-
+  let product-projects turtle-set [ projectproductlink-neighbors ] of consumerlink-neighbors
+  if any? product-projects [
+    create-commonerprojectlink-with one-of product-projects
+  ]
 
   ;; Create links with tasks of my projects with my skills
   create-commonertasklinks-with
@@ -232,14 +233,123 @@ to create-commoner
       [ member? skill [ skills ] of myself ]
 
   ;; contribution history
-  ;; members with more firends have more chances to have contributed
+  ;; members with more friends have more chances to have contributed
   ;; TODO work more with this to reflect power law better (only around 10 work) ...
   ;; ... and not put more contrib history per user if more agents
   ;;
   set contribution-history-ls (n-values 10 [ round random-exponential (0.1 * count my-friendlinks) ])
 
-;; TODO: Do not connect 90% to a task
+  ask commoners with [count my-friendlinks = 0] [
+    ask commonertasklink-neighbors [die]
+  ]
 
+end
+
+to-report find-project-prob
+  report  0.1 * 1 / distance myself ;; TODO use param instead of 0.1
+end
+
+to find-project
+  ask one-of projects with [not member? self commonerprojectlink-neighbors] [
+    if random-float 1 < find-project-prob [
+      create-commonerprojectlink-with myself
+    ]
+  ]
+end
+
+to-report find-task-prob
+  report 0.1 * 1 / distance myself
+end
+
+;; skills and friends and previous contributions
+to find-task
+  let task-of-my-projects
+    turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors
+
+  if any? task-of-my-projects [
+    ask one-of task-of-my-projects [
+      if random-float 1 < find-task-prob [
+        create-commonertasklink-with myself
+      ]
+    ]
+  ]
+end
+
+to-report contrib-prob
+  report
+    length filter [? > 0] contribution-history-ls /
+    length contribution-history-ls
+end
+
+to-report contrib-size
+  report 1
+end
+
+;; TODO find project and tasks (and initialize with more commoner-task link neighbors)
+;; TODO? contribute to those tasks that a commoner have already contributed to that task
+to contribute
+  if count commonertasklink-neighbors > 0 and random-float 1 < contrib-prob [
+    ask one-of commonertasklink-neighbors [
+      set time-required time-required - contrib-size
+      if time-required < 0 [
+        die
+      ]
+    ]
+  ]
+end
+
+to-report drop-project-prob
+
+  ifelse sum contribution-history-ls = 0 [
+    report 0 ;TODO why?
+  ] [
+    report 0.01 ;; TODO use param instead of 0.01
+  ]
+end
+
+to drop-project
+  if any? projects with [member? self commonerprojectlink-neighbors] [
+    ask one-of projects with [member? self commonerprojectlink-neighbors] [
+      if random-float 1 < drop-project-prob [
+        ask commonerprojectlink-with myself [
+          die
+        ]
+      ]
+    ]
+  ]
+end
+
+to go
+
+  ask commoners [
+
+    ;; contribution
+    find-project
+    find-task
+    contribute
+    drop-project
+    ;; drop-task
+
+    ;; friendship
+    ;; find-friends
+    ;; drop-friends
+
+    ;; TODO consumption
+    ; find-product
+    ; consume
+    ; drop-product
+
+    ;; TODO Movement (relative to the others vs relative to itself)
+    ;; contribution moves commoners towards projects
+    ;; contribution moves projects towards commoners
+    ;; consumption moves products towards commoners
+    ;; consumption moves commoners towards products ???
+
+
+
+  ]
+
+  tick
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -365,11 +475,45 @@ commoners-num
 commoners-num
 0
 500
-99
+49
 1
 1
 NIL
 HORIZONTAL
+
+BUTTON
+109
+70
+172
+103
+go
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+105
+32
+168
+65
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
