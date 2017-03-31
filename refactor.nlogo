@@ -18,62 +18,70 @@ breed [products product]
 breed [projects project]
 breed [t4sks t4sk]
 
+turtles-own [
+  repulsion
+  age
+]
+
 undirected-link-breed [projecttasklinks projecttasklink]
-undirected-link-breed [commonertasklinks commonertasklink]
+directed-link-breed [commonertasklinks commonertasklink]
 undirected-link-breed [commonerprojectlinks commonerprojectlink]
 undirected-link-breed [friendlinks friendlink]
-undirected-link-breed [consumerlinks consumerlink]
+;; commoner to product link
+directed-link-breed [consumerlinks consumerlink]
 undirected-link-breed [projectproductlinks projectproductlink]
 
+links-own [
+
+  total-weight
+
+  recent-weight
+  max-recent-weight
+  forget-recent-weight-prob ;; TODO call it forgetfulness?
+  forget-link-prob
+
+  in-attraction
+  out-attraction
+
+  link-age
+]
+
+;; Link method to increase current weight
+to increase-weight
+
+  set total-weight total-weight + 1
+  set recent-weight min (list max-recent-weight (recent-weight + 1 ))
+
+end
+
+;; Link method to decrease current weight
+to decrease-weight
+
+  set recent-weight max (list 0 (recent-weight - 1 ))
+
+end
 
 commoners-own [
   time
   skills
   interest
-  contribution-history-ls ;; TODO save total contribution in this list
-  age
 ]
 
 projects-own [
   interest
-  production-history
-  age
 ]
 
 t4sks-own [
   skill
   time-required
-  age
 ]
 
 products-own [
   interest
-  volume
-  consumption-history
-  age
-]
-
-; all links have an age parameter:
-
-projecttasklinks-own [
-  agePTL
-]
-
-commonertasklinks-own [
-  ageCTL
 ]
 
 friendlinks-own [
-  ageFL
   times-worked-together
-]
-
-consumerlinks-own [
-  ageCL
-]
-
-projectproductlinks-own [
-  agePL
 ]
 
 to setup
@@ -98,15 +106,22 @@ to create-existing-products
 
   create-products initial-products [
     set interest random num-interest-categories
-    set xcor -10
+    set xcor -25 + random 25
     set ycor -25 + interest
-    set size 2
-    set color orange
-    set shape "box"
-    set volume random 100
-    set age 0
-    set consumption-history []; TODO initialize with some random values?
+
+    create-product
 ]
+
+end
+
+to create-product
+  ;; Style
+  set size 2
+  set color orange
+  set shape "box"
+  ;;
+
+  set repulsion product-repulsion-prob
 
 end
 
@@ -120,7 +135,6 @@ to create-existing-projects
 
     create-project
 
-    ;; TODO change: popular projects will be farther
     let my-product min-one-of products [ distance myself ]
     create-projectproductlink-with my-product [ set color red ]
   ]
@@ -134,14 +148,14 @@ to create-project
     set shape "target"
     ;;
 
-    let num-tasks random 10 + 2 ;; TODO take it out and normal distribution for num-tasks
-    set production-history []
+    set repulsion project-repulsion-prob
+
+    let num-tasks random 10 + 2 ;; TODO take it to configuration and normal distribution for num-tasks
     set age 0
 
     hatch-t4sks num-tasks [
       create-task
     ]
-
 
 end
 
@@ -160,7 +174,7 @@ to create-task
   ;;
 
   ;; link
-  create-projecttasklink-with myself
+  create-projecttasklink-with myself [tie]
 
   t4sk-set-skill
 
@@ -206,41 +220,67 @@ to create-existing-commoners
 
 end
 
+to create-commonertasklink
+  set color green
+  set max-recent-weight 3
+  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
+  set forget-link-prob 1 / 30 ;; TODO 30 as a param
+  set recent-weight 0
+  set out-attraction commoner-task-attraction-prob
+  set in-attraction task-commoner-attraction-prob
+end
+
+to create-consumerlink
+  set color orange
+  set max-recent-weight 3
+  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
+  set forget-link-prob 1 / 30 ;; TODO 30 as a param
+  set in-attraction 0.02 ;; TODO as param
+  set out-attraction commoner-product-attraction-prob
+end
+
+to create-commonerprojectlink
+  set color green + 3
+  set max-recent-weight 3
+  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
+  set forget-link-prob 1 / 30 ;; TODO 30 as a param
+end
+
+to create-friendlink
+  set color yellow + 3
+  set max-recent-weight 3
+  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
+  set forget-link-prob 1 / 30 ;; TODO 30 as a param
+end
+
 to create-commoner
   set interest random num-interest-categories
-  set xcor random 26
+  set xcor random 25 + 1
   set ycor -25 + interest
   set size 1.5
   set color blue
-;; TODO          set my-time 1 + random 40
-;; TODO          set time my-time
-
+  set repulsion commoner-repulsion-prob
   ;; commoners consume a community product
-  create-consumerlink-with min-one-of products [ distance myself ]
+  create-consumerlink-to min-one-of products [ distance myself ] [create-consumerlink]
 
   ;; 3 random skills per commoner
   set skills (n-of 3 (n-values num-skills [?]))
 
   ;; An initial project per commoner
-  let product-projects turtle-set [ projectproductlink-neighbors ] of consumerlink-neighbors
+  let product-projects turtle-set [ projectproductlink-neighbors ] of out-consumerlink-neighbors
   if any? product-projects [
-    create-commonerprojectlink-with one-of product-projects
+    create-commonerprojectlink-with one-of product-projects [create-commonerprojectlink]
   ]
 
   ;; Create links with tasks of my projects with my skills
-  create-commonertasklinks-with
+  create-commonertasklinks-to
    (turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors) with
       [ member? skill [ skills ] of myself ]
+    [ create-commonertasklink ]
 
-  ;; contribution history
-  ;; members with more friends have more chances to have contributed
-  ;; TODO work more with this to reflect power law better (only around 10 work) ...
-  ;; ... and not put more contrib history per user if more agents
-  ;;
-  set contribution-history-ls (n-values 10 [ round random-exponential (0.1 * count my-friendlinks) ])
-
+  ;; 90's do not contribute
   ask commoners with [count my-friendlinks = 0] [
-    ask commonertasklink-neighbors [die]
+    ask out-commonertasklink-neighbors [die]
   ]
 
 end
@@ -252,16 +292,17 @@ end
 to find-project
   ask one-of projects with [not member? self commonerprojectlink-neighbors] [
     if random-float 1 < find-project-prob [
-      create-commonerprojectlink-with myself
+      create-commonerprojectlink-with myself [create-commonerprojectlink]
     ]
   ]
 end
 
+;; skills and friends and previous contributions
 to-report find-task-prob
   report 0.1 * 1 / distance myself
 end
 
-;; skills and friends and previous contributions
+
 to find-task
   let task-of-my-projects
     turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors
@@ -269,16 +310,20 @@ to find-task
   if any? task-of-my-projects [
     ask one-of task-of-my-projects [
       if random-float 1 < find-task-prob [
-        create-commonertasklink-with myself
+        create-commonertasklink-from myself [ create-commonertasklink ]
       ]
     ]
   ]
 end
 
 to-report contrib-prob
-  report
-    length filter [? > 0] contribution-history-ls /
-    length contribution-history-ls
+    let num-tasks count out-commonertasklink-neighbors
+
+  ifelse num-tasks = 0 [
+    report 0
+  ] [
+    report 0.1 * (1 + sum [recent-weight] of my-out-consumerlinks) ;; TODO constants to params
+  ]
 end
 
 to-report contrib-size
@@ -288,8 +333,11 @@ end
 ;; TODO find project and tasks (and initialize with more commoner-task link neighbors)
 ;; TODO? contribute to those tasks that a commoner have already contributed to that task
 to contribute
-  if count commonertasklink-neighbors > 0 and random-float 1 < contrib-prob [
-    ask one-of commonertasklink-neighbors [
+  if count out-commonertasklink-neighbors > 0 and random-float 1 < contrib-prob [
+    ask one-of out-commonertasklink-neighbors [
+      ask in-commonertasklink-from myself [
+        increase-weight
+      ]
       set time-required time-required - contrib-size
       if time-required < 0 [
         die
@@ -298,22 +346,62 @@ to contribute
   ]
 end
 
-to-report drop-project-prob
+to-report find-product-prob
+  report  0.1 * 1 / distance myself ;; TODO use param instead of 0.1
+end
 
-  ifelse sum contribution-history-ls = 0 [
-    report 0 ;TODO why?
-  ] [
-    report 0.01 ;; TODO use param instead of 0.01
+to find-product
+  ask one-of products with [not member? self out-consumerlink-neighbors] [
+    if random-float 1 < find-product-prob [
+      create-consumerlink-from myself [create-consumerlink]
+    ]
   ]
 end
 
-to drop-project
-  if any? projects with [member? self commonerprojectlink-neighbors] [
-    ask one-of projects with [member? self commonerprojectlink-neighbors] [
-      if random-float 1 < drop-project-prob [
-        ask commonerprojectlink-with myself [
-          die
-        ]
+to-report consume-prob
+
+  let num-prods count my-out-consumerlinks
+
+  ifelse num-prods = 0 [
+    report 0
+  ] [
+    report 0.1 * (1 + sum [recent-weight] of my-out-consumerlinks) ;; TODO constants to params
+  ]
+end
+
+to consume
+  if count out-consumerlink-neighbors > 0 and random-float 1 < consume-prob [
+    ask one-of out-consumerlink-neighbors [
+      ask in-consumerlink-from myself [
+        increase-weight
+      ]
+    ]
+  ]
+end
+
+to move-towards-edges [ agent ]
+  ask agent [
+    if xcor < 0 and xcor > -25 [
+      ;; 'carefully' needed to prevent tied agents to move outside the model
+      ;; for instance, tasks tied to projects
+      carefully [ set xcor xcor - 1 ] []
+    ]
+    if xcor > 0 and xcor < 25 [
+      carefully [ set xcor xcor + 1 ] []
+    ]
+  ]
+end
+
+to move-towards-center [ agent ]
+  ask agent [
+    if xcor < -1 [
+      if not any? my-links with [tie-mode = "fixed" and [ xcor ] of other-end >= -1 ] [
+        set xcor xcor + 1
+      ]
+    ]
+    if xcor > 1 [
+      if not any? my-links with [tie-mode = "fixed" and [ xcor ] of other-end <= 1 ] [
+        set xcor xcor - 1
       ]
     ]
   ]
@@ -327,29 +415,78 @@ to go
     find-project
     find-task
     contribute
-    drop-project
-    ;; drop-task
 
     ;; friendship
     ;; find-friends
     ;; drop-friends
 
-    ;; TODO consumption
-    ; find-product
-    ; consume
-    ; drop-product
-
-    ;; TODO Movement (relative to the others vs relative to itself)
-    ;; contribution moves commoners towards projects
-    ;; contribution moves projects towards commoners
-    ;; consumption moves products towards commoners
-    ;; consumption moves commoners towards products ???
-
-
+    ;; consumption
+    find-product
+    consume
 
   ]
 
+  ask links with [ recent-weight > 0 and random-float 1 < forget-recent-weight-prob ] [
+    decrease-weight
+  ]
+
+  ask links with [ recent-weight = 0 and random-float 1 < forget-link-prob ] [
+     die ;; TODO maybe record total history of this links that died not to lose important information
+  ]
+
+  ask products [
+    let current-value sum [recent-weight] of my-in-consumerlinks
+
+    set label current-value
+  ]
+
+  ;; Movements of agents toward center
+  ;; For each link breed, weighted by number of links and their recent weights
+  ask turtles [
+
+    let linkbreeds (list)
+
+    while [any? my-in-links with [ not member? breed linkbreeds ]] [
+      ask one-of my-in-links with [ not member? breed linkbreeds ] [
+        set linkbreeds lput breed linkbreeds
+      ]
+
+      let b last linkbreeds
+
+      if any? my-in-links with [ breed = b and in-attraction > 0] [
+        ask one-of my-in-links with [ breed = b and in-attraction > 0] [
+          if random-float 1 < count [ my-in-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * in-attraction [
+            move-towards-center myself
+          ]
+        ]
+      ]
+    ]
+
+    while [any? my-out-links with [ not member? breed linkbreeds ]] [
+      ask one-of my-out-links with [ not member? breed linkbreeds ] [
+        set linkbreeds lput breed linkbreeds
+      ]
+
+      let b last linkbreeds
+
+      if any? my-out-links with [ breed = b and out-attraction > 0] [
+        ask one-of my-out-links with [ breed = b and out-attraction > 0] [
+          if random-float 1 < count [ my-out-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * out-attraction [
+            move-towards-center myself
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  ;; Movement toward edges of the model.
+  ;; Repulsion strength depends on distance to center.
+  ask turtles with [random-float 1 < ((25 - abs xcor) / 2.5 * repulsion)] [
+    move-towards-edges self
+  ]
+
   tick
+
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -404,7 +541,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "few" "many"
-1
+2
 
 SLIDER
 13
@@ -437,15 +574,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-698
-127
-896
-160
+19
+412
+217
+445
 mean-time-required
 mean-time-required
 0
 100
-50
+40
 1
 1
 NIL
@@ -475,7 +612,7 @@ commoners-num
 commoners-num
 0
 500
-49
+200
 1
 1
 NIL
@@ -514,6 +651,132 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+700
+207
+1022
+240
+commoner-task-attraction-prob
+commoner-task-attraction-prob
+0
+1
+0.06
+0.02
+1
+NIL
+HORIZONTAL
+
+SLIDER
+700
+173
+1023
+206
+commoner-repulsion-prob
+commoner-repulsion-prob
+0
+0.04
+0.026
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+700
+240
+1022
+273
+commoner-product-attraction-prob
+commoner-product-attraction-prob
+0
+1
+0.04
+0.02
+1
+NIL
+HORIZONTAL
+
+SLIDER
+700
+316
+1021
+349
+product-repulsion-prob
+product-repulsion-prob
+0
+0.04
+0.038
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+703
+398
+1024
+431
+project-repulsion-prob
+project-repulsion-prob
+0
+0.04
+0.008
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+701
+367
+983
+400
+task-commoner-attraction-prob
+task-commoner-attraction-prob
+0
+1
+0.41
+0.01
+1
+NIL
+HORIZONTAL
+
+PLOT
+702
+10
+1036
+137
+plot 1
+NIL
+NIL
+0.0
+1000.0
+0.0
+100.0
+true
+true
+"set-histogram-num-bars 10.0" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram sort-by > [sum [total-weight] of my-out-consumerlinks] of commoners"
+
+PLOT
+1073
+266
+1273
+416
+plot 2
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
 
 @#$#@#$#@
 ## WHAT IS IT?
