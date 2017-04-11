@@ -18,11 +18,6 @@ breed [products product]
 breed [projects project]
 breed [t4sks t4sk]
 
-turtles-own [
-  repulsion
-  age
-]
-
 undirected-link-breed [projecttasklinks projecttasklink]
 directed-link-breed [commonertasklinks commonertasklink]
 undirected-link-breed [commonerprojectlinks commonerprojectlink]
@@ -30,6 +25,11 @@ undirected-link-breed [friendlinks friendlink]
 ;; commoner to product link
 directed-link-breed [consumerlinks consumerlink]
 undirected-link-breed [projectproductlinks projectproductlink]
+
+turtles-own [
+  repulsion
+  age
+]
 
 links-own [
 
@@ -45,21 +45,6 @@ links-own [
 
   link-age
 ]
-
-;; Link method to increase current weight
-to increase-weight
-
-  set total-weight total-weight + 1
-  set recent-weight min (list max-recent-weight (recent-weight + 1 ))
-
-end
-
-;; Link method to decrease current weight
-to decrease-weight
-
-  set recent-weight max (list 0 (recent-weight - 1 ))
-
-end
 
 commoners-own [
   time
@@ -108,7 +93,6 @@ to create-existing-products
     set interest random num-interest-categories
     set xcor -25 + random 25
     set ycor -25 + interest
-
     create-product
 ]
 
@@ -285,6 +269,103 @@ to create-commoner
 
 end
 
+to go
+
+  ask commoners [
+
+    ;; contribution
+    find-project
+    find-task
+    contribute
+
+    ;; friendship
+    ;; find-friends
+    ;; drop-friends
+
+    ;; consumption
+    find-product
+    consume
+
+  ]
+
+  ask links with [ recent-weight > 0 and random-float 1 < forget-recent-weight-prob ] [
+    decrease-weight
+  ]
+
+  ask links with [ recent-weight = 0 and random-float 1 < forget-link-prob ] [
+     die ;; TODO maybe record total history of this links that died not to lose important information
+  ]
+
+  ask products [
+    let current-value sum [recent-weight] of my-in-consumerlinks
+
+    set label current-value
+  ]
+
+  ;; Movements of agents toward center
+  ;; For each link breed, weighted by number of links and their recent weights
+  ask turtles [
+
+    let linkbreeds (list)
+
+    while [any? my-in-links with [ not member? breed linkbreeds ]] [
+      ask one-of my-in-links with [ not member? breed linkbreeds ] [
+        set linkbreeds lput breed linkbreeds
+      ]
+
+      let b last linkbreeds
+
+      if any? my-in-links with [ breed = b and in-attraction > 0] [
+        ask one-of my-in-links with [ breed = b and in-attraction > 0] [
+          if random-float 1 < count [ my-in-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * in-attraction [
+            move-towards-center myself
+          ]
+        ]
+      ]
+    ]
+
+    while [any? my-out-links with [ not member? breed linkbreeds ]] [
+      ask one-of my-out-links with [ not member? breed linkbreeds ] [
+        set linkbreeds lput breed linkbreeds
+      ]
+
+      let b last linkbreeds
+
+      if any? my-out-links with [ breed = b and out-attraction > 0] [
+        ask one-of my-out-links with [ breed = b and out-attraction > 0] [
+          if random-float 1 < count [ my-out-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * out-attraction [
+            move-towards-center myself
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  ;; Movement toward edges of the model.
+  ;; Repulsion strength depends on distance to center.
+  ask turtles with [random-float 1 < ((25 - abs xcor) / 2.5 * repulsion)] [
+    move-towards-edges self
+  ]
+
+  tick
+end
+
+;; Link method to increase current weight
+to increase-weight
+
+  set total-weight total-weight + 1
+  set recent-weight min (list max-recent-weight (recent-weight + 1 ))
+
+end
+
+;; Link method to decrease current weight
+to decrease-weight
+
+  set recent-weight max (list 0 (recent-weight - 1 ))
+
+end
+
+
 to-report find-project-prob
   report  0.1 * 1 / distance myself ;; TODO use param instead of 0.1
 end
@@ -405,88 +486,6 @@ to move-towards-center [ agent ]
       ]
     ]
   ]
-end
-
-to go
-
-  ask commoners [
-
-    ;; contribution
-    find-project
-    find-task
-    contribute
-
-    ;; friendship
-    ;; find-friends
-    ;; drop-friends
-
-    ;; consumption
-    find-product
-    consume
-
-  ]
-
-  ask links with [ recent-weight > 0 and random-float 1 < forget-recent-weight-prob ] [
-    decrease-weight
-  ]
-
-  ask links with [ recent-weight = 0 and random-float 1 < forget-link-prob ] [
-     die ;; TODO maybe record total history of this links that died not to lose important information
-  ]
-
-  ask products [
-    let current-value sum [recent-weight] of my-in-consumerlinks
-
-    set label current-value
-  ]
-
-  ;; Movements of agents toward center
-  ;; For each link breed, weighted by number of links and their recent weights
-  ask turtles [
-
-    let linkbreeds (list)
-
-    while [any? my-in-links with [ not member? breed linkbreeds ]] [
-      ask one-of my-in-links with [ not member? breed linkbreeds ] [
-        set linkbreeds lput breed linkbreeds
-      ]
-
-      let b last linkbreeds
-
-      if any? my-in-links with [ breed = b and in-attraction > 0] [
-        ask one-of my-in-links with [ breed = b and in-attraction > 0] [
-          if random-float 1 < count [ my-in-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * in-attraction [
-            move-towards-center myself
-          ]
-        ]
-      ]
-    ]
-
-    while [any? my-out-links with [ not member? breed linkbreeds ]] [
-      ask one-of my-out-links with [ not member? breed linkbreeds ] [
-        set linkbreeds lput breed linkbreeds
-      ]
-
-      let b last linkbreeds
-
-      if any? my-out-links with [ breed = b and out-attraction > 0] [
-        ask one-of my-out-links with [ breed = b and out-attraction > 0] [
-          if random-float 1 < count [ my-out-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * out-attraction [
-            move-towards-center myself
-          ]
-        ]
-      ]
-    ]
-  ]
-
-  ;; Movement toward edges of the model.
-  ;; Repulsion strength depends on distance to center.
-  ask turtles with [random-float 1 < ((25 - abs xcor) / 2.5 * repulsion)] [
-    move-towards-edges self
-  ]
-
-  tick
-
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
