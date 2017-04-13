@@ -5,12 +5,7 @@
 extensions [network nw]
 globals [
 
-  initial-products
-
-  community-prod-activity-ls            ; list of the history of community production activity
-
-  community-con-activity-ls             ; list of the history of community consumption activity
-
+  initial-products ;; number of initial products
 ]
 
 breed [commoners commoner]
@@ -65,10 +60,6 @@ products-own [
   interest
 ]
 
-friendlinks-own [
-  times-worked-together
-]
-
 to setup
   clear-all
   reset-ticks
@@ -87,7 +78,7 @@ to create-existing-products
 
   if number-of-products = "one" [ set initial-products 1 ]
   if number-of-products = "few" [ set initial-products random 5 + 2 ]
-  if number-of-products = "many" [ set initial-products random 100 ]
+  if number-of-products = "many" [ set initial-products random 100  + 5]
 
   create-products initial-products [
     set interest random num-interest-categories
@@ -114,7 +105,7 @@ to create-existing-projects
 
     set interest random num-interest-categories
 
-    set xcor -5
+    set xcor -1 * (random 20) - 5
     set ycor -25 + interest
 
     create-project
@@ -172,7 +163,7 @@ to t4sk-set-skill
   ; new tasks set their skill type
   ; if there are no other task in the project
   ; or with probability 50%
-  ifelse (any? [ projecttasklink-neighbors ] of myself) or (random-float 1 < 0.5) [
+  ifelse (not any? [ projecttasklink-neighbors ] of myself) or (random-float 1 < 0.5) [
 
     ; set a random skill
     set skill random (num-skills - 1)
@@ -188,9 +179,7 @@ end
 to create-existing-commoners
 
   ;; commoners hava a preferential attachement like structure
-  nw:generate-preferential-attachment commoners friendlinks commoners-num [
-    create-commoner
-  ]
+  nw:generate-preferential-attachment commoners friendlinks commoners-num
 
   ask commoners with [count my-friendlinks = 1] [
     ask one-of my-friendlinks [
@@ -198,8 +187,17 @@ to create-existing-commoners
     ]
   ]
 
+  ask commoners [
+    create-commoner
+  ]
+
   ask friendlinks [
-    set color yellow
+    create-friendlink
+  ]
+
+  ask commoners [
+    let friends count my-friendlinks
+    set xcor 5 * ( 5 - min (list 4 friends) )
   ]
 
 end
@@ -208,8 +206,7 @@ to create-commonertasklink
   set color green
   set max-recent-weight 3
   set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
-  set forget-link-prob 1 / 30 ;; TODO 30 as a param
-  set recent-weight 0
+  set forget-link-prob 1 / 120 ;; TODO 30 as a param
   set out-attraction commoner-task-attraction-prob
   set in-attraction task-commoner-attraction-prob
 end
@@ -219,7 +216,7 @@ to create-consumerlink
   set max-recent-weight 3
   set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
   set forget-link-prob 1 / 30 ;; TODO 30 as a param
-  set in-attraction 0.02 ;; TODO as param
+  set in-attraction product-commoner-attraction-prob
   set out-attraction commoner-product-attraction-prob
 end
 
@@ -233,8 +230,8 @@ end
 to create-friendlink
   set color yellow + 3
   set max-recent-weight 3
-  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
-  set forget-link-prob 1 / 30 ;; TODO 30 as a param
+  set forget-recent-weight-prob 1 / 7 ;; TODO 30 as a param
+  set forget-link-prob 1 / 120 ;; TODO 120 as a param
 end
 
 to create-commoner
@@ -252,19 +249,26 @@ to create-commoner
 
   ;; An initial project per commoner
   let product-projects turtle-set [ projectproductlink-neighbors ] of out-consumerlink-neighbors
-  if any? product-projects [
+  ifelse any? product-projects [
     create-commonerprojectlink-with one-of product-projects [create-commonerprojectlink]
+  ] [
+    create-commonerprojectlink-with min-one-of projects [ distance myself ] [create-commonerprojectlink]
   ]
 
-  ;; Create links with tasks of my projects with my skills
-  create-commonertasklinks-to
-   (turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors) with
-      [ member? skill [ skills ] of myself ]
-    [ create-commonertasklink ]
-
+  let num-friends count my-friendlinks
   ;; 90's do not contribute
-  ask commoners with [count my-friendlinks = 0] [
-    ask out-commonertasklink-neighbors [die]
+  if num-friends = 0 [
+    ask my-out-commonertasklinks [die]
+    ask my-commonerprojectlinks [die]
+  ]
+
+  ;; Create links with tasks of my projects with my skills...
+  let skilled-tasks (turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors) with
+    [ member? skill [ skills ] of myself ]
+
+  create-commonertasklinks-to n-of min (list count skilled-tasks num-friends) skilled-tasks [
+    create-commonertasklink
+    set recent-weight random min (list 4 num-friends) + random 1
   ]
 
 end
@@ -279,8 +283,7 @@ to go
     contribute
 
     ;; friendship
-    ;; find-friends
-    ;; drop-friends
+    find-friends
 
     ;; consumption
     find-product
@@ -365,9 +368,14 @@ to decrease-weight
 
 end
 
+to-report project-friends
+  let me myself
+  report commonerprojectlink-neighbors with [friendlink-neighbor? me]
+end
 
 to-report find-project-prob
-  report  0.1 * 1 / distance myself ;; TODO use param instead of 0.1
+  let friends-effect count project-friends * find-project-friends-mult
+  report (min (list max-find-level ((1 + friends-effect) / (distance myself * find-project-dist-mult))))
 end
 
 to find-project
@@ -378,9 +386,16 @@ to find-project
   ]
 end
 
-;; skills and friends and previous contributions
+;;
+to-report task-friends
+  let me myself
+  report in-commonertasklink-neighbors with [friendlink-neighbor? me]
+end
+
+;; TODO skills and previous contributions
 to-report find-task-prob
-  report 0.1 * 1 / distance myself
+  let friends-effect count task-friends * find-task-friends-mult
+  report (min (list max-find-level ((1 + friends-effect) / (distance myself * find-task-dist-mult))))
 end
 
 
@@ -398,12 +413,25 @@ to find-task
 end
 
 to-report contrib-prob
-    let num-tasks count out-commonertasklink-neighbors
+  let tasklinks [ my-out-commonertasklinks ] of myself
+  let num-tasks count tasklinks
+
+  let num-tasks-effect 1 + ln (num-tasks) * contrib-num-task-mult
+  let recent-contrib-effect 1 + ln (1 + sum ([recent-weight] of tasklinks)) * contrib-recent-weight-mult
+  let friend-task-effect 1 + ln (1 + count task-friends) * contrib-friend-task-effect
 
   ifelse num-tasks = 0 [
     report 0
   ] [
-    report 0.1 * (1 + sum [recent-weight] of my-out-consumerlinks) ;; TODO constants to params
+    let prob 0.01 * num-tasks-effect * recent-contrib-effect * friend-task-effect
+    if prob > 0.4 [
+      print (list prob " :")
+      print num-tasks-effect
+      print recent-contrib-effect
+      print friend-task-effect
+    ]
+
+    report min (list 0.8 prob)
   ]
 end
 
@@ -411,30 +439,63 @@ to-report contrib-size
   report 1
 end
 
-;; TODO find project and tasks (and initialize with more commoner-task link neighbors)
-;; TODO? contribute to those tasks that a commoner have already contributed to that task
 to contribute
-  if count out-commonertasklink-neighbors > 0 and random-float 1 < contrib-prob [
+  if any? out-commonertasklink-neighbors [
     ask one-of out-commonertasklink-neighbors [
-      ask in-commonertasklink-from myself [
-        increase-weight
-      ]
-      set time-required time-required - contrib-size
-      if time-required < 0 [
-        die
+      if random-float 1 < contrib-prob [
+
+        if sum ([recent-weight] of ([ my-out-commonertasklinks ] of myself)) > 5 [ask myself [set color red]]
+
+        ask myself [
+          if color != red [set color pink]
+        ]
+
+        ask in-commonertasklink-from myself [
+          increase-weight
+        ]
+        set time-required time-required - contrib-size
+        if time-required < 0 [
+          die
+        ]
       ]
     ]
   ]
 end
 
 to-report find-product-prob
-  report  0.1 * 1 / distance myself ;; TODO use param instead of 0.1
+  report min (list max-find-level (1 / (distance myself * find-product-dist-mult)))
 end
 
 to find-product
   ask one-of products with [not member? self out-consumerlink-neighbors] [
     if random-float 1 < find-product-prob [
       create-consumerlink-from myself [create-consumerlink]
+    ]
+  ]
+end
+
+to find-friends
+  let me self
+  let contribs my-out-commonertasklinks with [ recent-weight > 0 ]
+  if count contribs > 0 [
+    ask one-of contribs [
+      if random-float 1 < min ( list max-find-level (count contribs * find-friend-prob * recent-weight)) [
+        ask other-end [
+          if any? my-in-commonertasklinks with [recent-weight > 0 and other-end != me] [
+            ask one-of my-in-commonertasklinks with [recent-weight > 0 and other-end != me] [
+              ask other-end [
+                ifelse not friendlink-neighbor? me [
+                  create-friendlink-with me [create-friendlink]
+                ] [
+                  ask friendlink-with me [
+                    increase-weight
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
     ]
   ]
 end
@@ -543,10 +604,10 @@ number-of-products
 2
 
 SLIDER
-13
-253
-244
-286
+18
+315
+174
+348
 num-interest-categories
 num-interest-categories
 0
@@ -558,15 +619,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-314
-187
-347
+14
+228
+181
+261
 initial-projects
 initial-projects
 0
 100
-20
+9
 1
 1
 NIL
@@ -574,44 +635,44 @@ HORIZONTAL
 
 SLIDER
 19
-412
-217
-445
+392
+173
+425
 mean-time-required
 mean-time-required
 0
 100
-40
+50
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-18
-371
-190
-404
+19
+354
+174
+387
 num-skills
 num-skills
 0
 100
-17
+30
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-15
-128
-192
-161
+13
+138
+180
+171
 commoners-num
 commoners-num
 0
 500
-200
+240
 1
 1
 NIL
@@ -652,60 +713,60 @@ NIL
 1
 
 SLIDER
-700
-207
-1022
+702
 240
-commoner-task-attraction-prob
-commoner-task-attraction-prob
-0
-1
-0.06
-0.02
-1
-NIL
-HORIZONTAL
-
-SLIDER
-700
-173
-1023
-206
-commoner-repulsion-prob
-commoner-repulsion-prob
-0
-0.04
-0.026
-0.001
-1
-NIL
-HORIZONTAL
-
-SLIDER
-700
-240
-1022
+1024
 273
-commoner-product-attraction-prob
-commoner-product-attraction-prob
+commoner-task-attraction-prob
+commoner-task-attraction-prob
 0
 1
-0.04
+0.6
 0.02
 1
 NIL
 HORIZONTAL
 
 SLIDER
-700
-316
-1021
-349
+702
+206
+1025
+239
+commoner-repulsion-prob
+commoner-repulsion-prob
+0
+0.2
+0.115
+0.005
+1
+NIL
+HORIZONTAL
+
+SLIDER
+702
+273
+1024
+306
+commoner-product-attraction-prob
+commoner-product-attraction-prob
+0
+1
+0.02
+0.02
+1
+NIL
+HORIZONTAL
+
+SLIDER
+702
+318
+1023
+351
 product-repulsion-prob
 product-repulsion-prob
 0
 0.04
-0.038
+0.01
 0.001
 1
 NIL
@@ -720,51 +781,33 @@ project-repulsion-prob
 project-repulsion-prob
 0
 0.04
-0.008
+0.012
 0.001
 1
 NIL
 HORIZONTAL
 
 SLIDER
-701
-367
-983
-400
+704
+431
+1024
+464
 task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
 1
-0.41
+0.93
 0.01
 1
 NIL
 HORIZONTAL
 
 PLOT
-702
-10
-1036
-137
-plot 1
-NIL
-NIL
-0.0
-1000.0
-0.0
-100.0
-true
-true
-"set-histogram-num-bars 10.0" ""
-PENS
-"default" 1.0 1 -16777216 true "" "histogram sort-by > [sum [total-weight] of my-out-consumerlinks] of commoners"
-
-PLOT
-1073
-266
-1273
-416
-plot 2
+1081
+129
+1281
+279
+friendlinks
 NIL
 NIL
 0.0
@@ -775,7 +818,244 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
+"default" 1.0 0 -16777216 true "" "plot count friendlinks"
+
+PLOT
+1286
+130
+1486
+280
+contribution-activity
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot sum [recent-weight] of commonertasklinks"
+
+PLOT
+1286
+279
+1486
+429
+tasks
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count t4sks"
+
+PLOT
+1082
+10
+1281
+130
+commonerprojectlinks
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count commonerprojectlinks"
+
+PLOT
+1285
+10
+1485
+130
+commonertasklinks
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count commonertasklinks"
+
+SLIDER
+703
+350
+1023
+383
+product-commoner-attraction-prob
+product-commoner-attraction-prob
+0
+1
+0.02
+0.02
+1
+NIL
+HORIZONTAL
+
+SLIDER
+826
+10
+863
+163
+find-project-dist-mult
+find-project-dist-mult
+0
+5
+4
+0.1
+1
+NIL
+VERTICAL
+
+SLIDER
+738
+10
+775
+163
+find-product-dist-mult
+find-product-dist-mult
+0
+5
+2.7
+0.05
+1
+NIL
+VERTICAL
+
+SLIDER
+862
+10
+899
+163
+find-project-friends-mult
+find-project-friends-mult
+0
+5
+3.6
+0.2
+1
+NIL
+VERTICAL
+
+SLIDER
+987
+10
+1024
+163
+find-task-friends-mult
+find-task-friends-mult
+0
+5
+3.8
+0.1
+1
+NIL
+VERTICAL
+
+SLIDER
+950
+10
+987
+163
+find-task-dist-mult
+find-task-dist-mult
+0
+5
+2.2
+0.1
+1
+NIL
+VERTICAL
+
+SLIDER
+1037
+324
+1252
+357
+contrib-recent-weight-mult
+contrib-recent-weight-mult
+1
+3
+3
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+716
+483
+888
+516
+max-find-level
+max-find-level
+0
+1
+0.15
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1045
+11
+1082
+161
+find-friend-prob
+find-friend-prob
+0
+0.2
+0.1
+0.02
+1
+NIL
+VERTICAL
+
+SLIDER
+1038
+292
+1253
+325
+contrib-num-task-mult
+contrib-num-task-mult
+1
+3
+3
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1038
+356
+1252
+389
+contrib-friend-task-effect
+contrib-friend-task-effect
+1
+3
+1
+0.1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
