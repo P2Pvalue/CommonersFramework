@@ -105,9 +105,6 @@ to create-existing-projects
 
     set interest random num-interest-categories
 
-    set xcor -1 * (random 20) - 5
-    set ycor -25 + interest
-
     create-project
 
     let my-product min-one-of products [ distance myself ]
@@ -122,6 +119,10 @@ to create-project
     set color green - 2
     set shape "target"
     ;;
+
+    set xcor -1 * (random 20) - 5
+    set ycor -25 + interest
+
 
     set repulsion project-repulsion-prob
 
@@ -206,7 +207,7 @@ to create-commonertasklink
   set color green
   set max-recent-weight 3
   set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
-  set forget-link-prob 1 / 120 ;; TODO 30 as a param
+  set forget-link-prob 1 / 120 ;; TODO 120 as a param
   set out-attraction commoner-task-attraction-prob
   set in-attraction task-commoner-attraction-prob
 end
@@ -289,6 +290,15 @@ to go
     find-product
     consume
 
+    ;; bring friends
+    recomend
+
+    ;; create project
+    propose-project
+
+    ;; leave community
+    leave
+
   ]
 
   ask links with [ recent-weight > 0 and random-float 1 < forget-recent-weight-prob ] [
@@ -301,7 +311,6 @@ to go
 
   ask products [
     let current-value sum [recent-weight] of my-in-consumerlinks
-
     set label current-value
   ]
 
@@ -424,13 +433,6 @@ to-report contrib-prob
     report 0
   ] [
     let prob 0.01 * num-tasks-effect * recent-contrib-effect * friend-task-effect
-    if prob > 0.4 [
-      print (list prob " :")
-      print num-tasks-effect
-      print recent-contrib-effect
-      print friend-task-effect
-    ]
-
     report min (list 0.8 prob)
   ]
 end
@@ -455,6 +457,40 @@ to contribute
         ]
         set time-required time-required - contrib-size
         if time-required < 0 [
+
+          ;; with some probability, a task generates other task when finished
+          if random-float 1 < task-hatch-task-prob [
+            ;; create another task in the same project
+            ask projecttasklink-neighbors [
+              hatch-t4sks 1 [
+                create-task
+              ]
+            ]
+          ]
+
+          ;; if the project does not have more tasks, it dies and improve its product
+          ask projecttasklink-neighbors [
+
+            if count my-projecttasklinks = 1 [
+              ;; improve product if exists
+              ifelse any? projectproductlink-neighbors [
+                ask projectproductlink-neighbors [
+                  ;; improve
+                  set xcor min(list -1 (xcor + random 25))
+                ]
+              ]
+              ;; if the project is not linked to a product, it creates a new one
+              [
+                hatch-products 1 [
+                  set interest [interest] of myself
+                  set xcor -25 + random 25
+                  set ycor -25 + interest
+                  create-product
+                ]
+              ]
+              die
+            ]
+          ]
           die
         ]
       ]
@@ -517,6 +553,57 @@ to consume
       ask in-consumerlink-from myself [
         increase-weight
       ]
+    ]
+  ]
+end
+
+to recomend
+  if any? my-out-consumerlinks [
+    ask one-of my-out-consumerlinks [
+      let product other-end
+      let dist 25 - [ xcor ] of product
+      if random-float 1 < min (list max-find-level (recent-weight / (dist * recommend-dist-mult))) [
+        ask myself [
+          hatch-commoners 1 [
+            create-friendlink-with myself
+            create-commoner
+            ask my-out-consumerlinks [ die ]
+            create-consumerlink-to product [create-consumerlink]
+            set xcor 25
+          ]
+        ]
+      ]
+    ]
+  ]
+end
+
+to propose-project
+  if any? my-out-commonertasklinks [
+    ask one-of my-out-commonertasklinks [
+      if random-float 1 < min (list max-find-level (recent-weight / (link-length  * prop-project-dist-mult))) [
+        ask myself [
+          hatch-projects 1 [
+            set xcor -1 * (random 20) - 5
+            set ycor -25 + interest
+            create-project
+
+            let my-product one-of [ projectproductlink-neighbors ] of myself
+
+            ;; Half of the new projects are related to an existing product, the other half will create a new product when finished
+            if my-product != nobody and random-float 1 < 0.5 [
+              create-projectproductlink-with my-product [ set color red ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+end
+
+to leave
+  if not any? my-out-consumerlinks and not any? my-out-commonertasklinks [
+    if random-float 1 < 0.01 [
+      die
     ]
   ]
 end
@@ -601,7 +688,7 @@ CHOOSER
 number-of-products
 number-of-products
 "one" "few" "many"
-2
+1
 
 SLIDER
 18
@@ -642,7 +729,7 @@ mean-time-required
 mean-time-required
 0
 100
-50
+17
 1
 1
 NIL
@@ -672,7 +759,7 @@ commoners-num
 commoners-num
 0
 500
-240
+100
 1
 1
 NIL
@@ -721,7 +808,7 @@ commoner-task-attraction-prob
 commoner-task-attraction-prob
 0
 1
-0.6
+0.7
 0.02
 1
 NIL
@@ -736,7 +823,7 @@ commoner-repulsion-prob
 commoner-repulsion-prob
 0
 0.2
-0.115
+0.025
 0.005
 1
 NIL
@@ -765,9 +852,9 @@ SLIDER
 product-repulsion-prob
 product-repulsion-prob
 0
-0.04
-0.01
-0.001
+0.2
+0.105
+0.005
 1
 NIL
 HORIZONTAL
@@ -781,7 +868,7 @@ project-repulsion-prob
 project-repulsion-prob
 0
 0.04
-0.012
+0.007
 0.001
 1
 NIL
@@ -796,7 +883,7 @@ task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
 1
-0.93
+0.94
 0.01
 1
 NIL
@@ -901,46 +988,46 @@ product-commoner-attraction-prob
 product-commoner-attraction-prob
 0
 1
-0.02
+0.04
 0.02
 1
 NIL
 HORIZONTAL
 
 SLIDER
-826
+754
 10
-863
+787
 163
 find-project-dist-mult
 find-project-dist-mult
 0
 5
-4
+1.5
 0.1
 1
 NIL
 VERTICAL
 
 SLIDER
-738
+698
 10
-775
+731
 163
 find-product-dist-mult
 find-product-dist-mult
 0
 5
-2.7
+1.4
 0.05
 1
 NIL
 VERTICAL
 
 SLIDER
-862
+790
 10
-899
+823
 163
 find-project-friends-mult
 find-project-friends-mult
@@ -953,30 +1040,30 @@ NIL
 VERTICAL
 
 SLIDER
-987
+883
 10
-1024
+916
 163
 find-task-friends-mult
 find-task-friends-mult
 0
 5
-3.8
+4.3
 0.1
 1
 NIL
 VERTICAL
 
 SLIDER
-950
+846
 10
-987
+879
 163
 find-task-dist-mult
 find-task-dist-mult
 0
 5
-2.2
+1.8
 0.1
 1
 NIL
@@ -1013,15 +1100,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-1045
-11
-1082
-161
+942
+10
+975
+160
 find-friend-prob
 find-friend-prob
 0
 0.2
-0.1
+0.2
 0.02
 1
 NIL
@@ -1036,7 +1123,7 @@ contrib-num-task-mult
 contrib-num-task-mult
 1
 3
-3
+2.2
 0.1
 1
 NIL
@@ -1051,11 +1138,56 @@ contrib-friend-task-effect
 contrib-friend-task-effect
 1
 3
-1
+3
 0.1
 1
 NIL
 HORIZONTAL
+
+SLIDER
+993
+10
+1026
+161
+recommend-dist-mult
+recommend-dist-mult
+0
+100
+59.6
+0.2
+1
+NIL
+VERTICAL
+
+SLIDER
+1040
+396
+1248
+429
+task-hatch-task-prob
+task-hatch-task-prob
+0
+1
+0.7
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1036
+10
+1069
+161
+prop-project-dist-mult
+prop-project-dist-mult
+0
+100
+79
+1
+1
+NIL
+VERTICAL
 
 @#$#@#$#@
 ## WHAT IS IT?
