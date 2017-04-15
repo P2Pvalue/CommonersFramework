@@ -714,7 +714,7 @@ initial-projects
 initial-projects
 0
 100
-9
+6
 1
 1
 NIL
@@ -759,7 +759,7 @@ commoners-num
 commoners-num
 0
 500
-100
+50
 1
 1
 NIL
@@ -808,7 +808,7 @@ commoner-task-attraction-prob
 commoner-task-attraction-prob
 0
 1
-0.7
+0.98
 0.02
 1
 NIL
@@ -823,7 +823,7 @@ commoner-repulsion-prob
 commoner-repulsion-prob
 0
 0.2
-0.025
+0.02
 0.005
 1
 NIL
@@ -838,7 +838,7 @@ commoner-product-attraction-prob
 commoner-product-attraction-prob
 0
 1
-0.02
+0.04
 0.02
 1
 NIL
@@ -853,7 +853,7 @@ product-repulsion-prob
 product-repulsion-prob
 0
 0.2
-0.105
+0.065
 0.005
 1
 NIL
@@ -868,7 +868,7 @@ project-repulsion-prob
 project-repulsion-prob
 0
 0.04
-0.007
+0.004
 0.001
 1
 NIL
@@ -883,7 +883,7 @@ task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
 1
-0.94
+1
 0.01
 1
 NIL
@@ -988,7 +988,7 @@ product-commoner-attraction-prob
 product-commoner-attraction-prob
 0
 1
-0.04
+0.06
 0.02
 1
 NIL
@@ -1003,7 +1003,7 @@ find-project-dist-mult
 find-project-dist-mult
 0
 5
-1.5
+1.9
 0.1
 1
 NIL
@@ -1018,7 +1018,7 @@ find-product-dist-mult
 find-product-dist-mult
 0
 5
-1.4
+2.45
 0.05
 1
 NIL
@@ -1033,7 +1033,7 @@ find-project-friends-mult
 find-project-friends-mult
 0
 5
-3.6
+5
 0.2
 1
 NIL
@@ -1048,7 +1048,7 @@ find-task-friends-mult
 find-task-friends-mult
 0
 5
-4.3
+5
 0.1
 1
 NIL
@@ -1063,17 +1063,17 @@ find-task-dist-mult
 find-task-dist-mult
 0
 5
-1.8
+3
 0.1
 1
 NIL
 VERTICAL
 
 SLIDER
-1037
-324
-1252
+1034
 357
+1249
+390
 contrib-recent-weight-mult
 contrib-recent-weight-mult
 1
@@ -1085,10 +1085,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-716
-483
-888
-516
+1034
+167
+1071
+317
 max-find-level
 max-find-level
 0
@@ -1097,7 +1097,7 @@ max-find-level
 0.05
 1
 NIL
-HORIZONTAL
+VERTICAL
 
 SLIDER
 942
@@ -1108,32 +1108,32 @@ find-friend-prob
 find-friend-prob
 0
 0.2
-0.2
+0.14
 0.02
 1
 NIL
 VERTICAL
 
 SLIDER
-1038
-292
-1253
+1035
 325
+1250
+358
 contrib-num-task-mult
 contrib-num-task-mult
 1
 3
-2.2
+3
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-1038
-356
-1252
+1035
 389
+1249
+422
 contrib-friend-task-effect
 contrib-friend-task-effect
 1
@@ -1153,17 +1153,17 @@ recommend-dist-mult
 recommend-dist-mult
 0
 100
-59.6
+98
 0.2
 1
 NIL
 VERTICAL
 
 SLIDER
-1040
-396
-1248
-429
+19
+435
+172
+468
 task-hatch-task-prob
 task-hatch-task-prob
 0
@@ -1183,7 +1183,7 @@ prop-project-dist-mult
 prop-project-dist-mult
 0
 100
-79
+100
 1
 1
 NIL
@@ -1196,15 +1196,33 @@ VERTICAL
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+on the left hand of the model, goods produced by the community or "products" and projects to produce or improve them "projects" are displayed. Consumption activity makes products more appealing to commoners, this is represented by bringing the product towards the center of the model. Production activity in the "tasks" of a project also makes the project more appealing to contributors, this behaviour is also represented by bringing the project towards the center.
+
+Commoners stay at the right side of the model. The chances of discovery of elements on the right part of the model (products/project/tasks) depends on the distance from those elements to the commoner. Not only consumption and production activities make the products and projects more appealing (thus bringing them towards the center as explained before) but also it makes the commoners more likelly to engage in the community, thus these activities attracts the commoners towards the center of the model.
+
+Commoners' recent activity history of the consumption and contribution also affects the chances of more contribution or consumption. Each consumption/prodution link has a recent weight that accounts for the recent activity, if the weight is 0, the link will be forgoten with some likelyhood.
+
+Friendship among commoners is created when commoners work in the same task and also affects the likelyhood of task being found or contributed to.
+
+The model also include forces that bring the elements toward the edges of the model, thus decreasing their chances to be found or active. This forces are stronger near the center, where elements have to be considerably active to remain.
+
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+In the upper left corner of the interface, the buttons setup and go will setup and run the model respectielly.
+
+Sliders at the left of the model controls the ammount of elements of each type to start the simulation.
+
+Vertical sliders at the right of the model sets up how much affects the distance in the find operations (find product, project, task and friend) and how much having friends in the considered element affects these finding likelyhood. They also set up how much distance is taken into account for the creation of new products or the arrival of new commoners.
+
+Horizontal sliders bellow sets the attraction and repulsion of the elements towards the center, e.g. how  much contributing to a task makes a commoner move towards the center.
+
+Finally, three horizontal sliders further right sets how much having friends, having an active recent contribution history or how manny tasks the commoner has found affects the likelyhood of the commoner contributing.
 
 ## THINGS TO NOTICE
 
-(suggested things for the user to notice while running the model)
+The model tries to represent the behaviour in collaborator based communities, where the work follows a power law distribution where 1% of the community does most of the work, 9% contributes occasionally and the rest only consumes. Try setting the repulsion, attraction and find probabilities in the model to represent this behaviour. To much attraction or few repulsion will make all the elements come towards the center. Few chances of finding and contributing will make the commoners die due to their small involvement.
+
 
 ## THINGS TO TRY
 
