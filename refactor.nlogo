@@ -1,6 +1,6 @@
-; Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés 2015 2016 as part of the P2Pvalue EU project
+; Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés
 
-; Comments welcome - emails: p.barbrook-johnson@surrey.ac.uk, antoniotenorio@ucm.es
+; Comments welcome - emails: p.barbrook-johnson@psi.org.uk, antoniotenorio@ucm.es
 
 extensions [network nw]
 globals [
@@ -637,10 +637,10 @@ to move-towards-center [ agent ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-243
-10
-689
-477
+210
+15
+656
+482
 25
 25
 8.55
@@ -664,10 +664,10 @@ ticks
 30.0
 
 BUTTON
-22
-65
-95
-98
+20
+20
+93
+53
 NIL
 setup
 NIL
@@ -681,20 +681,20 @@ NIL
 1
 
 CHOOSER
-14
-177
-181
-222
+20
+160
+187
+205
 number-of-products
 number-of-products
 "one" "few" "many"
 1
 
 SLIDER
-18
-315
-174
-348
+20
+270
+185
+303
 num-interest-categories
 num-interest-categories
 0
@@ -706,10 +706,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-14
-228
-181
-261
+20
+210
+187
+243
 initial-projects
 initial-projects
 0
@@ -721,10 +721,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-19
-392
-173
-425
+20
+350
+185
+383
 mean-time-required
 mean-time-required
 0
@@ -736,10 +736,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-19
-354
-174
-387
+20
+310
+185
+343
 num-skills
 num-skills
 0
@@ -751,10 +751,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-13
-138
-180
-171
+20
+120
+187
+153
 commoners-num
 commoners-num
 0
@@ -766,11 +766,11 @@ NIL
 HORIZONTAL
 
 BUTTON
-109
-70
-172
-103
-go
+100
+60
+177
+93
+go once
 go
 NIL
 1
@@ -783,10 +783,10 @@ NIL
 1
 
 BUTTON
-105
-32
-168
-65
+100
+20
+175
+53
 NIL
 go
 T
@@ -800,10 +800,10 @@ NIL
 1
 
 SLIDER
-702
-240
-1024
-273
+675
+220
+997
+253
 commoner-task-attraction-prob
 commoner-task-attraction-prob
 0
@@ -815,10 +815,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-702
-206
-1025
-239
+675
+185
+998
+218
 commoner-repulsion-prob
 commoner-repulsion-prob
 0
@@ -830,10 +830,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-702
-273
-1024
-306
+675
+255
+997
+288
 commoner-product-attraction-prob
 commoner-product-attraction-prob
 0
@@ -845,10 +845,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-702
-318
-1023
-351
+675
+300
+996
+333
 product-repulsion-prob
 product-repulsion-prob
 0
@@ -860,25 +860,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-703
-398
-1024
-431
+675
+385
+996
+418
 project-repulsion-prob
 project-repulsion-prob
 0
 0.04
-0.004
+0.0040
 0.001
 1
 NIL
 HORIZONTAL
 
 SLIDER
-704
-431
-1024
-464
+675
+420
+995
+453
 task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
@@ -890,11 +890,11 @@ NIL
 HORIZONTAL
 
 PLOT
-1081
-129
-1281
-279
-friendlinks
+1065
+250
+1295
+370
+# Friend Links
 NIL
 NIL
 0.0
@@ -908,11 +908,11 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot count friendlinks"
 
 PLOT
-1286
-130
-1486
-280
-contribution-activity
+1065
+370
+1295
+490
+Contribution Activity
 NIL
 NIL
 0.0
@@ -926,11 +926,11 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot sum [recent-weight] of commonertasklinks"
 
 PLOT
-1286
-279
-1486
-429
-tasks
+1065
+490
+1295
+610
+# Tasks
 NIL
 NIL
 0.0
@@ -944,11 +944,11 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot count t4sks"
 
 PLOT
-1082
+1065
 10
-1281
+1295
 130
-commonerprojectlinks
+# Commoner - Project Links
 NIL
 NIL
 0.0
@@ -962,11 +962,11 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot count commonerprojectlinks"
 
 PLOT
-1285
-10
-1485
+1065
 130
-commonertasklinks
+1295
+250
+# Commoner Task Links
 NIL
 NIL
 0.0
@@ -980,10 +980,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot count commonertasklinks"
 
 SLIDER
-703
-350
-1023
-383
+675
+335
+995
+368
 product-commoner-attraction-prob
 product-commoner-attraction-prob
 0
@@ -995,10 +995,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-754
-10
-787
-163
+730
+15
+763
+168
 find-project-dist-mult
 find-project-dist-mult
 0
@@ -1010,10 +1010,10 @@ NIL
 VERTICAL
 
 SLIDER
-698
-10
-731
-163
+674
+15
+707
+168
 find-product-dist-mult
 find-product-dist-mult
 0
@@ -1025,10 +1025,10 @@ NIL
 VERTICAL
 
 SLIDER
-790
-10
-823
-163
+766
+15
+799
+168
 find-project-friends-mult
 find-project-friends-mult
 0
@@ -1040,10 +1040,10 @@ NIL
 VERTICAL
 
 SLIDER
-883
-10
-916
-163
+859
+15
+892
+168
 find-task-friends-mult
 find-task-friends-mult
 0
@@ -1055,10 +1055,10 @@ NIL
 VERTICAL
 
 SLIDER
-846
-10
-879
-163
+822
+15
+855
+168
 find-task-dist-mult
 find-task-dist-mult
 0
@@ -1070,10 +1070,10 @@ NIL
 VERTICAL
 
 SLIDER
-1034
-357
-1249
-390
+675
+505
+890
+538
 contrib-recent-weight-mult
 contrib-recent-weight-mult
 1
@@ -1085,10 +1085,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1034
-167
-1071
-317
+1010
+175
+1043
+325
 max-find-level
 max-find-level
 0
@@ -1100,10 +1100,10 @@ NIL
 VERTICAL
 
 SLIDER
-942
-10
-975
-160
+918
+15
+951
+165
 find-friend-prob
 find-friend-prob
 0
@@ -1115,10 +1115,10 @@ NIL
 VERTICAL
 
 SLIDER
-1035
-325
-1250
-358
+675
+470
+890
+503
 contrib-num-task-mult
 contrib-num-task-mult
 1
@@ -1130,10 +1130,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1035
-389
-1249
-422
+675
+540
+889
+573
 contrib-friend-task-effect
 contrib-friend-task-effect
 1
@@ -1145,10 +1145,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-993
-10
-1026
-161
+969
+15
+1002
+166
 recommend-dist-mult
 recommend-dist-mult
 0
@@ -1160,10 +1160,10 @@ NIL
 VERTICAL
 
 SLIDER
-19
-435
-172
-468
+20
+390
+185
+423
 task-hatch-task-prob
 task-hatch-task-prob
 0
@@ -1175,10 +1175,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1036
-10
-1069
-161
+1012
+15
+1045
+166
 prop-project-dist-mult
 prop-project-dist-mult
 0
@@ -1190,59 +1190,62 @@ NIL
 VERTICAL
 
 @#$#@#$#@
-## WHAT IS IT?
+Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés 2017.
 
-(a general understanding of what the model is trying to show or explain)
+## INTRODUCTION
 
-## HOW IT WORKS
+This model is an implementation of a novel conceptual framework - the ‘Commoners Framework’ - to be used when conceptualising and modelling the behaviour of commons-based peer production (CBPP) communities. 
 
-on the left hand of the model, goods produced by the community or "products" and projects to produce or improve them "projects" are displayed. Consumption activity makes products more appealing to commoners, this is represented by bringing the product towards the center of the model. Production activity in the "tasks" of a project also makes the project more appealing to contributors, this behaviour is also represented by bringing the project towards the center.
+The most up to date version of the model can be accessed at https://github.com/P2Pvalue/CommonersFramework. 
 
-Commoners stay at the right side of the model. The chances of discovery of elements on the right part of the model (products/project/tasks) depends on the distance from those elements to the commoner. Not only consumption and production activities make the products and projects more appealing (thus bringing them towards the center as explained before) but also it makes the commoners more likelly to engage in the community, thus these activities attracts the commoners towards the center of the model.
+**Purpose and development**
 
-Commoners' recent activity history of the consumption and contribution also affects the chances of more contribution or consumption. Each consumption/prodution link has a recent weight that accounts for the recent activity, if the weight is 0, the link will be forgoten with some likelyhood.
+The Commoners Framework, and by extension, this model, can be used to represent the behaviour and operation of a wide-range of CBPP communities, and similar organisations (such as those that make use of volunteers). It represents the processes behind individuals’ decisions to contribute to, enter or exit, or make ‘friends’ in, communities. Through this representation of individuals’ behaviour, the framework aims to account for patterns of behaviour observed at the community level. For example, the distribution of participation rates among individuals, which often follows a power law distribution, also known as the ‘1-9-90 rule’; where 1% of the community – the core members – perform most of the work, 9% of the community – the contributors – occasionally contribute and 90% of the community – the users or consumers - use the commons without directly contributing to produce it. The framework was developed based on recent empirical findings on behaviour in a wide variety of communities and was refined using the structural rigour imposed when building an agent-based model (ABM). 
 
-Friendship among commoners is created when commoners work in the same task and also affects the likelyhood of task being found or contributed to.
+**Logic of model**
 
-The model also include forces that bring the elements toward the edges of the model, thus decreasing their chances to be found or active. This forces are stronger near the center, where elements have to be considerably active to remain.
-
-
-## HOW TO USE IT
-
-In the upper left corner of the interface, the buttons setup and go will setup and run the model respectielly.
-
-Sliders at the left of the model controls the ammount of elements of each type to start the simulation.
-
-Vertical sliders at the right of the model sets up how much affects the distance in the find operations (find product, project, task and friend) and how much having friends in the considered element affects these finding likelyhood. They also set up how much distance is taken into account for the creation of new products or the arrival of new commoners.
-
-Horizontal sliders bellow sets the attraction and repulsion of the elements towards the center, e.g. how  much contributing to a task makes a commoner move towards the center.
-
-Finally, three horizontal sliders further right sets how much having friends, having an active recent contribution history or how manny tasks the commoner has found affects the likelyhood of the commoner contributing.
-
-## THINGS TO NOTICE
-
-The model tries to represent the behaviour in collaborator based communities, where the work follows a power law distribution where 1% of the community does most of the work, 9% contributes occasionally and the rest only consumes. Try setting the repulsion, attraction and find probabilities in the model to represent this behaviour. To much attraction or few repulsion will make all the elements come towards the center. Few chances of finding and contributing will make the commoners die due to their small involvement.
+The focus of the model is Commoners. Commoners is the name given to individuals in a community – both those that contribute, and those that consume the product(s) of a community. The core productive activity of any Commoner is to find tasks in the community, and contribute to them. Their ability to, and likelihood of, contributing will depend on their time available (a resource Commoners have), interests (a Commoner and task parameter which should match), and skill types (a Commoner and task parameter which should match). Commoners may stay in a community, only consuming but not contributing, if no tasks meet their interest or skills. Commoners may make ‘friends’ with others contributing to the same tasks. Having friends increases the chance of finding tasks and contributing. Friends may be lost over time with a certain probability. Commoners’ probability of leaving a community decreases as they make more contributions and have more friends. Contributions improve the quality, or number, of products in the community. More consumption of products increases the probability of existing consumers of these products continuing to consume them, and new Commoners entering the community.
 
 
-## THINGS TO TRY
+## DETAILS
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+**Products and Projects**
 
-## EXTENDING THE MODEL
+On the left hand side of the model, goods produced by the community, called "Products", and the projects to produce or improve them, called "Projects" are displayed. Products are the 'box' icons, and Projects are the 'target' icons. Consumption activity (i.e. others consuming a Product) makes Products more appealing to Commoners - this is represented by bringing the Product towards the center of the model. Production activity (i.e. contributions by Commoners) in the "Tasks" of a Project also makes the Project more appealing to contributors, this behaviour is also represented by bringing the Project towards the center. Note, contributions to Projects is made via the multiple Tasks within them (displayed by the green dots inside the target icon).
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+**Commoners**
 
-## NETLOGO FEATURES
+Commoners are positioned in the right hand side of the model. The chances of discovering any elements on the left hand side of the model (i.e. Products/Projects/Tasks) depends on the distance between those elements and the Commoner. Not only does consumption and production activity make the Products and Projects more appealing (thus bringing them towards the center) but it also makes the Commoners more likely to engage in the community, thus these activities attracts the Commoners towards the center of the model.
 
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+Commoners' recent history of consumption and contribution also affects the chances of current contribution or consumption. Consumption of contrbutions are represented by links, and each consumption/prodution link has a recent weight that accounts for the recent activity, if the weight is 0, the link will be forgoten with some likelihood.
 
-## RELATED MODELS
+Friendship among Commoners is created when Commoners work in the same task. Having friends increases the likelihood of finding Tasks and contributing to them (if friends are working on them).
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+**Decay**
 
-## CREDITS AND REFERENCES
+The model also include forces that bring the elements towards the edges of the model, thus decreasing their chances to be found or active (i.e. representing some natural decay in engagement over time). This forces are stronger near the center, where elements have to be considerably active to remain.
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+
+## THE INTERFACE
+
+*Please note, it is expected only those with at least a basic familiarty of NetLogo will use this model.*
+
+In the upper left corner of the interface, the buttons setup and go will setup and run the model respectively.
+
+Sliders at the left of the model control the number of each of the elements of the model at the start the simulation.
+
+Vertical sliders at the right of the world view set up parameters for the 'find operations' (i.e. find Products, Projects, Tasks and friends) and how much having friends affects these activities. They also set up how much distance is taken into account for the creation of new Products or the arrival of new Commoners.
+
+Horizontal sliders below set the attraction and repulsion of the elements towards the center (e.g. how much contributing to a Task makes a Commoner move towards the center).
+
+Finally, three horizontal sliders at the bottom set how much having friends, having an active recent contribution history, or how many tasks the commoner has found, affects the likelihood of the Commoner contributing.
+
+
+## PLAYING WITH THE MODEL
+
+The model tries to represent the behaviour in collaborative communities, where contributions and participation often follow a power law distribution where 1% of the community does most of the work, 9% contributes occasionally and the rest only consumes. 
+
+Try setting the repulsion, attraction and find probabilities in the model to represent this behaviour. Too much attraction or too little repulsion will make all the elements come towards the center. Few chances of finding tasks and contributing will make the Commoners leave the model, due to their small involvement.
 @#$#@#$#@
 default
 true
@@ -1550,7 +1553,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3
+NetLogo 5.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1568,5 +1571,5 @@ Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
 
 @#$#@#$#@
-0
+1
 @#$#@#$#@
