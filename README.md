@@ -8,13 +8,13 @@ To open the NetLogo file, you will first need to install NetLogo, which is avail
 
 For more information please contact Peter and/or Antonio - Peter Barbrook-Johnson <P.Barbrookjohnson1@westminster.ac.uk>, Antonio Tenorio Fornés <antoniotenorio@ucm.es> 
 
-** The Logic of the Framework **
+*The Logic of the Framework*
 
 The focus of the model is Commoners. Commoners is the name given to individuals in a community – both those that contribute, and those that consume the product(s) of a community. The core productive activity of any Commoner is to find tasks in the community, and contribute to them. Their ability to, and likelihood of, contributing will depend on their time available (a resource Commoners have), interests (a Commoner and task parameter which should match), and skill types (a Commoner and task parameter which should match). Commoners may stay in a community, only consuming but not contributing, if no tasks meet their interest or skills. Commoners may make ‘friends’ with others contributing to the same tasks. Having friends increases the chance of finding tasks and contributing. Friends may be lost over time with a certain probability. Commoners’ probability of leaving a community decreases as they make more contributions and have more friends. Contributions improve the quality, or number, of products in the community. More consumption of products increases the probability of existing consumers of these products continuing to consume them, and new Commoners entering the community.
 
 The framework was developed based on recent empirical findings (Morell et al 2016; Arvidsson et al 2016) on behaviour in communities and was refined using the structural rigour imposed when building an agent-based model (ABM). 
 
-** Details **
+*Details*
 
 * Products and Projects
 
@@ -52,7 +52,7 @@ The model tries to represent the behaviour in collaborative communities, where c
 
 Try setting the repulsion, attraction and find probabilities in the model to represent this behaviour. Too much attraction or too little repulsion will make all the elements come towards the center. Few chances of finding tasks and contributing will make the Commoners leave the model, due to their small involvement.
 
-** References **
+*References*
 
 ARVIDSSON, A., Caliandro, A., Cossu, A., Deka, M., Gandini, A., Luise, V., Orria, B., and Anselmi, G. (2016). Commons Based Peer Production in the Information Economy. Academia. Accessed 13 April 2017. https://www.academia.edu/29210209/Commons_Based_Peer_Production_in_the_Information_Economy 
 
