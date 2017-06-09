@@ -6,63 +6,68 @@ extensions [network nw]
 globals [
 
   initial-products ;; number of initial products
+  contrib-distrib ;; Sorted list of contributions per commoner
+  dead-commoners-contribs ;; Sorted list of contributions per dead commoner
+  ticks-without-projects ;; ticks without projects in the model; used for a stop condition
+  gini-index-reserve ;; gini-index
+
 ]
 
-breed [commoners commoner]
-breed [products product]
-breed [projects project]
-breed [t4sks t4sk]
+breed [commoners commoner] ;; The agents representing individuals interacting (consuming/producing) in the community
+breed [products product] ;; The common goods being produced and used in the community
+breed [projects project] ;; The main organization of production work in the community (contains tasks)
+breed [t4sks t4sk] ;; Individual units of productive work done in the projects of the community
 
-undirected-link-breed [projecttasklinks projecttasklink]
-directed-link-breed [commonertasklinks commonertasklink]
-undirected-link-breed [commonerprojectlinks commonerprojectlink]
-undirected-link-breed [friendlinks friendlink]
-;; commoner to product link
-directed-link-breed [consumerlinks consumerlink]
-undirected-link-breed [projectproductlinks projectproductlink]
+undirected-link-breed [projecttasklinks projecttasklink] ;; represents the project-task relationships; each task belongs to a project
+directed-link-breed [commonertasklinks commonertasklink] ;; represents that a task is known by a commoner; its recent-weight (a link parameter) represents the memory of recent contribution of the commoner to that task
+undirected-link-breed [commonerprojectlinks commonerprojectlink] ;; represents that an commoner is aware of a project; recent-weight (a link parameter) represents the memory of recent contributions to that project;
+undirected-link-breed [friendlinks friendlink] ;; represents relationships among agents that have worked in the same tasks and become "friends".
+directed-link-breed [consumerlinks consumerlink] ;; represents a consumption relationhip between a commoner and a product
+undirected-link-breed [projectproductlinks projectproductlink] ;; represents to which product the efforts in a project goes.
 
 turtles-own [
-  repulsion
-  age
+  repulsion ;; all agents are naturally pulled away from the center (while they are pushed towards the center when they are active) to represent the natural atrophy of a community. This parameter is used to tune the speed of this process.
 ]
 
 links-own [
 
-  total-weight
+  total-weight ;; TODO use it in the model
+  recent-weight ;; the memory of recent activity from between two entities (e.g. Contributions between a commoner and a task or recent frecuency of collaboration between two friends)
+  max-recent-weight ;; A parameter used to cap the recent weight of links.
 
-  recent-weight
-  max-recent-weight
-  forget-recent-weight-prob ;; TODO call it forgetfulness?
-  forget-link-prob
+  forget-recent-weight-prob ;; The chances a unit of recent weight is forgotten
+  forget-link-prob ;; The chances a link will die due to lack of recent activity. A link can only die if the recen contribution is 0.
 
-  in-attraction
-  out-attraction
+  ;; ATRACTION: activities such as production and consumption brings agents towards the center of the model.
+  ;; For instance, contributing to a task will make the task (and its project) become closer to the center
+  ;; but also will bring the contributing commoner towards the center. The strength of this pulls is set by
+  ;; the following parameters
+  target-attraction ;; attraction strength of the target node (e.g. how much a task attracts its contributing agents)
+  origin-attraction ;; attraction strength of the origin node (e.g. how much a commoner attracts the tasks it is contributing to)
 
-  link-age
 ]
 
 commoners-own [
-  time
-  skills
-  interest
+  skills ;; The skills a commoner have. Tasks also have a skill attribute representing the skills needed to contribute to it. TODO Use it beyond setup
+  interest ;; a broad representation of the topic/area the commoner is interested in. It affects its vertical position, thus making it easier to find products and projects with similar interests.
+  total-contribs ;; the total number of finished contributions
 ]
 
 projects-own [
-  interest
+  interest ;; a broad representation of the topic/area the project is about. It affects its vertical position,
 ]
 
 t4sks-own [
-  skill
-  time-required
+  skill ;; The skills needed to contribute to this task. TODO think if keeping it in the basic model
+  time-required ;; How many contributions the task needs to be finished
 ]
 
 products-own [
-  interest
+  interest ;; a broad representation of the topic/area the product is about. It affects its vertical position,
 ]
 
 to setup
   clear-all
-  reset-ticks
 
    ;; colour lines to mark projects and products spaces
    ask patches with [pxcor = 0] [set pcolor white]
@@ -71,10 +76,20 @@ to setup
    create-existing-projects
    create-existing-commoners
 
+   set ticks-without-projects 0
+
+   set contrib-distrib [total-contribs] of commoners
+   set contrib-distrib sort-by > contrib-distrib
+
+   ;; list of contributions by dead agents
+   set dead-commoners-contribs (list)
+
+   reset-ticks
 end
 
 
 to create-existing-products
+  ;; create products; set their position and defeault parameters
 
   if number-of-products = "one" [ set initial-products 1 ]
   if number-of-products = "few" [ set initial-products random 5 + 2 ]
@@ -84,12 +99,12 @@ to create-existing-products
     set interest random num-interest-categories
     set xcor -25 + random 25
     set ycor -25 + interest
-    create-product
+    set-product-parameters
 ]
 
 end
 
-to create-product
+to set-product-parameters
   ;; Style
   set size 2
   set color orange
@@ -101,18 +116,24 @@ to create-product
 end
 
 to create-existing-projects
+  ;; create projects; set their position and defeault parameters
   create-projects initial-projects [
 
     set interest random num-interest-categories
 
-    create-project
+    set-project-parameters
 
-    let my-product min-one-of products [ distance myself ]
-    create-projectproductlink-with my-product [ set color red ]
+    ;; create a project to product link to the nearest product
+    ;; only half of the projects have a product, the others will create a new product once they have finished.
+
+    if random-float 1 < 0.5  [
+      let my-product min-one-of products [ distance myself ]
+      create-projectproductlink-with my-product [ set-projectproductlink-parameters ]
+    ]
   ]
 end
 
-to create-project
+to set-project-parameters
 
     ;; Style
     set size 2.5
@@ -126,16 +147,15 @@ to create-project
 
     set repulsion project-repulsion-prob
 
-    let num-tasks random 10 + 2 ;; TODO take it to configuration and normal distribution for num-tasks
-    set age 0
+    let num-tasks random 10 + 2
 
     hatch-t4sks num-tasks [
-      create-task
+      set-task-parameters
     ]
 
 end
 
-to create-task
+to set-task-parameters
 
   ;; style
   set size 0.7
@@ -149,12 +169,12 @@ to create-task
   fd 1
   ;;
 
-  ;; link
+  ;; link to its project
   create-projecttasklink-with myself [tie]
 
   t4sk-set-skill
 
-  set age 0
+  ;; Number of contributions needed to finish the task
   set time-required random-normal mean-time-required ( mean-time-required / 4 )
 
 end
@@ -182,6 +202,7 @@ to create-existing-commoners
   ;; commoners hava a preferential attachement like structure
   nw:generate-preferential-attachment commoners friendlinks commoners-num
 
+  ;; the majority of the community has not contributed and therefore have no firends in the model
   ask commoners with [count my-friendlinks = 1] [
     ask one-of my-friendlinks [
       die
@@ -189,75 +210,93 @@ to create-existing-commoners
   ]
 
   ask commoners [
-    create-commoner
+    set-commoner-parameters
   ]
 
   ask friendlinks [
-    create-friendlink
+    set-friendlink-parameters
   ]
 
+  ;; The number of friends is considered as a proxy of the commoner contribution activity, thus setting its horizontal position;
   ask commoners [
     let friends count my-friendlinks
+    ;; commoners without friends are at the edge of the model (xcor = 25), each extra friend up to 4 brings it 5 units towards the center
     set xcor 5 * ( 5 - min (list 4 friends) )
   ]
 
 end
 
-to create-commonertasklink
+to set-commonertasklink-parameters
   set color green
   set max-recent-weight 3
-  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
-  set forget-link-prob 1 / 120 ;; TODO 120 as a param
-  set out-attraction commoner-task-attraction-prob
-  set in-attraction task-commoner-attraction-prob
+  set forget-recent-weight-prob 1 / contrib-recent-forg
+  set forget-link-prob 1 / contrib-long-forg
+  set origin-attraction task-commoner-attraction-prob
+  set target-attraction commoner-task-attraction-prob
 end
 
-to create-consumerlink
+to set-consumerlink-parameters
   set color orange
+  set hidden? hide-consumerlinks?
   set max-recent-weight 3
-  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
-  set forget-link-prob 1 / 30 ;; TODO 30 as a param
-  set in-attraction product-commoner-attraction-prob
-  set out-attraction commoner-product-attraction-prob
+  set forget-recent-weight-prob 1 / consume-recent-forg
+  set forget-link-prob 1 / consume-long-forg
+  set origin-attraction product-commoner-attraction-prob
+  set target-attraction commoner-product-attraction-prob
 end
 
-to create-commonerprojectlink
+to set-commonerprojectlink-parameters
   set color green + 3
   set max-recent-weight 3
-  set forget-recent-weight-prob 1 / 7 ;; TODO 7 as a param
-  set forget-link-prob 1 / 30 ;; TODO 30 as a param
+  set forget-recent-weight-prob 1 / project-recent-forg
+  set forget-link-prob 1 / project-long-forg
 end
 
-to create-friendlink
+to set-friendlink-parameters
   set color yellow + 3
   set max-recent-weight 3
-  set forget-recent-weight-prob 1 / 7 ;; TODO 30 as a param
-  set forget-link-prob 1 / 120 ;; TODO 120 as a param
+  set forget-recent-weight-prob 1 / friends-recent-forg
+  set forget-link-prob 1 / friends-long-forg
 end
 
-to create-commoner
+to set-projectproductlink-parameters
+ set color red
+end
+
+to set-commoner-parameters
+
+  ;; style
+  set size 1.5
+  set color blue
+
+
+  ;;position and interest
   set interest random num-interest-categories
   set xcor random 25 + 1
   set ycor -25 + interest
-  set size 1.5
-  set color blue
+
   set repulsion commoner-repulsion-prob
+
   ;; commoners consume a community product
-  create-consumerlink-to min-one-of products [ distance myself ] [create-consumerlink]
+  create-consumerlink-to min-one-of products [ distance myself ] [set-consumerlink-parameters]
 
   ;; 3 random skills per commoner
   set skills (n-of 3 (n-values num-skills [?]))
 
   ;; An initial project per commoner
+  ;; commoners chose projects that contribute to the products they consume
+  ;; if there is no projct that contributes to the commoners products, then choose the closest one
   let product-projects turtle-set [ projectproductlink-neighbors ] of out-consumerlink-neighbors
   ifelse any? product-projects [
-    create-commonerprojectlink-with one-of product-projects [create-commonerprojectlink]
+    create-commonerprojectlink-with one-of product-projects [set-commonerprojectlink-parameters]
   ] [
-    create-commonerprojectlink-with min-one-of projects [ distance myself ] [create-commonerprojectlink]
+    if any? projects [
+      create-commonerprojectlink-with min-one-of projects [ distance myself ] [set-commonerprojectlink-parameters]
+    ]
   ]
 
   let num-friends count my-friendlinks
-  ;; 90's do not contribute
+  ;; commoners without friends do not contribute at setup
   if num-friends = 0 [
     ask my-out-commonertasklinks [die]
     ask my-commonerprojectlinks [die]
@@ -267,10 +306,13 @@ to create-commoner
   let skilled-tasks (turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors) with
     [ member? skill [ skills ] of myself ]
 
+  ;; Make commoner-task connections with an upper bound of the number of friends.
   create-commonertasklinks-to n-of min (list count skilled-tasks num-friends) skilled-tasks [
-    create-commonertasklink
+    set-commonertasklink-parameters
     set recent-weight random min (list 4 num-friends) + random 1
   ]
+
+  set total-contribs sum [recent-weight] of my-out-commonertasklinks * random 10
 
 end
 
@@ -291,7 +333,7 @@ to go
     consume
 
     ;; bring friends
-    recomend
+    recommend
 
     ;; create project
     propose-project
@@ -301,25 +343,53 @@ to go
 
   ]
 
-  ask links with [ recent-weight > 0 and random-float 1 < forget-recent-weight-prob ] [
-    decrease-weight
+  product-death
+
+  project-death
+
+  links-decay
+
+  update-positions
+
+  update-contrib-distrib
+
+  ;; Stop conditions
+  ;; ... if there are no commoner
+  if not any? commoners [ stop ]
+
+  ;; ... if there are no products
+    if not any? products [ stop ]
+
+  ;; ... if there is no project for 30 ticks
+  ifelse not any? projects [
+    set ticks-without-projects ticks-without-projects + 1
+  ] [
+    set ticks-without-projects 0
   ]
 
-  ask links with [ recent-weight = 0 and random-float 1 < forget-link-prob ] [
-     die ;; TODO maybe record total history of this links that died not to lose important information
-  ]
+  if ticks-without-projects > 30 [ stop ]
 
-  ask products [
-    let current-value sum [recent-weight] of my-in-consumerlinks
-    set label current-value
-  ]
+  ;; Gini coefficient calc.
+  update-gini
 
-  ;; Movements of agents toward center
+  tick
+
+end
+
+to update-contrib-distrib
+  set contrib-distrib sentence [total-contribs] of commoners dead-commoners-contribs
+  set contrib-distrib sort-by > contrib-distrib
+end
+
+to update-positions
+    ;; Movements of agents toward center
   ;; For each link breed, weighted by number of links and their recent weights
+  ;; TODO create separate update-position method
   ask turtles [
 
     let linkbreeds (list)
 
+    ;; Target attraction movements
     while [any? my-in-links with [ not member? breed linkbreeds ]] [
       ask one-of my-in-links with [ not member? breed linkbreeds ] [
         set linkbreeds lput breed linkbreeds
@@ -327,15 +397,16 @@ to go
 
       let b last linkbreeds
 
-      if any? my-in-links with [ breed = b and in-attraction > 0] [
-        ask one-of my-in-links with [ breed = b and in-attraction > 0] [
-          if random-float 1 < count [ my-in-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * in-attraction [
+      if any? my-in-links with [ breed = b and target-attraction > 0] [
+        ask one-of my-in-links with [ breed = b and target-attraction > 0] [
+          if random-float 1 < count [ my-in-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * target-attraction [
             move-towards-center myself
           ]
         ]
       ]
     ]
 
+    ;; Origin attraction movements
     while [any? my-out-links with [ not member? breed linkbreeds ]] [
       ask one-of my-out-links with [ not member? breed linkbreeds ] [
         set linkbreeds lput breed linkbreeds
@@ -343,9 +414,9 @@ to go
 
       let b last linkbreeds
 
-      if any? my-out-links with [ breed = b and out-attraction > 0] [
-        ask one-of my-out-links with [ breed = b and out-attraction > 0] [
-          if random-float 1 < count [ my-out-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * out-attraction [
+      if any? my-out-links with [ breed = b and origin-attraction > 0] [
+        ask one-of my-out-links with [ breed = b and origin-attraction > 0] [
+          if random-float 1 < count [ my-out-links with [breed = b and recent-weight > 0] ] of myself * recent-weight * origin-attraction [
             move-towards-center myself
           ]
         ]
@@ -353,258 +424,22 @@ to go
     ]
   ]
 
+
   ;; Movement toward edges of the model.
   ;; Repulsion strength depends on distance to center.
   ask turtles with [random-float 1 < ((25 - abs xcor) / 2.5 * repulsion)] [
     move-towards-edges self
   ]
 
-  tick
 end
 
-;; Link method to increase current weight
-to increase-weight
-
-  set total-weight total-weight + 1
-  set recent-weight min (list max-recent-weight (recent-weight + 1 ))
-
-end
-
-;; Link method to decrease current weight
-to decrease-weight
-
-  set recent-weight max (list 0 (recent-weight - 1 ))
-
-end
-
-to-report project-friends
-  let me myself
-  report commonerprojectlink-neighbors with [friendlink-neighbor? me]
-end
-
-to-report find-project-prob
-  let friends-effect count project-friends * find-project-friends-mult
-  report (min (list max-find-level ((1 + friends-effect) / (distance myself * find-project-dist-mult))))
-end
-
-to find-project
-  ask one-of projects with [not member? self commonerprojectlink-neighbors] [
-    if random-float 1 < find-project-prob [
-      create-commonerprojectlink-with myself [create-commonerprojectlink]
-    ]
+to links-decay
+  ask links with [ recent-weight > 0 and random-float 1 < forget-recent-weight-prob ] [
+    decrease-weight
   ]
-end
 
-;;
-to-report task-friends
-  let me myself
-  report in-commonertasklink-neighbors with [friendlink-neighbor? me]
-end
-
-;; TODO skills and previous contributions
-to-report find-task-prob
-  let friends-effect count task-friends * find-task-friends-mult
-  report (min (list max-find-level ((1 + friends-effect) / (distance myself * find-task-dist-mult))))
-end
-
-
-to find-task
-  let task-of-my-projects
-    turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors
-
-  if any? task-of-my-projects [
-    ask one-of task-of-my-projects [
-      if random-float 1 < find-task-prob [
-        create-commonertasklink-from myself [ create-commonertasklink ]
-      ]
-    ]
-  ]
-end
-
-to-report contrib-prob
-  let tasklinks [ my-out-commonertasklinks ] of myself
-  let num-tasks count tasklinks
-
-  let num-tasks-effect 1 + ln (num-tasks) * contrib-num-task-mult
-  let recent-contrib-effect 1 + ln (1 + sum ([recent-weight] of tasklinks)) * contrib-recent-weight-mult
-  let friend-task-effect 1 + ln (1 + count task-friends) * contrib-friend-task-effect
-
-  ifelse num-tasks = 0 [
-    report 0
-  ] [
-    let prob 0.01 * num-tasks-effect * recent-contrib-effect * friend-task-effect
-    report min (list 0.8 prob)
-  ]
-end
-
-to-report contrib-size
-  report 1
-end
-
-to contribute
-  if any? out-commonertasklink-neighbors [
-    ask one-of out-commonertasklink-neighbors [
-      if random-float 1 < contrib-prob [
-
-        if sum ([recent-weight] of ([ my-out-commonertasklinks ] of myself)) > 5 [ask myself [set color red]]
-
-        ask myself [
-          if color != red [set color pink]
-        ]
-
-        ask in-commonertasklink-from myself [
-          increase-weight
-        ]
-        set time-required time-required - contrib-size
-        if time-required < 0 [
-
-          ;; with some probability, a task generates other task when finished
-          if random-float 1 < task-hatch-task-prob [
-            ;; create another task in the same project
-            ask projecttasklink-neighbors [
-              hatch-t4sks 1 [
-                create-task
-              ]
-            ]
-          ]
-
-          ;; if the project does not have more tasks, it dies and improve its product
-          ask projecttasklink-neighbors [
-
-            if count my-projecttasklinks = 1 [
-              ;; improve product if exists
-              ifelse any? projectproductlink-neighbors [
-                ask projectproductlink-neighbors [
-                  ;; improve
-                  set xcor min(list -1 (xcor + random 25))
-                ]
-              ]
-              ;; if the project is not linked to a product, it creates a new one
-              [
-                hatch-products 1 [
-                  set interest [interest] of myself
-                  set xcor -25 + random 25
-                  set ycor -25 + interest
-                  create-product
-                ]
-              ]
-              die
-            ]
-          ]
-          die
-        ]
-      ]
-    ]
-  ]
-end
-
-to-report find-product-prob
-  report min (list max-find-level (1 / (distance myself * find-product-dist-mult)))
-end
-
-to find-product
-  ask one-of products with [not member? self out-consumerlink-neighbors] [
-    if random-float 1 < find-product-prob [
-      create-consumerlink-from myself [create-consumerlink]
-    ]
-  ]
-end
-
-to find-friends
-  let me self
-  let contribs my-out-commonertasklinks with [ recent-weight > 0 ]
-  if count contribs > 0 [
-    ask one-of contribs [
-      if random-float 1 < min ( list max-find-level (count contribs * find-friend-prob * recent-weight)) [
-        ask other-end [
-          if any? my-in-commonertasklinks with [recent-weight > 0 and other-end != me] [
-            ask one-of my-in-commonertasklinks with [recent-weight > 0 and other-end != me] [
-              ask other-end [
-                ifelse not friendlink-neighbor? me [
-                  create-friendlink-with me [create-friendlink]
-                ] [
-                  ask friendlink-with me [
-                    increase-weight
-                  ]
-                ]
-              ]
-            ]
-          ]
-        ]
-      ]
-    ]
-  ]
-end
-
-to-report consume-prob
-
-  let num-prods count my-out-consumerlinks
-
-  ifelse num-prods = 0 [
-    report 0
-  ] [
-    report 0.1 * (1 + sum [recent-weight] of my-out-consumerlinks) ;; TODO constants to params
-  ]
-end
-
-to consume
-  if count out-consumerlink-neighbors > 0 and random-float 1 < consume-prob [
-    ask one-of out-consumerlink-neighbors [
-      ask in-consumerlink-from myself [
-        increase-weight
-      ]
-    ]
-  ]
-end
-
-to recomend
-  if any? my-out-consumerlinks [
-    ask one-of my-out-consumerlinks [
-      let product other-end
-      let dist 25 - [ xcor ] of product
-      if random-float 1 < min (list max-find-level (recent-weight / (dist * recommend-dist-mult))) [
-        ask myself [
-          hatch-commoners 1 [
-            create-friendlink-with myself
-            create-commoner
-            ask my-out-consumerlinks [ die ]
-            create-consumerlink-to product [create-consumerlink]
-            set xcor 25
-          ]
-        ]
-      ]
-    ]
-  ]
-end
-
-to propose-project
-  if any? my-out-commonertasklinks [
-    ask one-of my-out-commonertasklinks [
-      if random-float 1 < min (list max-find-level (recent-weight / (link-length  * prop-project-dist-mult))) [
-        ask myself [
-          hatch-projects 1 [
-            set xcor -1 * (random 20) - 5
-            set ycor -25 + interest
-            create-project
-
-            let my-product one-of [ projectproductlink-neighbors ] of myself
-
-            ;; Half of the new projects are related to an existing product, the other half will create a new product when finished
-            if my-product != nobody and random-float 1 < 0.5 [
-              create-projectproductlink-with my-product [ set color red ]
-            ]
-          ]
-        ]
-      ]
-    ]
-  ]
-end
-
-to leave
-  if not any? my-out-consumerlinks and not any? my-out-commonertasklinks [
-    if random-float 1 < 0.01 [
-      die
-    ]
+  ask links with [ recent-weight = 0 and random-float 1 < forget-link-prob ] [
+    die
   ]
 end
 
@@ -635,11 +470,373 @@ to move-towards-center [ agent ]
     ]
   ]
 end
+
+;; TODO fix behavior
+;; Link method to increase current weight
+to increase-weight
+
+  set total-weight total-weight + 1
+  set recent-weight min (list max-recent-weight (recent-weight + 1 ))
+
+  ;; make active links visible
+  if hidden? [
+     if (breed = commonertasklinks and not hide-commonertasklinks?) [
+       set hidden? false
+     ]
+     if (breed = consumerlinks and not hide-consumerlinks?) [
+       set hidden? false
+     ]
+     if (breed != commonertasklinks and breed != consumerlinks) [
+       set hidden? false
+     ]
+  ]
+
+end
+
+;; Link method to decrease current weight
+to decrease-weight
+
+  set recent-weight max (list 0 (recent-weight - 1 ))
+    ;; hide
+    if recent-weight = 0 [
+      set hidden? true
+    ]
+end
+
+to-report project-friends
+  let me myself
+  report count commonerprojectlink-neighbors with [friendlink-neighbor? me]
+end
+
+to-report find-project-prob
+  let friends-effect project-friends * find-project-friends-mult
+  report (min (list max-find-level ((1 + friends-effect) / (1 + distance myself * find-project-dist-mult))))
+end
+
+to find-project
+  if any? projects with [not member? self commonerprojectlink-neighbors] [
+    ask one-of projects with [not member? self commonerprojectlink-neighbors] [
+      if random-float 1 < find-project-prob [
+        create-commonerprojectlink-with myself [set-commonerprojectlink-parameters]
+      ]
+    ]
+  ]
+end
+
+;;
+to-report task-friends
+  let me myself
+  report in-commonertasklink-neighbors with [friendlink-neighbor? me]
+end
+
+to-report find-task-prob
+  let friends-effect count task-friends * find-task-friends-mult
+  report (min (list max-find-level ((1 + friends-effect) / (( 1 + distance myself * find-task-dist-mult)))))
+end
+
+
+to find-task
+  let task-of-my-projects
+    turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors
+
+  if any? task-of-my-projects [
+    ask one-of task-of-my-projects [
+      if random-float 1 < find-task-prob [
+        create-commonertasklink-from myself [ set-commonertasklink-parameters ]
+      ]
+    ]
+  ]
+end
+
+to-report contrib-prob
+  ;; returns the probability of the contribution, depending on total contributions, number of friends, recent contribution
+  let tasklinks [ my-out-commonertasklinks ] of myself
+
+
+  let total-contrib-effect 1 + ln (1 + [total-contribs] of myself) * contrib-total-weight-mult
+  let recent-contrib-effect 1 + ln (1 + sum [recent-weight] of [my-out-commonertasklinks] of myself) * contrib-recent-weight-mult
+  let friend-task-effect 1 + ln (1 + count task-friends) * contrib-friend-task-effect
+  let total-contrib-to-task-effect 1 + ln ( 1 + [total-weight] of in-commonertasklink-from myself)
+
+
+  let prob total-contrib-effect  * recent-contrib-effect * friend-task-effect * total-contrib-to-task-effect / (1 + distance myself * 40 )
+
+  ;; Maxium contribution prob is 0.8
+  report min (list 0.8 prob)
+end
+
+to-report contrib-size
+  report 1
+end
+
+;; TODO skills affect probability of contribution
+to contribute
+  ;; A comoner may contribute to one of its tasks depending on distance, friends, recent contributions and total contribution
+  if any? out-commonertasklink-neighbors [
+    ask out-commonertasklink-neighbors [
+      if random-float 1 < contrib-prob [
+
+        ;; Representing a contribution happend
+        ask in-commonertasklink-from myself [
+          increase-weight
+        ]
+
+        ask projecttasklink-neighbors [
+          if not commonerprojectlink-neighbor? myself [
+            create-commonerprojectlink-with myself [ set-commonerprojectlink-parameters ]
+          ]
+          ask commonerprojectlink-with myself [
+            increase-weight
+          ]
+        ]
+        ask myself [
+          set total-contribs total-contribs + 1
+        ]
+
+        ;; decreasing the ammount of work to be done in the task
+        set time-required time-required - contrib-size
+        if time-required < 0 [
+
+          ;; with some probability, a task generates other task when finished
+          if random-float 1 < task-hatch-task-prob [
+            ;; create another task in the same project
+            ask projecttasklink-neighbors [
+              hatch-t4sks 1 [
+                set-task-parameters
+              ]
+            ]
+          ]
+
+          ;; if the project does not have more tasks, it dies and improve its product by changing its x coordinates
+          ask projecttasklink-neighbors [
+
+            if count my-projecttasklinks = 1 [
+              ;; improve product if exists
+              ifelse any? projectproductlink-neighbors [
+                ask projectproductlink-neighbors [
+                  ;; improve
+                  set xcor min(list -1 (xcor + random 25))
+                ]
+              ]
+              ;; if the project is not linked to a product, it creates a new one
+              [
+                hatch-products 1 [
+                  set interest [interest] of myself
+                  set xcor -25 + random 25
+                  set ycor -25 + interest
+                  set-product-parameters
+                ]
+              ]
+              die ;; project dying
+            ]
+          ]
+          die ;;task dying
+        ]
+      ]
+    ]
+  ]
+end
+
+to-report find-product-prob
+  report min (list max-find-level (1 / (1 + distance myself * find-product-dist-mult)))
+end
+
+to find-product
+  ;; find product probability based on distance to the product
+  ask one-of products with [not member? self out-consumerlink-neighbors] [
+    if random-float 1 < find-product-prob [
+      create-consumerlink-from myself [set-consumerlink-parameters]
+    ]
+  ]
+end
+
+to-report find-friend-prob
+  ;; the probability of finding a friend depends on the ammount of recent contribution done to the task
+  report find-friend-mult * recent-weight
+end
+
+to find-friends
+  ;; With some probability set in the parameters,
+  ;; create a friendship relationships with other commoners contributing to the same task
+
+  let me self
+
+  ;; contribs are the active task links
+  let contribs my-out-commonertasklinks with [ recent-weight > 0 ]
+
+  if count contribs > 0 [
+    ;; pick a random active task link
+    ask one-of contribs [
+      if random-float 1 < min (list max-find-level find-friend-prob) [
+        ;; ask the task
+        ask other-end [
+          ;; pick other contributor with recent contributions
+          if any? my-in-commonertasklinks with [recent-weight > 0 and other-end != me] [
+            ask one-of my-in-commonertasklinks with [recent-weight > 0 and other-end != me] [
+              ;; ask the other contributor to become my friend
+              ask other-end [
+                ;; If not a friend, create aa frienship
+                ifelse not friendlink-neighbor? me [
+                  create-friendlink-with me [set-friendlink-parameters]
+                ]
+                ;; If already friends, increase friendship weight
+                [
+                  ask friendlink-with me [
+                    increase-weight
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+end
+
+to-report consume-prob
+  ;; probability of consuming a product, depends on the recent conspumtion of any product and the distance to the product
+  let current-consumption count my-out-consumerlinks * [recent-weight] of in-consumerlink-from myself
+
+  report min (list 0.8 ((1 + current-consumption) / ( 1 + distance myself * consume-dist-mult) ))
+end
+
+to consume
+  if any? out-consumerlink-neighbors [
+    ask one-of out-consumerlink-neighbors [
+      if random-float 1 < consume-prob [
+        ask in-consumerlink-from myself [
+          increase-weight
+        ]
+      ]
+    ]
+  ]
+end
+
+to recommend
+  ;; This is the way we include commoners in the model
+  ;; a commoner recommends a product to a new commoner
+  ;; with a probability that depends on the recent consumption activity of that product by that commoner
+  ;; and the distance of the product to the center of the model
+
+  if any? my-out-consumerlinks [
+    ask one-of my-out-consumerlinks [
+      let product other-end
+      ;; distance of the product to the ceter of the model
+      let dist 25 - [ xcor ] of product
+      if random-float 1 < min (list max-find-level (recent-weight / (dist * recommend-dist-mult))) [
+        ask myself [
+          hatch-commoners 1 [
+            ;;create-friendlink-with myself [set-friendlink-parameters]
+            set-commoner-parameters
+            ;; commoners appear at the edge of the model
+            set xcor 25
+            ;; kill the default link to the closest product that the commoner creates
+            ask my-out-consumerlinks [ die ]
+            ;; create a link to the recommended product
+            create-consumerlink-to product [set-consumerlink-parameters]
+          ]
+        ]
+      ]
+    ]
+  ]
+end
+
+to-report propose-project-prob
+  ;; The probability of a commoner proposing a new project depends on its recent contribution history and total contribution history
+  let total-contrib-effect 1 + ln (1 + [total-contribs] of myself)  * prop-project-total-contrib-mult
+  let recent-contrib-effect 1 + ln (1 + sum [recent-weight] of [my-out-commonertasklinks] of myself) * prop-project-recent-contrib-mult
+
+  report 0.00001 * total-contrib-effect * recent-contrib-effect
+
+end
+
+to propose-project
+  ;; a commoner may hatch a project
+  if any? my-out-commonertasklinks [
+    ask one-of my-out-commonertasklinks [
+      if random-float 1 < min (list max-find-level  propose-project-prob) [
+        ask myself [
+          hatch-projects 1 [
+            set xcor -1 * (random 20) - 5
+            set ycor -25 + interest
+            carefully [set ycor ycor + random 10 - 5][]
+            set-project-parameters
+
+            let my-product one-of [ projectproductlink-neighbors ] of myself
+
+            ;; Half of the new projects are related to an existing product, the other half will create a new product when finished
+            if my-product != nobody and random-float 1 < 0.5 [
+              create-projectproductlink-with my-product [ set color red ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+end
+
+to leave
+
+  ;; a commoner leaves the community if it has no recent consumption or contributing activity with a small chance
+  if not any? my-out-consumerlinks and not any? my-out-commonertasklinks [
+    if random-float 1 < 0.01 [
+      set dead-commoners-contribs lput total-contribs dead-commoners-contribs
+      die
+    ]
+  ]
+
+
+  ;; Thre is a small chance for all commoners to leave even if they are currently active
+  if random-float 1 < leave-prob [
+    die
+  ]
+
+end
+
+to product-death
+  ask products with [ not any? my-in-consumerlinks ][
+     if random-float 1 < (1 / consume-long-forg) [
+       die
+     ]
+  ]
+end
+
+to project-death
+    ask projects with [ not any? my-commonerprojectlinks ][
+     if random-float 1 < (1 / project-long-forg) [
+       ask projecttasklink-neighbors [
+         die
+       ]
+       die
+     ]
+  ]
+end
+
+
+;; Based on update-lorenz-and-gini method from Wilensky, U. (1998). NetLogo Wealth Distribution model. http://ccl.northwestern.edu/netlogo/models/WealthDistribution. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+to update-gini
+  let sum-contribs sum contrib-distrib
+  let contrib-sum-so-far 0
+  set gini-index-reserve 0
+  let num-people length contrib-distrib
+  let index num-people - 1
+
+  ;; (see the Info tab for a description of the curve and measure)
+  repeat num-people [
+    set contrib-sum-so-far (contrib-sum-so-far + item index contrib-distrib)
+    set index (index - 1)
+    set gini-index-reserve
+    gini-index-reserve +
+    (index / num-people) -
+    (contrib-sum-so-far / sum-contribs)
+  ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+205
 15
-656
+651
 482
 25
 25
@@ -714,7 +911,7 @@ initial-projects
 initial-projects
 0
 100
-6
+7
 1
 1
 NIL
@@ -729,7 +926,7 @@ mean-time-required
 mean-time-required
 0
 100
-17
+19
 1
 1
 NIL
@@ -744,7 +941,7 @@ num-skills
 num-skills
 0
 100
-30
+25
 1
 1
 NIL
@@ -759,7 +956,7 @@ commoners-num
 commoners-num
 0
 500
-50
+250
 1
 1
 NIL
@@ -800,101 +997,101 @@ NIL
 1
 
 SLIDER
-675
-220
-997
-253
+1115
+405
+1208
+439
 commoner-task-attraction-prob
 commoner-task-attraction-prob
 0
 1
-0.98
+0.9
 0.02
 1
 NIL
 HORIZONTAL
 
 SLIDER
-675
-185
-998
-218
+760
+325
+852
+358
 commoner-repulsion-prob
 commoner-repulsion-prob
 0
 0.2
+0.06
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1115
+365
+1208
+399
+commoner-product-attraction-prob
+commoner-product-attraction-prob
+0
+1
+0.9
 0.02
+1
+NIL
+HORIZONTAL
+
+SLIDER
+760
+365
+853
+399
+product-repulsion-prob
+product-repulsion-prob
+0
+0.2
+0.1
 0.005
 1
 NIL
 HORIZONTAL
 
 SLIDER
-675
-255
-997
-288
-commoner-product-attraction-prob
-commoner-product-attraction-prob
-0
-1
-0.04
-0.02
-1
-NIL
-HORIZONTAL
-
-SLIDER
-675
-300
-996
-333
-product-repulsion-prob
-product-repulsion-prob
-0
-0.2
-0.065
-0.005
-1
-NIL
-HORIZONTAL
-
-SLIDER
-675
-385
-996
-418
+760
+405
+853
+439
 project-repulsion-prob
 project-repulsion-prob
 0
-0.04
-0.0040
-0.001
+0.1
+0.01
+0.01
 1
 NIL
 HORIZONTAL
 
 SLIDER
-675
-420
-995
-453
+1019
+405
+1112
+439
 task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
 1
-1
+0.59
 0.01
 1
 NIL
 HORIZONTAL
 
 PLOT
-1065
-250
-1295
-370
-# Friend Links
+635
+485
+935
+605
+Activity
 NIL
 NIL
 0.0
@@ -902,17 +1099,18 @@ NIL
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count friendlinks"
+"contribution" 1.0 0 -10899396 true "" "plot sum [recent-weight] of commonertasklinks"
+"consumption" 1.0 0 -955883 true "" "plot sum [recent-weight] of consumerlinks"
 
 PLOT
-1065
-370
-1295
-490
-Contribution Activity
+1250
+485
+1545
+605
+Agent count
 NIL
 NIL
 0.0
@@ -920,17 +1118,20 @@ NIL
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot sum [recent-weight] of commonertasklinks"
+"tasks" 1.0 0 -10899396 true "" "plot count t4sks"
+"project" 1.0 0 -14333415 true "" "plot count projects"
+"commoners" 1.0 0 -13345367 true "" "plot count commoners"
+"products" 1.0 0 -955883 true "" "plot count products"
 
 PLOT
-1065
-490
-1295
-610
-# Tasks
+935
+485
+1250
+605
+Links count
 NIL
 NIL
 0.0
@@ -938,226 +1139,193 @@ NIL
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count t4sks"
+"project-links" 1.0 0 -14333415 true "" "plot count commonerprojectlinks"
+"consume-links" 1.0 0 -955883 true "" "plot count consumerlinks"
+"friend-links" 1.0 0 -1184463 true "" "plot count friendlinks"
+"task-links" 1.0 0 -10899396 true "" "plot count commonertasklinks"
 
-PLOT
-1065
+SLIDER
+1020
+365
+1113
+399
+product-commoner-attraction-prob
+product-commoner-attraction-prob
+0
+1
+0.3
+0.02
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1240
+70
+1332
+101
+find-project-dist-mult
+find-project-dist-mult
+0
+20
+6.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1145
+70
+1237
+101
+find-product-dist-mult
+find-product-dist-mult
+0
+5
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1240
+185
+1332
+216
+find-project-friends-mult
+find-project-friends-mult
+0
 10
-1295
-130
-# Commoner - Project Links
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot count commonerprojectlinks"
-
-PLOT
-1065
-130
-1295
-250
-# Commoner Task Links
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot count commonertasklinks"
-
-SLIDER
-675
-335
-995
-368
-product-commoner-attraction-prob
-product-commoner-attraction-prob
-0
-1
-0.06
-0.02
+10
+0.2
 1
 NIL
 HORIZONTAL
 
 SLIDER
-730
-15
-763
-168
-find-project-dist-mult
-find-project-dist-mult
-0
-5
-1.9
-0.1
-1
-NIL
-VERTICAL
-
-SLIDER
-674
-15
-707
-168
-find-product-dist-mult
-find-product-dist-mult
-0
-5
-2.45
-0.05
-1
-NIL
-VERTICAL
-
-SLIDER
-766
-15
-799
-168
-find-project-friends-mult
-find-project-friends-mult
-0
-5
-5
-0.2
-1
-NIL
-VERTICAL
-
-SLIDER
-859
-15
-892
-168
+1335
+185
+1427
+216
 find-task-friends-mult
 find-task-friends-mult
 0
-5
-5
+10
+10
 0.1
 1
 NIL
-VERTICAL
+HORIZONTAL
 
 SLIDER
-822
-15
-855
-168
+1335
+70
+1427
+101
 find-task-dist-mult
 find-task-dist-mult
 0
 5
-3
-0.1
 1
-NIL
-VERTICAL
-
-SLIDER
-675
-505
-890
-538
-contrib-recent-weight-mult
-contrib-recent-weight-mult
-1
-3
-3
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-1010
-175
-1043
-325
+860
+145
+952
+178
+contrib-recent-weight-mult
+contrib-recent-weight-mult
+1
+10
+4.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+430
+185
+463
 max-find-level
 max-find-level
 0
 1
-0.15
+0.2
 0.05
 1
 NIL
-VERTICAL
+HORIZONTAL
 
 SLIDER
-918
-15
-951
-165
-find-friend-prob
-find-friend-prob
+1430
+145
+1523
+178
+find-friend-mult
+find-friend-mult
 0
-0.2
-0.14
-0.02
+1
+0.7
+0.05
 1
 NIL
-VERTICAL
+HORIZONTAL
 
 SLIDER
-675
-470
-890
-503
-contrib-num-task-mult
-contrib-num-task-mult
+860
+105
+952
+138
+contrib-total-weight-mult
+contrib-total-weight-mult
 1
-3
-3
+10
+4.5
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-675
-540
-889
-573
+860
+185
+952
+218
 contrib-friend-task-effect
 contrib-friend-task-effect
 1
-3
-3
+10
+4.5
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-969
-15
-1002
-166
+955
+70
+1047
+101
 recommend-dist-mult
 recommend-dist-mult
 0
-100
-98
-0.2
+10
+2.9
+0.1
 1
 NIL
-VERTICAL
+HORIZONTAL
 
 SLIDER
 20
@@ -1168,39 +1336,542 @@ task-hatch-task-prob
 task-hatch-task-prob
 0
 1
-0.7
+0.8
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-1012
+765
+70
+857
+101
+consume-dist-mult
+consume-dist-mult
+0
+10
+0.4
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1050
+105
+1142
+138
+prop-project-total-contrib-mult
+prop-project-total-contrib-mult
+1
+10
+10
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1050
+145
+1142
+178
+prop-project-recent-contrib-mult
+prop-project-recent-contrib-mult
+1
+10
+10
+0.1
+1
+NIL
+HORIZONTAL
+
+PLOT
+205
+485
+405
+605
+Contrib Distribution
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -10899396 true "" "plot-pen-reset\nforeach contrib-distrib plot"
+
+SWITCH
 15
-1045
-166
-prop-project-dist-mult
-prop-project-dist-mult
+535
+195
+570
+hide-consumerlinks?
+hide-consumerlinks?
+0
+1
+-1000
+
+SWITCH
+15
+570
+195
+605
+hide-commonertasklinks?
+hide-commonertasklinks?
+1
+1
+-1000
+
+SLIDER
+20
+465
+185
+500
+leave-prob
+leave-prob
+0
+0.005
+1.0E-4
+0.00001
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+765
+45
+825
+63
+consume
+12
+0.0
+1
+
+TEXTBOX
+860
+45
+935
+71
+contribute
+12
+0.0
+1
+
+TEXTBOX
+660
+80
+735
+98
+Distance
+12
+0.0
+1
+
+TEXTBOX
+660
+160
+810
+178
+recent contrib
+12
+0.0
+1
+
+TEXTBOX
+660
+115
+810
+133
+total-contrib\n
+12
+0.0
+1
+
+TEXTBOX
+660
+200
+810
+218
+friends
+12
+0.0
+1
+
+TEXTBOX
+1145
+45
+1225
+63
+find-product
+12
+0.0
+1
+
+TEXTBOX
+1240
+45
+1390
+63
+find-project\n
+12
+0.0
+1
+
+TEXTBOX
+1335
+45
+1440
+63
+find-task
+12
+0.0
+1
+
+TEXTBOX
+955
+45
+1105
+63
+recommend
+12
+0.0
+1
+
+TEXTBOX
+1055
+45
+1205
+71
+project prop.
+12
+0.0
+1
+
+TEXTBOX
+665
+280
+815
+298
+-- MOVEMENT --
+12
+0.0
+1
+
+TEXTBOX
+665
+305
+860
+323
+-------- Repulsion: ----------------
+12
+0.0
+1
+
+TEXTBOX
+670
+330
+745
+348
+Commoners
+12
+0.0
+1
+
+TEXTBOX
+671
+414
+731
+437
+Projects
+12
+0.0
+1
+
+TEXTBOX
+672
+375
+737
+398
+Products
+12
+0.0
+1
+
+TEXTBOX
+660
+215
+1535
+234
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+12
+0.0
+1
+
+TEXTBOX
+889
+370
+983
+393
+consume links
+12
+0.0
+1
+
+TEXTBOX
+893
+414
+1081
+437
+contrib links
+12
+0.0
+1
+
+TEXTBOX
+1018
+337
+1091
+360
+commoner
+12
+0.0
+1
+
+TEXTBOX
+1115
+335
+1303
+358
+product/project
+12
+0.0
+1
+
+TEXTBOX
+894
+305
+1201
+325
+-------- Attraction: --------------------------------------
+12
+0.0
+1
+
+TEXTBOX
+660
+13
+848
+36
+-- ACTIVITIES --
+12
+0.0
+1
+
+TEXTBOX
+1434
+43
+1622
+66
+find-friend
+12
+0.0
+1
+
+TEXTBOX
+660
+95
+1550
+113
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n
+12
+0.0
+1
+
+TEXTBOX
+660
+135
+1525
+153
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+12
+0.0
+1
+
+TEXTBOX
+660
+175
+1545
+193
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+12
+0.0
+1
+
+TEXTBOX
+20
+510
+215
+551
+Hide links:
+12
+0.0
+1
+
+PLOT
+405
+485
+635
+605
+Gini
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot (gini-index-reserve / length contrib-distrib) / 0.5"
+
+SLIDER
+1330
+325
+1422
+358
+friends-recent-forg
+friends-recent-forg
+0
+30
+14
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1425
+325
+1517
+358
+friends-long-forg
+friends-long-forg
 0
 100
 100
 1
 1
 NIL
-VERTICAL
+HORIZONTAL
+
+SLIDER
+1330
+365
+1422
+398
+consume-recent-forg
+consume-recent-forg
+0
+30
+7
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1425
+365
+1517
+398
+consume-long-forg
+consume-long-forg
+0
+100
+30
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1330
+405
+1422
+438
+contrib-recent-forg
+contrib-recent-forg
+0
+30
+7
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1425
+405
+1517
+438
+contrib-long-forg
+contrib-long-forg
+0
+100
+30
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1330
+445
+1422
+478
+project-recent-forg
+project-recent-forg
+0
+30
+7
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1425
+445
+1517
+478
+project-long-forg
+project-long-forg
+0
+100
+30
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés 2017.
 
 ## INTRODUCTION
 
-This model is an implementation of a novel conceptual framework - the ‘Commoners Framework’ - to be used when conceptualising and modelling the behaviour of commons-based peer production (CBPP) communities. 
+This model is an implementation of a novel conceptual framework - the ‘Commoners Framework’ - to be used when conceptualising and modelling the behaviour of commons-based peer production (CBPP) communities.
 
-The most up to date version of the model can be accessed at https://github.com/P2Pvalue/CommonersFramework. 
+The most up to date version of the model can be accessed at https://github.com/P2Pvalue/CommonersFramework.
 
 **Purpose and development**
 
-The Commoners Framework, and by extension, this model, can be used to represent the behaviour and operation of a wide-range of CBPP communities, and similar organisations (such as those that make use of volunteers). It represents the processes behind individuals’ decisions to contribute to, enter or exit, or make ‘friends’ in, communities. Through this representation of individuals’ behaviour, the framework aims to account for patterns of behaviour observed at the community level. For example, the distribution of participation rates among individuals, which often follows a power law distribution, also known as the ‘1-9-90 rule’; where 1% of the community – the core members – perform most of the work, 9% of the community – the contributors – occasionally contribute and 90% of the community – the users or consumers - use the commons without directly contributing to produce it. The framework was developed based on recent empirical findings on behaviour in a wide variety of communities and was refined using the structural rigour imposed when building an agent-based model (ABM). 
+The Commoners Framework, and by extension, this model, can be used to represent the behaviour and operation of a wide-range of CBPP communities, and similar organisations (such as those that make use of volunteers). It represents the processes behind individuals’ decisions to contribute to, enter or exit, or make ‘friends’ in, communities. Through this representation of individuals’ behaviour, the framework aims to account for patterns of behaviour observed at the community level. For example, the distribution of participation rates among individuals, which often follows a power law distribution, also known as the ‘1-9-90 rule’; where 1% of the community – the core members – perform most of the work, 9% of the community – the contributors – occasionally contribute and 90% of the community – the users or consumers - use the commons without directly contributing to produce it. The framework was developed based on recent empirical findings on behaviour in a wide variety of communities and was refined using the structural rigour imposed when building an agent-based model (ABM).
 
 **Logic of model**
 
@@ -1243,7 +1914,7 @@ Finally, three horizontal sliders at the bottom set how much having friends, hav
 
 ## PLAYING WITH THE MODEL
 
-The model tries to represent the behaviour in collaborative communities, where contributions and participation often follow a power law distribution where 1% of the community does most of the work, 9% contributes occasionally and the rest only consumes. 
+The model tries to represent the behaviour in collaborative communities, where contributions and participation often follow a power law distribution where 1% of the community does most of the work, 9% contributes occasionally and the rest only consumes.
 
 Try setting the repulsion, attraction and find probabilities in the model to represent this behaviour. Too much attraction or too little repulsion will make all the elements come towards the center. Few chances of finding tasks and contributing will make the Commoners leave the model, due to their small involvement.
 @#$#@#$#@
@@ -1553,10 +2224,434 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.1.0
+NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="first" repetitions="10" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="product-commoner-attraction-prob">
+      <value value="0.2"/>
+      <value value="0.3"/>
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recommend-dist-mult">
+      <value value="1.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-skills">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-total-weight-mult">
+      <value value="6.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-dist-mult">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-commonertasklinks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-weight-mult">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-recent-contrib-mult">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-friends-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-repulsion-prob">
+      <value value="0.006"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-friend-task-effect">
+      <value value="5.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-friends-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-commoner-attraction-prob">
+      <value value="0.91"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="19"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-dist-mult">
+      <value value="1.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-dist-mult">
+      <value value="5.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="leave-prob">
+      <value value="1.0E-4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-friend-mult">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-consumerlinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="product-repulsion-prob">
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoners-num">
+      <value value="365"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-product-dist-mult">
+      <value value="0.6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-hatch-task-prob">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-repulsion-prob">
+      <value value="0.08"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-long-forg">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-find-level">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-long-forg">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-total-contrib-mult">
+      <value value="8.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-recent-forg">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-task-attraction-prob">
+      <value value="0.08"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-product-attraction-prob">
+      <value value="0.6"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="sensit-product-commoner-attraction-prob" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>sum sentence contrib-distrib dead-commoners-contribs</metric>
+    <metric>(gini-index-reserve / length contrib-distrib) / 0.5</metric>
+    <metric>sum [recent-weight] of consumerlinks</metric>
+    <metric>sum [recent-weight] of commonertasklinks</metric>
+    <metric>count commoners</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count products</metric>
+    <metric>count commonerprojectlinks</metric>
+    <metric>count commonertasklinks</metric>
+    <metric>count consumerlinks</metric>
+    <metric>count friendlinks</metric>
+    <enumeratedValueSet variable="product-commoner-attraction-prob">
+      <value value="0.1"/>
+      <value value="0.3"/>
+      <value value="0.5"/>
+      <value value="0.9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recommend-dist-mult">
+      <value value="2.9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-skills">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-total-weight-mult">
+      <value value="4.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-dist-mult">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-commonertasklinks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-weight-mult">
+      <value value="4.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-recent-contrib-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-friends-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-repulsion-prob">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-friend-task-effect">
+      <value value="4.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-friends-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-commoner-attraction-prob">
+      <value value="0.59"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="19"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-dist-mult">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-dist-mult">
+      <value value="6.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="leave-prob">
+      <value value="1.0E-4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-friend-mult">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-consumerlinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="product-repulsion-prob">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoners-num">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-recent-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-product-dist-mult">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-hatch-task-prob">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-repulsion-prob">
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-long-forg">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-find-level">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-total-contrib-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-task-attraction-prob">
+      <value value="0.68"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-product-attraction-prob">
+      <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="sensit-commoner-product-attraction-prob" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>sum sentence contrib-distrib dead-commoners-contribs</metric>
+    <metric>(gini-index-reserve / length contrib-distrib) / 0.5</metric>
+    <metric>sum [recent-weight] of consumerlinks</metric>
+    <metric>sum [recent-weight] of commonertasklinks</metric>
+    <metric>count commoners</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count products</metric>
+    <metric>count commonerprojectlinks</metric>
+    <metric>count commonertasklinks</metric>
+    <metric>count consumerlinks</metric>
+    <metric>count friendlinks</metric>
+    <enumeratedValueSet variable="product-commoner-attraction-prob">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recommend-dist-mult">
+      <value value="2.9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-skills">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-total-weight-mult">
+      <value value="4.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-dist-mult">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-commonertasklinks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-weight-mult">
+      <value value="4.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-recent-contrib-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-friends-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-repulsion-prob">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-friend-task-effect">
+      <value value="4.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-friends-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-commoner-attraction-prob">
+      <value value="0.59"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="19"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-dist-mult">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-dist-mult">
+      <value value="6.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="leave-prob">
+      <value value="1.0E-4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-friend-mult">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-consumerlinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="product-repulsion-prob">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoners-num">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-recent-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-product-dist-mult">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-hatch-task-prob">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-repulsion-prob">
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-long-forg">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-find-level">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-long-forg">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-total-contrib-mult">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-task-attraction-prob">
+      <value value="0.68"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-product-attraction-prob">
+      <value value="0.1"/>
+      <value value="0.3"/>
+      <value value="0.5"/>
+      <value value="0.9"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="sensit-commoner-task-attraction-prob" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>sum sentence contrib-distrib dead-commoners-contribs</metric>
+    <metric>(gini-index-reserve / length contrib-distrib) / 0.5</metric>
+    <metric>sum [recent-weight] of consumerlinks</metric>
+    <metric>sum [recent-weight] of commonertasklinks</metric>
+    <metric>count commoners</metric>
+    <metric>count projects</metric>
+    <metric>count t4sks</metric>
+    <metric>count products</metric>
+    <metric>count commonerprojectlinks</metric>
+    <metric>count commonertasklinks</metric>
+    <metric>count consumerlinks</metric>
+    <metric>count friendlinks</metric>
+    <enumeratedValueSet variable="commoner-task-attraction-prob">
+      <value value="0.1"/>
+      <value value="0.3"/>
+      <value value="0.5"/>
+      <value value="0.9"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
