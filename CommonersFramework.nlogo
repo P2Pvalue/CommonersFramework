@@ -84,6 +84,8 @@ to setup
    ;; list of contributions by dead agents
    set dead-commoners-contribs (list)
 
+   update-gini
+
    reset-ticks
 end
 
