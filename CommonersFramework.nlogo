@@ -1887,6 +1887,16 @@ hide-commonerprojectlinks?
 1
 -1000
 
+TEXTBOX
+1250
+305
+1575
+323
+-------- Links forgetfulness: --------------------------
+12
+0.0
+1
+
 @#$#@#$#@
 Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés 2017.
 
