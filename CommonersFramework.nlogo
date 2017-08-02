@@ -2,7 +2,7 @@
 
 ; Comments welcome - emails: p.barbrook-johnson@psi.org.uk, antoniotenorio@ucm.es
 
-extensions [network nw]
+extensions [ nw ]
 globals [
 
   initial-products ;; number of initial products
@@ -228,6 +228,7 @@ end
 
 to set-commonertasklink-parameters
   set color green
+  set hidden? hide-commonertasklinks?
   set max-recent-weight 3
   set forget-recent-weight-prob 1 / contrib-recent-forg
   set forget-link-prob 1 / contrib-long-forg
@@ -247,6 +248,7 @@ end
 
 to set-commonerprojectlink-parameters
   set color green + 3
+  set hidden? hide-commonerprojectlinks?
   set max-recent-weight 3
   set forget-recent-weight-prob 1 / project-recent-forg
   set forget-link-prob 1 / project-long-forg
@@ -486,7 +488,10 @@ to increase-weight
      if (breed = consumerlinks and not hide-consumerlinks?) [
        set hidden? false
      ]
-     if (breed != commonertasklinks and breed != consumerlinks) [
+     if (breed = commonerprojectlinks and not hide-commonerprojectlinks?) [
+       set hidden? false
+     ]
+     if (breed != commonertasklinks and breed != consumerlinks and breed != commonerprojectlinks) [
        set hidden? false
      ]
   ]
@@ -889,9 +894,9 @@ number-of-products
 
 SLIDER
 20
-270
+250
 185
-303
+283
 num-interest-categories
 num-interest-categories
 0
@@ -919,9 +924,9 @@ HORIZONTAL
 
 SLIDER
 20
-350
+330
 185
-383
+363
 mean-time-required
 mean-time-required
 0
@@ -934,9 +939,9 @@ HORIZONTAL
 
 SLIDER
 20
-310
+290
 185
-343
+323
 num-skills
 num-skills
 0
@@ -1000,7 +1005,7 @@ SLIDER
 1115
 405
 1208
-439
+438
 commoner-task-attraction-prob
 commoner-task-attraction-prob
 0
@@ -1030,7 +1035,7 @@ SLIDER
 1115
 365
 1208
-399
+398
 commoner-product-attraction-prob
 commoner-product-attraction-prob
 0
@@ -1045,7 +1050,7 @@ SLIDER
 760
 365
 853
-399
+398
 product-repulsion-prob
 product-repulsion-prob
 0
@@ -1060,7 +1065,7 @@ SLIDER
 760
 405
 853
-439
+438
 project-repulsion-prob
 project-repulsion-prob
 0
@@ -1075,7 +1080,7 @@ SLIDER
 1019
 405
 1112
-439
+438
 task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
@@ -1151,7 +1156,7 @@ SLIDER
 1020
 365
 1113
-399
+398
 product-commoner-attraction-prob
 product-commoner-attraction-prob
 0
@@ -1166,7 +1171,7 @@ SLIDER
 1240
 70
 1332
-101
+103
 find-project-dist-mult
 find-project-dist-mult
 0
@@ -1181,7 +1186,7 @@ SLIDER
 1145
 70
 1237
-101
+103
 find-product-dist-mult
 find-product-dist-mult
 0
@@ -1196,7 +1201,7 @@ SLIDER
 1240
 185
 1332
-216
+218
 find-project-friends-mult
 find-project-friends-mult
 0
@@ -1211,7 +1216,7 @@ SLIDER
 1335
 185
 1427
-216
+218
 find-task-friends-mult
 find-task-friends-mult
 0
@@ -1226,7 +1231,7 @@ SLIDER
 1335
 70
 1427
-101
+103
 find-task-dist-mult
 find-task-dist-mult
 0
@@ -1254,9 +1259,9 @@ HORIZONTAL
 
 SLIDER
 20
-430
+410
 185
-463
+443
 max-find-level
 max-find-level
 0
@@ -1316,7 +1321,7 @@ SLIDER
 955
 70
 1047
-101
+103
 recommend-dist-mult
 recommend-dist-mult
 0
@@ -1329,9 +1334,9 @@ HORIZONTAL
 
 SLIDER
 20
-390
+370
 185
-423
+403
 task-hatch-task-prob
 task-hatch-task-prob
 0
@@ -1346,7 +1351,7 @@ SLIDER
 765
 70
 857
-101
+103
 consume-dist-mult
 consume-dist-mult
 0
@@ -1407,9 +1412,9 @@ PENS
 
 SWITCH
 15
-535
+510
 195
-570
+543
 hide-consumerlinks?
 hide-consumerlinks?
 0
@@ -1418,9 +1423,9 @@ hide-consumerlinks?
 
 SWITCH
 15
-570
+545
 195
-605
+578
 hide-commonertasklinks?
 hide-commonertasklinks?
 1
@@ -1429,9 +1434,9 @@ hide-commonertasklinks?
 
 SLIDER
 20
-465
+445
 185
-500
+478
 leave-prob
 leave-prob
 0
@@ -1714,9 +1719,9 @@ TEXTBOX
 
 TEXTBOX
 20
-510
+485
 215
-551
+526
 Hide links:
 12
 0.0
@@ -1859,6 +1864,17 @@ project-long-forg
 1
 NIL
 HORIZONTAL
+
+SWITCH
+15
+580
+195
+613
+hide-commonerprojectlinks?
+hide-commonerprojectlinks?
+1
+1
+-1000
 
 @#$#@#$#@
 Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés 2017.
