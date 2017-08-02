@@ -485,7 +485,6 @@ to move-towards-center [ agent ]
   ]
 end
 
-;; TODO fix behavior
 ;; Link method to increase current weight
 to increase-weight
 
@@ -739,9 +738,9 @@ to recommend
   if any? my-out-consumerlinks [
     ask one-of my-out-consumerlinks [
       let product other-end
-      ;; distance of the product to the ceter of the model
-      let dist 25 - [ xcor ] of product
-      if random-float 1 < min (list max-find-level (recent-weight / (dist * recommend-dist-mult))) [
+      ;; distance of the product to the center of the model
+      let dist 25 + [ xcor ] of product
+      if random-float 1 < min (list max-find-level (recent-weight / ( (1 + dist) * recommend-dist-mult))) [
         ask myself [
           hatch-commoners 1 [
             ;;create-friendlink-with myself [set-friendlink-parameters]
