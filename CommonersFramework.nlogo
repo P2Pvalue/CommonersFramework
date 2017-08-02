@@ -174,7 +174,7 @@ to set-task-parameters
 
   t4sk-set-skill
 
-  ;; Number of contributions needed to finish the task
+  ;; Number of contribution actions needed to finish the task
   set time-required random-normal mean-time-required ( mean-time-required / 4 )
 
 end
