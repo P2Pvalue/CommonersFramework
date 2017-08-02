@@ -386,9 +386,18 @@ to update-contrib-distrib
 end
 
 to update-positions
-    ;; Movements of agents toward center
+
+  ;; each tick, agents update their positions depending on:
+  ;;  1) the attraction affecting them from their active links: consumer/commonertask/commonerproject
+  attraction-movements
+  ;;  2) the repulsion towards the edges of the model representing natural decay of activity/interest
+  repulsion-movements
+
+end
+
+to attraction-movements
+  ;; Movements of agents toward center
   ;; For each link breed, weighted by number of links and their recent weights
-  ;; TODO create separate update-position method
   ask turtles [
 
     let linkbreeds (list)
@@ -428,13 +437,14 @@ to update-positions
     ]
   ]
 
+end
 
+to repulsion-movements
   ;; Movement toward edges of the model.
   ;; Repulsion strength depends on distance to center.
   ask turtles with [random-float 1 < ((25 - abs xcor) / 2.5 * repulsion)] [
     move-towards-edges self
   ]
-
 end
 
 to links-decay
