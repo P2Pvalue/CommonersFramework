@@ -293,7 +293,7 @@ to set-commoner-parameters
   create-consumerlink-to min-one-of products [ distance myself ] [set-consumerlink-parameters]
 
   ;; 3 random skills per commoner
-  set skills (n-of 3 (n-values num-skills [?]))
+  set skills (n-of 3 (n-values num-skills [x -> x]))
 
 
   let num-friends count my-friendlinks
@@ -609,7 +609,7 @@ end
 
 to contribute
 
-  let commoner self
+  let contributor self
   ;; A comoner may contribute to one of its tasks depending on distance, friends, recent contributions and total contribution
   if any? out-commonertasklink-neighbors [
     ask out-commonertasklink-neighbors [
@@ -621,10 +621,10 @@ to contribute
         ]
 
         ask projecttasklink-neighbors [
-          if not commonerprojectlink-neighbor? commoner [
-            create-commonerprojectlink-with commoner [ set-commonerprojectlink-parameters ]
+          if not commonerprojectlink-neighbor? contributor [
+            create-commonerprojectlink-with contributor [ set-commonerprojectlink-parameters ]
           ]
-          ask commonerprojectlink-with commoner [
+          ask commonerprojectlink-with contributor [
             increase-weight
           ]
         ]
@@ -760,9 +760,9 @@ to recommend
 
   if any? my-out-consumerlinks [
     ask one-of my-out-consumerlinks [
-      let product other-end
+      let other-product other-end
       ;; distance of the product to the center of the model
-      let dist 25 + [ xcor ] of product
+      let dist 25 + [ xcor ] of other-product
       if random-float 1 < min (list max-find-level (recent-weight / ( 1 + dist * recommend-dist-mult))) [
         ask myself [
           hatch-commoners 1 [
@@ -773,7 +773,7 @@ to recommend
             ;; kill the default link to the closest product that the commoner creates
             ask my-out-consumerlinks [ die ]
             ;; create a link to the recommended product
-            create-consumerlink-to product [set-consumerlink-parameters]
+            create-consumerlink-to other-product [set-consumerlink-parameters]
           ]
         ]
       ]
@@ -895,10 +895,10 @@ end
 GRAPHICS-WINDOW
 205
 15
-651
-482
-25
-25
+649
+460
+-1
+-1
 8.55
 1
 10
@@ -955,7 +955,7 @@ num-interest-categories
 num-interest-categories
 0
 50
-50
+50.0
 1
 1
 NIL
@@ -970,7 +970,7 @@ initial-projects
 initial-projects
 0
 100
-30
+30.0
 1
 1
 NIL
@@ -985,7 +985,7 @@ mean-time-required
 mean-time-required
 0
 100
-15
+30.0
 1
 1
 NIL
@@ -1000,7 +1000,7 @@ num-skills
 num-skills
 0
 100
-25
+50.0
 1
 1
 NIL
@@ -1015,7 +1015,7 @@ commoners-num
 commoners-num
 1
 500
-200
+200.0
 1
 1
 NIL
@@ -1064,7 +1064,7 @@ commoner-task-attraction-prob
 commoner-task-attraction-prob
 0
 2
-1.4
+1.0
 0.1
 1
 NIL
@@ -1094,7 +1094,7 @@ commoner-product-attraction-prob
 commoner-product-attraction-prob
 0
 2
-1.3
+1.0
 0.1
 1
 NIL
@@ -1139,7 +1139,7 @@ task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
 2
-1.4
+1.0
 0.1
 1
 NIL
@@ -1215,7 +1215,7 @@ product-commoner-attraction-prob
 product-commoner-attraction-prob
 0
 2
-0.2
+0.1
 0.1
 1
 NIL
@@ -1230,7 +1230,7 @@ find-project-dist-mult
 find-project-dist-mult
 0
 10
-2
+1.0
 0.1
 1
 NIL
@@ -1245,7 +1245,7 @@ find-product-dist-mult
 find-product-dist-mult
 0
 5
-0.5
+1.0
 0.1
 1
 NIL
@@ -1260,7 +1260,7 @@ find-project-friends-mult
 find-project-friends-mult
 0
 10
-2
+2.0
 0.2
 1
 NIL
@@ -1275,7 +1275,7 @@ find-task-friends-mult
 find-task-friends-mult
 0
 10
-2
+2.0
 0.1
 1
 NIL
@@ -1290,7 +1290,7 @@ find-task-dist-mult
 find-task-dist-mult
 0
 5
-2
+1.0
 0.1
 1
 NIL
@@ -1305,7 +1305,7 @@ max-find-level
 max-find-level
 0
 1
-0.25
+0.2
 0.05
 1
 NIL
@@ -1320,7 +1320,7 @@ find-friend-mult
 find-friend-mult
 0
 10
-10
+10.0
 0.5
 1
 NIL
@@ -1335,7 +1335,7 @@ recommend-dist-mult
 recommend-dist-mult
 0
 100
-30
+30.0
 1
 1
 NIL
@@ -1350,7 +1350,7 @@ task-hatch-task-prob
 task-hatch-task-prob
 0
 1
-0.3
+0.4
 0.1
 1
 NIL
@@ -1365,7 +1365,7 @@ consume-dist-mult
 consume-dist-mult
 0
 10
-1.1
+1.0
 0.1
 1
 NIL
@@ -1380,7 +1380,7 @@ prop-project-total-contrib-mult
 prop-project-total-contrib-mult
 1
 20
-10
+10.0
 1
 1
 NIL
@@ -1395,7 +1395,7 @@ prop-project-recent-contrib-mult
 prop-project-recent-contrib-mult
 1
 20
-10
+10.0
 1
 1
 NIL
@@ -1450,7 +1450,7 @@ leave-prob
 leave-prob
 0
 0.005
-1.1E-4
+2.0E-4
 0.00001
 1
 NIL
@@ -1745,7 +1745,7 @@ friends-recent-forg
 friends-recent-forg
 0
 30
-14
+14.0
 1
 1
 NIL
@@ -1760,7 +1760,7 @@ friends-long-forg
 friends-long-forg
 0
 100
-50
+50.0
 1
 1
 NIL
@@ -1775,7 +1775,7 @@ consume-recent-forg
 consume-recent-forg
 0
 30
-14
+14.0
 1
 1
 NIL
@@ -1790,7 +1790,7 @@ consume-long-forg
 consume-long-forg
 0
 100
-50
+50.0
 1
 1
 NIL
@@ -1805,7 +1805,7 @@ contrib-recent-forg
 contrib-recent-forg
 0
 30
-7
+7.0
 1
 1
 NIL
@@ -1820,7 +1820,7 @@ contrib-long-forg
 contrib-long-forg
 0
 100
-30
+14.0
 1
 1
 NIL
@@ -1835,7 +1835,7 @@ project-recent-forg
 project-recent-forg
 0
 30
-7
+7.0
 1
 1
 NIL
@@ -1850,7 +1850,7 @@ project-long-forg
 project-long-forg
 0
 100
-30
+14.0
 1
 1
 NIL
@@ -1893,7 +1893,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 2 -16777216 true "" "; the index of eah element in the list\nlet index 1\nplot-pen-reset\nforeach contrib-distrib task [ \n  if ? > 0 [plotxy (ln ?) (ln index - ln 1) ]\n  set index 1 + index\n]"
+"default" 1.0 2 -16777216 true "" "; the index of eah element in the list\nlet index 1\nplot-pen-reset\nforeach contrib-distrib [ [x] ->\n  if x > 0 [plotxy (ln x) (ln index - ln 1) ]\n  set index 1 + index\n]"
 
 PLOT
 685
@@ -1940,7 +1940,7 @@ contrib-dist-mult
 contrib-dist-mult
 0
 2
-1
+0.7
 0.1
 1
 NIL
@@ -1955,7 +1955,7 @@ pl-tests-every-ticks
 pl-tests-every-ticks
 50
 1000
-250
+250.0
 50
 1
 NIL
@@ -2334,9 +2334,8 @@ false
 0
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
-
 @#$#@#$#@
-NetLogo 5.3
+NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -2776,7 +2775,6 @@ true
 0
 Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
-
 @#$#@#$#@
 1
 @#$#@#$#@
