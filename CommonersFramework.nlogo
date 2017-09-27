@@ -2,7 +2,9 @@
 
 ; Comments welcome - emails: p.barbrook-johnson@psi.org.uk, antoniotenorio@ucm.es
 
-extensions [ nw ]
+; TODO 1) provide extension instalation instructions; 2) model version without r extension
+extensions [ nw r ]
+
 globals [
 
   initial-products ;; number of initial products
@@ -10,6 +12,9 @@ globals [
   dead-commoners-contribs ;; Sorted list of contributions per dead commoner
   ticks-without-projects ;; ticks without projects in the model; used for a stop condition
   gini-index-reserve ;; gini-index
+  power-law-pvalue ;; power law p-value
+  power-law-xmin ;; power law xmin parameter
+  power-law-alpha ;; power law alpha parameter
 
 ]
 
@@ -31,7 +36,7 @@ turtles-own [
 
 links-own [
 
-  total-weight ;; TODO use it in the model
+  total-weight ;; record of the number of interactions of the interaction the link represents
   recent-weight ;; the memory of recent activity from between two entities (e.g. Contributions between a commoner and a task or recent frecuency of collaboration between two friends)
   max-recent-weight ;; A parameter used to cap the recent weight of links.
 
@@ -48,7 +53,7 @@ links-own [
 ]
 
 commoners-own [
-  skills ;; The skills a commoner have. Tasks also have a skill attribute representing the skills needed to contribute to it. TODO Use it beyond setup
+  skills ;; The skills a commoner have. Tasks also have a skill attribute representing the skills needed to contribute to it. TODO consider to remove it from basic model
   interest ;; a broad representation of the topic/area the commoner is interested in. It affects its vertical position, thus making it easier to find products and projects with similar interests.
   total-contribs ;; the total number of finished contributions
 ]
@@ -67,6 +72,7 @@ products-own [
 ]
 
 to setup
+
   clear-all
 
    ;; colour lines to mark projects and products spaces
@@ -85,6 +91,8 @@ to setup
    set dead-commoners-contribs (list)
 
    update-gini
+
+   r:eval "library('poweRlaw')"
 
    reset-ticks
 end
@@ -143,7 +151,7 @@ to set-project-parameters
     set shape "target"
     ;;
 
-    set xcor -1 * (random 20) - 5
+    set xcor -25 + (random 25)
     set ycor -25 + interest
 
 
@@ -219,12 +227,6 @@ to create-existing-commoners
     set-friendlink-parameters
   ]
 
-  ;; The number of friends is considered as a proxy of the commoner contribution activity, thus setting its horizontal position;
-  ask commoners [
-    let friends count my-friendlinks
-    ;; commoners without friends are at the edge of the model (xcor = 25), each extra friend up to 4 brings it 5 units towards the center
-    set xcor 5 * ( 5 - min (list 4 friends) )
-  ]
 
 end
 
@@ -276,8 +278,14 @@ to set-commoner-parameters
 
   ;;position and interest
   set interest random num-interest-categories
-  set xcor random 25 + 1
   set ycor -25 + interest
+
+    ;; The number of friends is considered as a proxy of the commoner contribution activity, thus setting its horizontal position;
+  ask commoners [
+    let friends count my-friendlinks
+    ;; commoners without friends are at the edge of the model (xcor = 25), each extra friend up to 4 brings it 5 units towards the center
+    set xcor max (list 1 (25 - friends ^ 2) )
+  ]
 
   set repulsion commoner-repulsion-prob
 
@@ -287,36 +295,34 @@ to set-commoner-parameters
   ;; 3 random skills per commoner
   set skills (n-of 3 (n-values num-skills [?]))
 
-  ;; An initial project per commoner
-  ;; commoners chose projects that contribute to the products they consume
-  ;; if there is no projct that contributes to the commoners products, then choose the closest one
-  let product-projects turtle-set [ projectproductlink-neighbors ] of out-consumerlink-neighbors
-  ifelse any? product-projects [
-    create-commonerprojectlink-with one-of product-projects [set-commonerprojectlink-parameters]
-  ] [
-    if any? projects [
-      create-commonerprojectlink-with min-one-of projects [ distance myself ] [set-commonerprojectlink-parameters]
+
+  let num-friends count my-friendlinks
+
+  ;; An initial project per commoner that have friends...
+  ;; ... as having friends is considered as an initial proxy to the contribution activity of the commoner
+  if num-friends > 0 [
+
+    ;; Commoners chose projects that contribute to the products they consume
+    ;; if there is no projct that contributes to the commoners products, then choose the closest one
+    let product-projects turtle-set [ projectproductlink-neighbors ] of out-consumerlink-neighbors
+
+    ifelse any? product-projects [
+      create-commonerprojectlink-with min-one-of product-projects [ distance myself ] [set-commonerprojectlink-parameters]
+    ] [
+      if any? projects [
+        create-commonerprojectlink-with min-one-of projects [ distance myself ] [set-commonerprojectlink-parameters]
+      ]
     ]
   ]
 
-  let num-friends count my-friendlinks
-  ;; commoners without friends do not contribute at setup
-  if num-friends = 0 [
-    ask my-out-commonertasklinks [die]
-    ask my-commonerprojectlinks [die]
-  ]
-
-  ;; Create links with tasks of my projects with my skills...
-  let skilled-tasks (turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors) with
-    [ member? skill [ skills ] of myself ]
-
+  let project-tasks (turtle-set [ projecttasklink-neighbors ] of commonerprojectlink-neighbors)
   ;; Make commoner-task connections with an upper bound of the number of friends.
-  create-commonertasklinks-to n-of min (list count skilled-tasks num-friends) skilled-tasks [
+  create-commonertasklinks-to n-of random min (list count project-tasks num-friends) project-tasks [
     set-commonertasklink-parameters
-    set recent-weight random min (list 4 num-friends) + random 1
+    set recent-weight random min (list 4 num-friends)
   ]
 
-  set total-contribs sum [recent-weight] of my-out-commonertasklinks * random 10
+  set total-contribs sum [recent-weight] of my-out-commonertasklinks
 
 end
 
@@ -371,10 +377,17 @@ to go
     set ticks-without-projects 0
   ]
 
-  if ticks-without-projects > 30 [ stop ]
+  if ticks-without-projects > 30 [ print "STOP: 30 ticks without projects" stop ]
+
+  ;; Power law fit calculation
+  if (power-law-tests?)[
+    if not is-powerlaw? [print "STOP: It is not plausible that the ditribution of work follows a power-law" stop]
+  ]
 
   ;; Gini coefficient calc.
   update-gini
+
+
 
   tick
 
@@ -442,7 +455,7 @@ end
 to repulsion-movements
   ;; Movement toward edges of the model.
   ;; Repulsion strength depends on distance to center.
-  ask turtles with [random-float 1 < ((25 - abs xcor) / 2.5 * repulsion)] [
+  ask turtles with [random-float 1 < ((25 - abs xcor) * repulsion / 25)] [
     move-towards-edges self
   ]
 end
@@ -455,6 +468,7 @@ to links-decay
   ask links with [ recent-weight = 0 and random-float 1 < forget-link-prob ] [
     die
   ]
+
 end
 
 to move-towards-edges [ agent ]
@@ -569,24 +583,33 @@ to-report contrib-prob
   let tasklinks [ my-out-commonertasklinks ] of myself
 
 
-  let total-contrib-effect 1 + ln (1 + [total-contribs] of myself) * contrib-total-weight-mult
-  let recent-contrib-effect 1 + ln (1 + sum [recent-weight] of [my-out-commonertasklinks] of myself) * contrib-recent-weight-mult
-  let friend-task-effect 1 + ln (1 + count task-friends) * contrib-friend-task-effect
-  let total-contrib-to-task-effect 1 + ln ( 1 + [total-weight] of in-commonertasklink-from myself)
+  let total-contrib-effect 1 ; + (sqrt ([total-contribs] of myself) * contrib-total-weight-mult)
+  let recent-contrib-effect 1 ; (ln (e + sum [recent-weight] of [my-out-commonertasklinks] of myself) * contrib-recent-weight-mult)
+  let friend-task-effect 1 ; (ln (e + count task-friends) * contrib-friend-task-effect)
+  let total-contrib-to-task-effect 1; + [recent-weight] of in-commonertasklink-from myself
 
+  let skill-effect 1
+  ;if (member? skill ([skills] of myself)) [set skill-effect 3]
 
-  let prob total-contrib-effect  * recent-contrib-effect * friend-task-effect * total-contrib-to-task-effect / (1 + distance myself * 40 )
+  let prob 1 / (1 + distance myself * contrib-dist-mult)
+
+  ;;if ([total-weight] of in-commonertasklink-from myself = 0) [
+  ;;  set prob min (list 0.02 prob)
+  ;;]
 
   ;; Maxium contribution prob is 0.8
   report min (list 0.8 prob)
+
+
 end
 
 to-report contrib-size
   report 1
 end
 
-;; TODO skills affect probability of contribution
 to contribute
+
+  let commoner self
   ;; A comoner may contribute to one of its tasks depending on distance, friends, recent contributions and total contribution
   if any? out-commonertasklink-neighbors [
     ask out-commonertasklink-neighbors [
@@ -598,10 +621,10 @@ to contribute
         ]
 
         ask projecttasklink-neighbors [
-          if not commonerprojectlink-neighbor? myself [
-            create-commonerprojectlink-with myself [ set-commonerprojectlink-parameters ]
+          if not commonerprojectlink-neighbor? commoner [
+            create-commonerprojectlink-with commoner [ set-commonerprojectlink-parameters ]
           ]
-          ask commonerprojectlink-with myself [
+          ask commonerprojectlink-with commoner [
             increase-weight
           ]
         ]
@@ -638,7 +661,7 @@ to contribute
               [
                 hatch-products 1 [
                   set interest [interest] of myself
-                  set xcor -25 + random 25
+                  set xcor -25 + random 24
                   set ycor -25 + interest
                   set-product-parameters
                 ]
@@ -740,7 +763,7 @@ to recommend
       let product other-end
       ;; distance of the product to the center of the model
       let dist 25 + [ xcor ] of product
-      if random-float 1 < min (list max-find-level (recent-weight / ( (1 + dist) * recommend-dist-mult))) [
+      if random-float 1 < min (list max-find-level (recent-weight / ( 1 + dist * recommend-dist-mult))) [
         ask myself [
           hatch-commoners 1 [
             ;;create-friendlink-with myself [set-friendlink-parameters]
@@ -848,6 +871,26 @@ to update-gini
     (contrib-sum-so-far / sum-contribs)
   ]
 end
+
+to-report is-powerlaw?
+
+  r:put "contribDistrib" contrib-distrib
+  r:put "contribs" contrib-distrib
+  r:eval "contribs <- unlist(contribs[contribs > 0])"
+  r:eval "pl <- displ$new(contribs)"
+  r:eval "est <- estimate_xmin(pl)"
+  r:eval "pl$setXmin(1)"
+  r:eval "pars <- estimate_pars(pl)"
+  r:eval "pl$setPars(pars)"
+  set power-law-alpha r:get "pars$pars"
+  if (ticks > 1 and ticks mod pl-tests-every-ticks = 0) [
+    print "Calculating feasibility of power law distribution..."
+    r:eval "bs<- bootstrap_p(pl, no_of_sims = 100)"
+    set power-law-pvalue r:get "bs$p"
+    report power-law-pvalue >= 0.05
+  ]
+  report true
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 205
@@ -927,7 +970,7 @@ initial-projects
 initial-projects
 0
 100
-7
+30
 1
 1
 NIL
@@ -942,7 +985,7 @@ mean-time-required
 mean-time-required
 0
 100
-19
+15
 1
 1
 NIL
@@ -970,9 +1013,9 @@ SLIDER
 153
 commoners-num
 commoners-num
-0
+1
 500
-250
+200
 1
 1
 NIL
@@ -1020,9 +1063,9 @@ SLIDER
 commoner-task-attraction-prob
 commoner-task-attraction-prob
 0
-1
-0.9
-0.02
+2
+1.4
+0.1
 1
 NIL
 HORIZONTAL
@@ -1035,9 +1078,9 @@ SLIDER
 commoner-repulsion-prob
 commoner-repulsion-prob
 0
+1
 0.2
-0.06
-0.01
+0.1
 1
 NIL
 HORIZONTAL
@@ -1050,9 +1093,9 @@ SLIDER
 commoner-product-attraction-prob
 commoner-product-attraction-prob
 0
-1
-0.9
-0.02
+2
+1.3
+0.1
 1
 NIL
 HORIZONTAL
@@ -1065,9 +1108,9 @@ SLIDER
 product-repulsion-prob
 product-repulsion-prob
 0
-0.2
+1
+0.4
 0.1
-0.005
 1
 NIL
 HORIZONTAL
@@ -1080,9 +1123,9 @@ SLIDER
 project-repulsion-prob
 project-repulsion-prob
 0
+1
 0.1
-0.01
-0.01
+0.1
 1
 NIL
 HORIZONTAL
@@ -1095,17 +1138,17 @@ SLIDER
 task-commoner-attraction-prob
 task-commoner-attraction-prob
 0
-1
-0.59
-0.01
+2
+1.4
+0.1
 1
 NIL
 HORIZONTAL
 
 PLOT
-635
+855
 485
-935
+1085
 605
 Activity
 NIL
@@ -1122,7 +1165,7 @@ PENS
 "consumption" 1.0 0 -955883 true "" "plot sum [recent-weight] of consumerlinks"
 
 PLOT
-1250
+1320
 485
 1545
 605
@@ -1143,9 +1186,9 @@ PENS
 "products" 1.0 0 -955883 true "" "plot count products"
 
 PLOT
-935
+1085
 485
-1250
+1320
 605
 Links count
 NIL
@@ -1171,9 +1214,9 @@ SLIDER
 product-commoner-attraction-prob
 product-commoner-attraction-prob
 0
-1
-0.3
-0.02
+2
+0.2
+0.1
 1
 NIL
 HORIZONTAL
@@ -1186,8 +1229,8 @@ SLIDER
 find-project-dist-mult
 find-project-dist-mult
 0
-20
-6.5
+10
+2
 0.1
 1
 NIL
@@ -1217,7 +1260,7 @@ find-project-friends-mult
 find-project-friends-mult
 0
 10
-10
+2
 0.2
 1
 NIL
@@ -1232,7 +1275,7 @@ find-task-friends-mult
 find-task-friends-mult
 0
 10
-10
+2
 0.1
 1
 NIL
@@ -1247,22 +1290,7 @@ find-task-dist-mult
 find-task-dist-mult
 0
 5
-1
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-860
-145
-952
-178
-contrib-recent-weight-mult
-contrib-recent-weight-mult
-1
-10
-4.5
+2
 0.1
 1
 NIL
@@ -1277,7 +1305,7 @@ max-find-level
 max-find-level
 0
 1
-0.2
+0.25
 0.05
 1
 NIL
@@ -1291,39 +1319,9 @@ SLIDER
 find-friend-mult
 find-friend-mult
 0
-1
-0.7
-0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-860
-105
-952
-138
-contrib-total-weight-mult
-contrib-total-weight-mult
-1
 10
-4.5
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-860
-185
-952
-218
-contrib-friend-task-effect
-contrib-friend-task-effect
-1
 10
-4.5
-0.1
+0.5
 1
 NIL
 HORIZONTAL
@@ -1336,9 +1334,9 @@ SLIDER
 recommend-dist-mult
 recommend-dist-mult
 0
-10
-2.9
-0.1
+100
+30
+1
 1
 NIL
 HORIZONTAL
@@ -1352,7 +1350,7 @@ task-hatch-task-prob
 task-hatch-task-prob
 0
 1
-0.8
+0.3
 0.1
 1
 NIL
@@ -1367,7 +1365,7 @@ consume-dist-mult
 consume-dist-mult
 0
 10
-0.4
+1.1
 0.1
 1
 NIL
@@ -1381,9 +1379,9 @@ SLIDER
 prop-project-total-contrib-mult
 prop-project-total-contrib-mult
 1
+20
 10
-10
-0.1
+1
 1
 NIL
 HORIZONTAL
@@ -1396,18 +1394,18 @@ SLIDER
 prop-project-recent-contrib-mult
 prop-project-recent-contrib-mult
 1
+20
 10
-10
-0.1
+1
 1
 NIL
 HORIZONTAL
 
 PLOT
-205
-485
-405
-605
+195
+490
+355
+610
 Contrib Distribution
 NIL
 NIL
@@ -1452,7 +1450,7 @@ leave-prob
 leave-prob
 0
 0.005
-1.0E-4
+1.1E-4
 0.00001
 1
 NIL
@@ -1639,10 +1637,10 @@ consume links
 1
 
 TEXTBOX
-893
-414
-1081
-437
+890
+410
+1000
+430
 contrib links
 12
 0.0
@@ -1699,9 +1697,9 @@ find-friend
 1
 
 TEXTBOX
-660
+650
 95
-1550
+1540
 113
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n
 12
@@ -1738,24 +1736,6 @@ Hide links:
 0.0
 1
 
-PLOT
-405
-485
-635
-605
-Gini
-NIL
-NIL
-0.0
-10.0
-0.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot (gini-index-reserve / length contrib-distrib) / 0.5"
-
 SLIDER
 1330
 325
@@ -1780,7 +1760,7 @@ friends-long-forg
 friends-long-forg
 0
 100
-100
+50
 1
 1
 NIL
@@ -1795,7 +1775,7 @@ consume-recent-forg
 consume-recent-forg
 0
 30
-7
+14
 1
 1
 NIL
@@ -1810,7 +1790,7 @@ consume-long-forg
 consume-long-forg
 0
 100
-30
+50
 1
 1
 NIL
@@ -1883,7 +1863,7 @@ SWITCH
 613
 hide-commonerprojectlinks?
 hide-commonerprojectlinks?
-1
+0
 1
 -1000
 
@@ -1896,6 +1876,101 @@ TEXTBOX
 12
 0.0
 1
+
+PLOT
+355
+490
+515
+610
+log Contrib Distribution
+NIL
+NIL
+0.0
+1.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 2 -16777216 true "" "; the index of eah element in the list\nlet index 1\nplot-pen-reset\nforeach contrib-distrib task [ \n  if ? > 0 [plotxy (ln ?) (ln index - ln 1) ]\n  set index 1 + index\n]"
+
+PLOT
+685
+490
+845
+610
+powerlaw pvalue
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot power-law-pvalue"
+
+PLOT
+515
+490
+675
+610
+power-law alpha
+NIL
+NIL
+0.0
+10.0
+0.0
+3.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot power-law-alpha"
+
+SLIDER
+860
+70
+952
+103
+contrib-dist-mult
+contrib-dist-mult
+0
+2
+1
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+685
+610
+845
+643
+pl-tests-every-ticks
+pl-tests-every-ticks
+50
+1000
+250
+50
+1
+NIL
+HORIZONTAL
+
+SWITCH
+685
+460
+845
+493
+power-law-tests?
+power-law-tests?
+0
+1
+-1000
 
 @#$#@#$#@
 Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés 2017.
