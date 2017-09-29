@@ -1,0 +1,8 @@
+
+to r?setup
+  set withR false
+end
+
+to-report r?is-powerlaw?
+ report "unknown"
+end

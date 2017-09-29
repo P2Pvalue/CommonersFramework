@@ -1,0 +1,28 @@
+extensions [ r ]
+
+to r?setup
+  set withR true
+  r:eval("library(poweRlaw)")
+end
+
+to-report r?is-powerlaw?
+
+  if (ticks mod pl-calc-every-ticks = 0 or ticks mod pl-tests-every-ticks = 0) [
+    r:put "contribDistrib" contrib-distrib
+    r:put "contribs" contrib-distrib
+    r:eval "contribs <- unlist(contribs[contribs > 0])"
+    r:eval "pl <- displ$new(contribs)"
+    r:eval "est <- estimate_xmin(pl)"
+    r:eval "pl$setXmin(1)"
+    r:eval "pars <- estimate_pars(pl)"
+    r:eval "pl$setPars(pars)"
+    set power-law-alpha r:get "pars$pars"
+    if (ticks > 1 and ticks mod pl-tests-every-ticks = 0) [
+      print "Calculating feasibility of power law distribution..."
+      r:eval "bs<- bootstrap_p(pl, no_of_sims = 100)"
+      set power-law-pvalue r:get "bs$p"
+      report power-law-pvalue >= 0.05
+    ]
+  ]
+  report true
+end

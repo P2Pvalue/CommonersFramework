@@ -4,16 +4,26 @@ This repository holds the NetLogo implementation of a conceptual framework - the
 
 The Commoners Framework, and by extension, this model, can be used to represent the behaviour and operation of a wide-range of CBPP communities, and similar organisations (such as those that make use of volunteers). It represents the processes behind individuals’ decisions to contribute to, enter or exit, or make ‘friends’ in, communities. Through this representation of individuals’ behaviour, the framework aims to account for patterns of behaviour observed at the community level. For example, the distribution of participation rates among individuals, which often follows a power law distribution, also known as the ‘1-9-90 rule’; where 1% of the community – the core members – perform most of the work, 9% of the community – the contributors – occasionally contribute and 90% of the community – the users or consumers - use the commons without directly contributing to produce it. The framework was developed based on recent empirical findings on behaviour in a wide variety of communities and was refined using the structural rigour imposed when building an agent-based model (ABM).
 
+For more information please contact Peter and/or Antonio - Peter Barbrook-Johnson <P.Barbrookjohnson1@westminster.ac.uk>, Antonio Tenorio Fornés <antoniotenorio@ucm.es>
+
+## Install
+
 To open the NetLogo file, you will first need to install NetLogo, which is available at https://ccl.northwestern.edu/netlogo/.
 
-For more information please contact Peter and/or Antonio - Peter Barbrook-Johnson <P.Barbrookjohnson1@westminster.ac.uk>, Antonio Tenorio Fornés <antoniotenorio@ucm.es> 
+### R extension
+
+The model also uses R extension to asses wether the distribution of work follows a power-law and obtain its exponent parameter alpha. Alternatively, you can use the model version without R extension, commenting `__includes["withRextension.nls"]` and uncommenting `;__includes["withoutRextension.nls"]` lines of the model.
+
+- To install R and use the extension, please follow its [installing](https://ccl.northwestern.edu/netlogo/docs/r.html#installing) instructions.
+
+- The model needs [poweRlaw](https://cran.r-project.org/web/packages/poweRlaw/index.html) package to be installed in R. Run `install.packages('poweRlaw')`in the R console to install it before running the model.
 
 
 ## The Logic of the Framework
 
 The focus of the model is Commoners. Commoners is the name given to individuals in a community – both those that contribute, and those that consume the product(s) of a community. The core productive activity of any Commoner is to find tasks in the community, and contribute to them. Their ability to, and likelihood of, contributing will depend on their time available (a resource Commoners have), interests (a Commoner and task parameter which should match), and skill types (a Commoner and task parameter which should match). Commoners may stay in a community, only consuming but not contributing, if no tasks meet their interest or skills. Commoners may make ‘friends’ with others contributing to the same tasks. Having friends increases the chance of finding tasks and contributing. Friends may be lost over time with a certain probability. Commoners’ probability of leaving a community decreases as they make more contributions and have more friends. Contributions improve the quality, or number, of products in the community. More consumption of products increases the probability of existing consumers of these products continuing to consume them, and new Commoners entering the community.
 
-The framework was developed based on recent empirical findings (Morell et al 2016; Arvidsson et al 2016) on behaviour in communities and was refined using the structural rigour imposed when building an agent-based model (ABM). 
+The framework was developed based on recent empirical findings (Morell et al 2016; Arvidsson et al 2016) on behaviour in communities and was refined using the structural rigour imposed when building an agent-based model (ABM).
 
 
 ## Details
@@ -62,7 +72,6 @@ Try setting the repulsion, attraction and find probabilities in the model to rep
 
 ## References
 
-ARVIDSSON, A., Caliandro, A., Cossu, A., Deka, M., Gandini, A., Luise, V., Orria, B., and Anselmi, G. (2016). Commons Based Peer Production in the Information Economy. Academia. Accessed 13 April 2017. https://www.academia.edu/29210209/Commons_Based_Peer_Production_in_the_Information_Economy 
+ARVIDSSON, A., Caliandro, A., Cossu, A., Deka, M., Gandini, A., Luise, V., Orria, B., and Anselmi, G. (2016). Commons Based Peer Production in the Information Economy. Academia. Accessed 13 April 2017. https://www.academia.edu/29210209/Commons_Based_Peer_Production_in_the_Information_Economy
 
 MORELL M.F., Salcedo J.L., and Berlinguer M. (2016). Debate About the Concept of Value in Commons-Based Peer Production. In: Bagnoli F. et al. (eds) Internet Science. INSCI 2016. Lecture Notes in Computer Science, vol 9934. Springer, Cham.
-

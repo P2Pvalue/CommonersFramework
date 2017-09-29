@@ -2,8 +2,9 @@
 
 ; Comments welcome - emails: p.barbrook-johnson@psi.org.uk, antoniotenorio@ucm.es
 
-; TODO 1) provide extension instalation instructions; 2) model version without r extension
-extensions [ nw r ]
+extensions [ nw ]
+
+
 
 globals [
 
@@ -16,7 +17,11 @@ globals [
   power-law-xmin ;; power law xmin parameter
   power-law-alpha ;; power law alpha parameter
 
+  withR ;;
 ]
+
+__includes["withRextension.nls"]
+;__includes["withoutRextension.nls"]
 
 breed [commoners commoner] ;; The agents representing individuals interacting (consuming/producing) in the community
 breed [products product] ;; The common goods being produced and used in the community
@@ -92,7 +97,7 @@ to setup
 
    update-gini
 
-   r:eval "library('poweRlaw')"
+   r?setup
 
    reset-ticks
 end
@@ -380,8 +385,8 @@ to go
   if ticks-without-projects > 30 [ print "STOP: 30 ticks without projects" stop ]
 
   ;; Power law fit calculation
-  if (power-law-tests?)[
-    if not is-powerlaw? [print "STOP: It is not plausible that the ditribution of work follows a power-law" stop]
+  if (withR and power-law-tests?)[
+    if not r?is-powerlaw? [print "STOP: It is not plausible that the ditribution of work follows a power-law" stop]
   ]
 
   ;; Gini coefficient calc.
@@ -870,26 +875,6 @@ to update-gini
     (index / num-people) -
     (contrib-sum-so-far / sum-contribs)
   ]
-end
-
-to-report is-powerlaw?
-
-  r:put "contribDistrib" contrib-distrib
-  r:put "contribs" contrib-distrib
-  r:eval "contribs <- unlist(contribs[contribs > 0])"
-  r:eval "pl <- displ$new(contribs)"
-  r:eval "est <- estimate_xmin(pl)"
-  r:eval "pl$setXmin(1)"
-  r:eval "pars <- estimate_pars(pl)"
-  r:eval "pl$setPars(pars)"
-  set power-law-alpha r:get "pars$pars"
-  if (ticks > 1 and ticks mod pl-tests-every-ticks = 0) [
-    print "Calculating feasibility of power law distribution..."
-    r:eval "bs<- bootstrap_p(pl, no_of_sims = 100)"
-    set power-law-pvalue r:get "bs$p"
-    report power-law-pvalue >= 0.05
-  ]
-  report true
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1971,6 +1956,21 @@ power-law-tests?
 0
 1
 -1000
+
+SLIDER
+515
+610
+697
+643
+pl-calc-every-ticks
+pl-calc-every-ticks
+5
+100
+20.0
+5
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 Developed by Dr Peter Barbrook-Johnson and Antonio Tenorio-Fornés 2017.
