@@ -228,6 +228,13 @@ to create-existing-commoners
     set-commoner-parameters
   ]
 
+      ;; The number of friends is considered as a proxy of the commoner contribution activity, thus setting its horizontal position;
+  ask commoners [
+    let friends count my-friendlinks
+    ;; commoners without friends are at the edge of the model (xcor = 25), each extra friend up to 4 brings it 5 units towards the center
+    set xcor max (list 1 (25 - friends ^ 2) )
+  ]
+
   ask friendlinks [
     set-friendlink-parameters
   ]
@@ -284,13 +291,6 @@ to set-commoner-parameters
   ;;position and interest
   set interest random num-interest-categories
   set ycor -25 + interest
-
-    ;; The number of friends is considered as a proxy of the commoner contribution activity, thus setting its horizontal position;
-  ask commoners [
-    let friends count my-friendlinks
-    ;; commoners without friends are at the edge of the model (xcor = 25), each extra friend up to 4 brings it 5 units towards the center
-    set xcor max (list 1 (25 - friends ^ 2) )
-  ]
 
   set repulsion commoner-repulsion-prob
 
@@ -615,8 +615,9 @@ end
 to contribute
 
   let contributor self
-  ;; A comoner may contribute to one of its tasks depending on distance, friends, recent contributions and total contribution
+  ;; A comoner may contribute to any of its tasks depending on distance
   if any? out-commonertasklink-neighbors [
+    ;; TODO: more than one contribution per commoner per tick is possible. Is this the intended behaviour?
     ask out-commonertasklink-neighbors [
       if random-float 1 < contrib-prob [
 
@@ -696,6 +697,7 @@ end
 
 to-report find-friend-prob
   ;; the probability of finding a friend depends on the ammount of recent contribution done to the task
+  ;; TODO: this does no have effect, since it is always bigger than 1
   report find-friend-mult * recent-weight
 end
 
