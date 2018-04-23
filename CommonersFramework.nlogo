@@ -141,6 +141,7 @@ to create-existing-projects
     ;; create a project to product link to the nearest product
     ;; only half of the projects have a product, the others will create a new product once they have finished.
 
+    ;; TODO: change probability depending on initial number of products.
     if random-float 1 < 0.5  [
       let my-product min-one-of products [ distance myself ]
       create-projectproductlink-with my-product [ set-projectproductlink-parameters ]
@@ -386,7 +387,7 @@ to go
 
   ;; Power law fit calculation
   if (withR and power-law-tests?)[
-    if not r?is-powerlaw? [print "STOP: It is not plausible that the ditribution of work follows a power-law" stop]
+    if not r?is-powerlaw? [print "STOP: It is not plausible that the distribution of work follows a power-law" stop]
   ]
 
   ;; Gini coefficient calc.
@@ -769,7 +770,8 @@ to recommend
     ask one-of my-out-consumerlinks [
       let other-product other-end
       ;; distance of the product to the center of the model
-      let dist 25 + [ xcor ] of other-product
+      ;; note that the other product xcor is negative
+      let dist 25 - [ xcor ] of other-product
       if random-float 1 < min (list max-find-level (recent-weight / ( 1 + dist * recommend-dist-mult))) [
         ask myself [
           hatch-commoners 1 [
@@ -793,7 +795,7 @@ to-report propose-project-prob
   let total-contrib-effect 1 + ln (1 + [total-contribs] of myself)  * prop-project-total-contrib-mult
   let recent-contrib-effect 1 + ln (1 + sum [recent-weight] of [my-out-commonertasklinks] of myself) * prop-project-recent-contrib-mult
 
-  report 0.00001 * total-contrib-effect * recent-contrib-effect
+  report (total-contrib-effect / 1000) + (recent-contrib-effect / 1000)
 
 end
 
@@ -1066,7 +1068,7 @@ commoner-repulsion-prob
 commoner-repulsion-prob
 0
 1
-0.2
+0.0
 0.1
 1
 NIL
@@ -1216,9 +1218,9 @@ SLIDER
 find-project-dist-mult
 find-project-dist-mult
 0
-10
+5
 1.0
-0.1
+0.5
 1
 NIL
 HORIZONTAL
@@ -1230,10 +1232,10 @@ SLIDER
 103
 find-product-dist-mult
 find-product-dist-mult
-0
+0.5
 5
 1.0
-0.1
+0.5
 1
 NIL
 HORIZONTAL
@@ -1275,10 +1277,10 @@ SLIDER
 103
 find-task-dist-mult
 find-task-dist-mult
-0
+0.5
 5
 1.0
-0.1
+0.5
 1
 NIL
 HORIZONTAL
@@ -1306,9 +1308,9 @@ SLIDER
 find-friend-mult
 find-friend-mult
 0
-10
-10.0
-0.5
+1
+1.0
+0.1
 1
 NIL
 HORIZONTAL
@@ -1320,10 +1322,10 @@ SLIDER
 103
 recommend-dist-mult
 recommend-dist-mult
-0
-100
-30.0
-1
+0.5
+5
+4.0
+0.5
 1
 NIL
 HORIZONTAL
@@ -1350,10 +1352,10 @@ SLIDER
 103
 consume-dist-mult
 consume-dist-mult
-0
-10
-1.0
-0.1
+0.5
+5
+4.0
+0.5
 1
 NIL
 HORIZONTAL
@@ -1365,10 +1367,10 @@ SLIDER
 138
 prop-project-total-contrib-mult
 prop-project-total-contrib-mult
+0
 1
-20
-10.0
-1
+0.2
+0.1
 1
 NIL
 HORIZONTAL
@@ -1380,10 +1382,10 @@ SLIDER
 178
 prop-project-recent-contrib-mult
 prop-project-recent-contrib-mult
+0
 1
-20
-10.0
-1
+0.8
+0.1
 1
 NIL
 HORIZONTAL
@@ -1925,10 +1927,10 @@ SLIDER
 103
 contrib-dist-mult
 contrib-dist-mult
-0
-2
-0.7
-0.1
+0.5
+5
+1.0
+0.5
 1
 NIL
 HORIZONTAL
