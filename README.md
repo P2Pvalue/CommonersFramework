@@ -14,9 +14,26 @@ To open the NetLogo file, you will first need to install NetLogo, which is avail
 
 The model also uses R extension to asses wether the distribution of work follows a power-law and obtain its exponent parameter alpha. Alternatively, you can use the model version without R extension, commenting `__includes["withRextension.nls"]` and uncommenting `;__includes["withoutRextension.nls"]` lines of the model.
 
-- To install R and use the extension, please follow its [installing](https://ccl.northwestern.edu/netlogo/docs/r.html#installing) instructions.
-
-- The model needs [poweRlaw](https://cran.r-project.org/web/packages/poweRlaw/index.html) package to be installed in R. Run `install.packages('poweRlaw')`in the R console to install it before running the model.
+- Install R
+   - For a Debian based GNU/Linux system (Debian, Ubuntu, etc):
+   `sudo apt-get install r-base`
+- Install Java Development Kit and register it in R
+  -  For a Debian based GNU/Linux system (Debian, Ubuntu, etc):
+  ``` bash
+  sudo apt-get install default-jdk
+  sudo R CMD javareconf
+  ```
+- to install the R extension, please follow its [installing](https://ccl.northwestern.edu/netlogo/docs/r.html#installing) instructions.
+   - For a Debian based GNU/Linux system (Debian, Ubuntu, etc):
+   ``` bash
+   R
+   ```
+   ``` R
+   > install.packages("rJava")
+   > install.packages("JavaGD") # Optional
+   > install.packages("CommonJavaJars") # Optional
+   ```
+- The model needs [poweRlaw](https://cran.r-project.org/web/packages/poweRlaw/index.html) package to be installed in R. Run `install.packages("poweRlaw")` in the R console to install it before running the model. Note, you may need to install libgfortran3, libssl and libcurl4-openssl-dev  in Debian based systems run: `sudo apt-get install libgfortran3`
 
 
 ## The Logic of the Framework
@@ -27,7 +44,6 @@ The framework was developed based on recent empirical findings (Morell et al 201
 
 
 ## Details
-
 
 ### Products and Projects
 
@@ -69,6 +85,26 @@ The model tries to represent the behaviour in collaborative communities, where c
 
 Try setting the repulsion, attraction and find probabilities in the model to represent this behaviour. Too much attraction or too little repulsion will make all the elements come towards the center. Few chances of finding tasks and contributing will make the Commoners leave the model, due to their small involvement.
 
+### TODO Evaluation
+
+The following libraries are needed to evaluate the model using a Latin Hypercube technique `sudo apt-get install libssl-dev libcurl4-openssl-dev libxml2-dev`. Additionally, java is needed, and can be installed with `sudo apt-get install default-jre default-jdk`
+
+Then, generate the experiments configuration running
+``` shell
+Rscript generateExperiments.R
+```
+
+After, run the experiments. For this, set `PATH_TO_NETLOGO_JAR`, `PATH_TO_NETLOGO_HEADLESS` and `PATH_TO_NETLOGO_EXTENSIONS` in the file `runExperiments.bash`. Then, run the following command:
+
+``` shell
+./runExperiments.bash
+```
+
+Finally, evaluate the results with the command
+
+``` shell
+Rscript analyzeLHCResults.R
+```
 
 ## References
 

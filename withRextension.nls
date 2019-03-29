@@ -6,7 +6,6 @@ to r?setup
 end
 
 to-report r?is-powerlaw?
-
   if (ticks mod pl-calc-every-ticks = 0 or ticks mod pl-tests-every-ticks = 0) [
     r:put "contribDistrib" contrib-distrib
     r:put "contribs" contrib-distrib

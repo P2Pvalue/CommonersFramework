@@ -95,8 +95,6 @@ to setup
    ;; list of contributions by dead agents
    set dead-commoners-contribs (list)
 
-   update-gini
-
    r?setup
 
    reset-ticks
@@ -105,11 +103,7 @@ end
 
 to create-existing-products
   ;; create products; set their position and defeault parameters
-
-  if number-of-products = "one" [ set initial-products 1 ]
-  if number-of-products = "few" [ set initial-products random 5 + 2 ]
-  if number-of-products = "many" [ set initial-products random 100  + 5]
-
+ set initial-products number-of-products
   create-products initial-products [
     set interest random num-interest-categories
     set xcor -25 + random 25
@@ -216,14 +210,15 @@ end
 to create-existing-commoners
 
   ;; commoners hava a preferential attachement like structure
-  nw:generate-preferential-attachment commoners friendlinks commoners-num
+  print commoners-num
+  nw:generate-preferential-attachment commoners friendlinks commoners-num 1 [set color red]
 
   ;; the majority of the community has not contributed and therefore have no firends in the model
-  ask commoners with [count my-friendlinks = 1] [
-    ask one-of my-friendlinks [
-      die
-    ]
-  ]
+;  ask commoners with [count my-friendlinks = 1] [
+;    ask one-of my-friendlinks [
+;      die
+;    ]
+;  ]
 
   ask commoners [
     set-commoner-parameters
@@ -390,8 +385,9 @@ to go
     if not r?is-powerlaw? [print "STOP: It is not plausible that the distribution of work follows a power-law" stop]
   ]
 
-  ;; Gini coefficient calc.
-  update-gini
+  if ticks >= maxTicks [ print (word "STOP: The model run for the maximum " maxTicks " ticks") stop ]
+
+  if count turtles > maxTurtles [ print (word "STOP: The model reached the maximum " maxTurtles " turtles") stop ]
 
 
 
@@ -545,8 +541,8 @@ to-report project-friends
 end
 
 to-report find-project-prob
-  let friends-effect project-friends * find-project-friends-mult
-  report (min (list max-find-level ((1 + friends-effect) / (1 + distance myself * find-project-dist-mult))))
+  let friends-effect project-friends * find-project-friends
+  report (min (list max-find-level ((1 + friends-effect) / (1 + distance myself * find-project-dist))))
 end
 
 to find-project
@@ -566,8 +562,8 @@ to-report task-friends
 end
 
 to-report find-task-prob
-  let friends-effect count task-friends * find-task-friends-mult
-  report (min (list max-find-level ((1 + friends-effect) / (( 1 + distance myself * find-task-dist-mult)))))
+  let friends-effect count task-friends * find-task-friends
+  report (min (list max-find-level ((1 + friends-effect) / (( 1 + distance myself * find-task-dist)))))
 end
 
 
@@ -589,15 +585,15 @@ to-report contrib-prob
   let tasklinks [ my-out-commonertasklinks ] of myself
 
 
-  let total-contrib-effect 1 ; + (sqrt ([total-contribs] of myself) * contrib-total-weight-mult)
-  let recent-contrib-effect 1 ; (ln (e + sum [recent-weight] of [my-out-commonertasklinks] of myself) * contrib-recent-weight-mult)
+  let total-contrib-effect 1 ; + (sqrt ([total-contribs] of myself) * contrib-total-weight)
+  let recent-contrib-effect 1 ; (ln (e + sum [recent-weight] of [my-out-commonertasklinks] of myself) * contrib-recent-weight)
   let friend-task-effect 1 ; (ln (e + count task-friends) * contrib-friend-task-effect)
   let total-contrib-to-task-effect 1; + [recent-weight] of in-commonertasklink-from myself
 
   let skill-effect 1
   ;if (member? skill ([skills] of myself)) [set skill-effect 3]
 
-  let prob 1 / (1 + distance myself * contrib-dist-mult)
+  let prob 1 / (1 + distance myself * contrib-dist)
 
   ;;if ([total-weight] of in-commonertasklink-from myself = 0) [
   ;;  set prob min (list 0.02 prob)
@@ -684,7 +680,7 @@ to contribute
 end
 
 to-report find-product-prob
-  report min (list max-find-level (1 / (1 + distance myself * find-product-dist-mult)))
+  report min (list max-find-level (1 / (1 + distance myself * find-product-dist)))
 end
 
 to find-product
@@ -699,7 +695,7 @@ end
 to-report find-friend-prob
   ;; the probability of finding a friend depends on the ammount of recent contribution done to the task
   ;; TODO: this does no have effect, since it is always bigger than 1
-  report find-friend-mult * recent-weight
+  report find-friend * recent-weight
 end
 
 to find-friends
@@ -745,7 +741,7 @@ to-report consume-prob
   ;; probability of consuming a product, depends on the recent conspumtion of any product and the distance to the product
   let current-consumption count my-out-consumerlinks * [recent-weight] of in-consumerlink-from myself
 
-  report min (list 0.8 ((1 + current-consumption) / ( 1 + distance myself * consume-dist-mult) ))
+  report min (list 0.8 ((1 + current-consumption) / ( 1 + distance myself * consume-dist) ))
 end
 
 to consume
@@ -772,7 +768,7 @@ to recommend
       ;; distance of the product to the center of the model
       ;; note that the other product xcor is negative
       let dist 25 - [ xcor ] of other-product
-      if random-float 1 < min (list max-find-level (recent-weight / ( 1 + dist * recommend-dist-mult))) [
+      if random-float 1 < min (list max-find-level (recent-weight / ( 1 + dist * recommend-dist))) [
         ask myself [
           hatch-commoners 1 [
             ;;create-friendlink-with myself [set-friendlink-parameters]
@@ -792,8 +788,8 @@ end
 
 to-report propose-project-prob
   ;; The probability of a commoner proposing a new project depends on its recent contribution history and total contribution history
-  let total-contrib-effect 1 + ln (1 + [total-contribs] of myself)  * prop-project-total-contrib-mult
-  let recent-contrib-effect 1 + ln (1 + sum [recent-weight] of [my-out-commonertasklinks] of myself) * prop-project-recent-contrib-mult
+  let total-contrib-effect 1 + ln (1 + [total-contribs] of myself)  * prop-project-total-contrib
+  let recent-contrib-effect 1 + ln (1 + sum [recent-weight] of [my-out-commonertasklinks] of myself) * prop-project-recent-contrib
 
   report (total-contrib-effect / 1000) + (recent-contrib-effect / 1000)
 
@@ -861,25 +857,6 @@ to project-death
   ]
 end
 
-
-;; Based on update-lorenz-and-gini method from Wilensky, U. (1998). NetLogo Wealth Distribution model. http://ccl.northwestern.edu/netlogo/models/WealthDistribution. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-to update-gini
-  let sum-contribs sum contrib-distrib
-  let contrib-sum-so-far 0
-  set gini-index-reserve 0
-  let num-people length contrib-distrib
-  let index num-people - 1
-
-  ;; (see the Info tab for a description of the curve and measure)
-  repeat num-people [
-    set contrib-sum-so-far (contrib-sum-so-far + item index contrib-distrib)
-    set index (index - 1)
-    set gini-index-reserve
-    gini-index-reserve +
-    (index / num-people) -
-    (contrib-sum-so-far / sum-contribs)
-  ]
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 205
@@ -909,10 +886,10 @@ ticks
 30.0
 
 BUTTON
-20
-20
-93
-53
+25
+10
+98
+43
 NIL
 setup
 NIL
@@ -923,16 +900,6 @@ NIL
 NIL
 NIL
 NIL
-1
-
-CHOOSER
-20
-160
-187
-205
-number-of-products
-number-of-products
-"one" "few" "many"
 1
 
 SLIDER
@@ -1004,17 +971,17 @@ commoners-num
 commoners-num
 1
 500
-200.0
+247.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-100
-60
-177
-93
+105
+45
+182
+78
 go once
 go
 NIL
@@ -1028,10 +995,10 @@ NIL
 1
 
 BUTTON
-100
-20
-175
-53
+105
+10
+180
+43
 NIL
 go
 T
@@ -1215,8 +1182,8 @@ SLIDER
 70
 1332
 103
-find-project-dist-mult
-find-project-dist-mult
+find-project-dist
+find-project-dist
 0
 5
 1.0
@@ -1230,8 +1197,8 @@ SLIDER
 70
 1237
 103
-find-product-dist-mult
-find-product-dist-mult
+find-product-dist
+find-product-dist
 0.5
 5
 1.0
@@ -1245,8 +1212,8 @@ SLIDER
 185
 1332
 218
-find-project-friends-mult
-find-project-friends-mult
+find-project-friends
+find-project-friends
 0
 10
 2.0
@@ -1260,8 +1227,8 @@ SLIDER
 185
 1427
 218
-find-task-friends-mult
-find-task-friends-mult
+find-task-friends
+find-task-friends
 0
 10
 2.0
@@ -1275,8 +1242,8 @@ SLIDER
 70
 1427
 103
-find-task-dist-mult
-find-task-dist-mult
+find-task-dist
+find-task-dist
 0.5
 5
 1.0
@@ -1305,8 +1272,8 @@ SLIDER
 145
 1523
 178
-find-friend-mult
-find-friend-mult
+find-friend
+find-friend
 0
 1
 1.0
@@ -1320,8 +1287,8 @@ SLIDER
 70
 1047
 103
-recommend-dist-mult
-recommend-dist-mult
+recommend-dist
+recommend-dist
 0.5
 5
 4.0
@@ -1350,8 +1317,8 @@ SLIDER
 70
 857
 103
-consume-dist-mult
-consume-dist-mult
+consume-dist
+consume-dist
 0.5
 5
 4.0
@@ -1365,8 +1332,8 @@ SLIDER
 105
 1142
 138
-prop-project-total-contrib-mult
-prop-project-total-contrib-mult
+prop-project-total-contrib
+prop-project-total-contrib
 0
 1
 0.2
@@ -1380,8 +1347,8 @@ SLIDER
 145
 1142
 178
-prop-project-recent-contrib-mult
-prop-project-recent-contrib-mult
+prop-project-recent-contrib
+prop-project-recent-contrib
 0
 1
 0.8
@@ -1925,8 +1892,8 @@ SLIDER
 70
 952
 103
-contrib-dist-mult
-contrib-dist-mult
+contrib-dist
+contrib-dist
 0.5
 5
 1.0
@@ -1944,7 +1911,7 @@ pl-tests-every-ticks
 pl-tests-every-ticks
 50
 1000
-250.0
+1000.0
 50
 1
 NIL
@@ -1957,7 +1924,7 @@ SWITCH
 493
 power-law-tests?
 power-law-tests?
-0
+1
 1
 -1000
 
@@ -1972,6 +1939,51 @@ pl-calc-every-ticks
 100
 20.0
 5
+1
+NIL
+HORIZONTAL
+
+SLIDER
+350
+460
+515
+493
+maxTicks
+maxTicks
+0
+5000
+50.0
+50
+1
+NIL
+HORIZONTAL
+
+SLIDER
+192
+460
+352
+493
+maxTurtles
+maxTurtles
+500
+100000
+2000.0
+500
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+160
+185
+193
+number-of-products
+number-of-products
+0
+100
+50.0
+1
 1
 NIL
 HORIZONTAL
@@ -2339,7 +2351,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -2354,31 +2366,31 @@ NetLogo 6.0.2
       <value value="0.3"/>
       <value value="0.4"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="recommend-dist-mult">
+    <enumeratedValueSet variable="recommend-dist">
       <value value="1.4"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="num-skills">
       <value value="25"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="contrib-total-weight-mult">
+    <enumeratedValueSet variable="contrib-total-weight">
       <value value="6.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="contrib-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="consume-dist-mult">
+    <enumeratedValueSet variable="consume-dist">
       <value value="0.8"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="hide-commonertasklinks?">
       <value value="false"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="contrib-recent-weight-mult">
+    <enumeratedValueSet variable="contrib-recent-weight">
       <value value="2"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-project-recent-contrib-mult">
+    <enumeratedValueSet variable="prop-project-recent-contrib">
       <value value="8"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-project-friends-mult">
+    <enumeratedValueSet variable="find-project-friends">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="project-repulsion-prob">
@@ -2387,7 +2399,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="contrib-friend-task-effect">
       <value value="5.2"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-task-friends-mult">
+    <enumeratedValueSet variable="find-task-friends">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="task-commoner-attraction-prob">
@@ -2399,10 +2411,10 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="consume-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-task-dist-mult">
+    <enumeratedValueSet variable="find-task-dist">
       <value value="1.2"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-project-dist-mult">
+    <enumeratedValueSet variable="find-project-dist">
       <value value="5.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="leave-prob">
@@ -2411,7 +2423,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="number-of-products">
       <value value="&quot;few&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-friend-mult">
+    <enumeratedValueSet variable="find-friend">
       <value value="0.8"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="hide-consumerlinks?">
@@ -2432,7 +2444,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="friends-recent-forg">
       <value value="7"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-product-dist-mult">
+    <enumeratedValueSet variable="find-product-dist">
       <value value="0.6"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="task-hatch-task-prob">
@@ -2453,7 +2465,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="project-long-forg">
       <value value="50"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-project-total-contrib-mult">
+    <enumeratedValueSet variable="prop-project-total-contrib">
       <value value="8.4"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="consume-recent-forg">
@@ -2491,31 +2503,31 @@ NetLogo 6.0.2
       <value value="0.5"/>
       <value value="0.9"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="recommend-dist-mult">
+    <enumeratedValueSet variable="recommend-dist">
       <value value="2.9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="num-skills">
       <value value="25"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="contrib-total-weight-mult">
+    <enumeratedValueSet variable="contrib-total-weight">
       <value value="4.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="contrib-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="consume-dist-mult">
+    <enumeratedValueSet variable="consume-dist">
       <value value="0.4"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="hide-commonertasklinks?">
       <value value="false"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="contrib-recent-weight-mult">
+    <enumeratedValueSet variable="contrib-recent-weight">
       <value value="4.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-project-recent-contrib-mult">
+    <enumeratedValueSet variable="prop-project-recent-contrib">
       <value value="10"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-project-friends-mult">
+    <enumeratedValueSet variable="find-project-friends">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="project-repulsion-prob">
@@ -2524,7 +2536,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="contrib-friend-task-effect">
       <value value="4.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-task-friends-mult">
+    <enumeratedValueSet variable="find-task-friends">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="task-commoner-attraction-prob">
@@ -2536,10 +2548,10 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="consume-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-task-dist-mult">
+    <enumeratedValueSet variable="find-task-dist">
       <value value="1"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-project-dist-mult">
+    <enumeratedValueSet variable="find-project-dist">
       <value value="6.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="leave-prob">
@@ -2548,7 +2560,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="number-of-products">
       <value value="&quot;few&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-friend-mult">
+    <enumeratedValueSet variable="find-friend">
       <value value="0.7"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="hide-consumerlinks?">
@@ -2569,7 +2581,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="friends-recent-forg">
       <value value="14"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-product-dist-mult">
+    <enumeratedValueSet variable="find-product-dist">
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="task-hatch-task-prob">
@@ -2590,7 +2602,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="project-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-project-total-contrib-mult">
+    <enumeratedValueSet variable="prop-project-total-contrib">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="consume-recent-forg">
@@ -2625,31 +2637,31 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="product-commoner-attraction-prob">
       <value value="0.3"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="recommend-dist-mult">
+    <enumeratedValueSet variable="recommend-dist">
       <value value="2.9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="num-skills">
       <value value="25"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="contrib-total-weight-mult">
+    <enumeratedValueSet variable="contrib-total-weight">
       <value value="4.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="contrib-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="consume-dist-mult">
+    <enumeratedValueSet variable="consume-dist">
       <value value="0.4"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="hide-commonertasklinks?">
       <value value="false"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="contrib-recent-weight-mult">
+    <enumeratedValueSet variable="contrib-recent-weight">
       <value value="4.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-project-recent-contrib-mult">
+    <enumeratedValueSet variable="prop-project-recent-contrib">
       <value value="10"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-project-friends-mult">
+    <enumeratedValueSet variable="find-project-friends">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="project-repulsion-prob">
@@ -2658,7 +2670,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="contrib-friend-task-effect">
       <value value="4.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-task-friends-mult">
+    <enumeratedValueSet variable="find-task-friends">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="task-commoner-attraction-prob">
@@ -2670,10 +2682,10 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="consume-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-task-dist-mult">
+    <enumeratedValueSet variable="find-task-dist">
       <value value="1"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-project-dist-mult">
+    <enumeratedValueSet variable="find-project-dist">
       <value value="6.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="leave-prob">
@@ -2682,7 +2694,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="number-of-products">
       <value value="&quot;few&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-friend-mult">
+    <enumeratedValueSet variable="find-friend">
       <value value="0.7"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="hide-consumerlinks?">
@@ -2703,7 +2715,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="friends-recent-forg">
       <value value="14"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="find-product-dist-mult">
+    <enumeratedValueSet variable="find-product-dist">
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="task-hatch-task-prob">
@@ -2724,7 +2736,7 @@ NetLogo 6.0.2
     <enumeratedValueSet variable="project-long-forg">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="prop-project-total-contrib-mult">
+    <enumeratedValueSet variable="prop-project-total-contrib">
       <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="consume-recent-forg">
@@ -2764,6 +2776,266 @@ NetLogo 6.0.2
       <value value="0.3"/>
       <value value="0.5"/>
       <value value="0.9"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="find-project-friends">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-product-attraction-prob">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="product-commoner-attraction-prob">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoners-num">
+      <value value="247"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-dist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-recent-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pl-tests-every-ticks">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="power-law-tests?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-consumerlinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-skills">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-dist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-recent-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-commonerprojectlinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-long-forg">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-hatch-task-prob">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-long-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recommend-dist">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="product-repulsion-prob">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-commonertasklinks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-commoner-attraction-prob">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-total-contrib">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-long-forg">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-repulsion-prob">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-repulsion-prob">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pl-calc-every-ticks">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-dist">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="leave-prob">
+      <value value="2.0E-4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-dist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-task-attraction-prob">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-recent-contrib">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-friends">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-find-level">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-friend">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-long-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-product-dist">
+      <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <final>print foo</final>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="find-project-friends">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mean-time-required">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-product-attraction-prob">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="product-commoner-attraction-prob">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoners-num">
+      <value value="247"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-interest-categories">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-project-dist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-recent-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-skills">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pl-tests-every-ticks">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-recent-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-commonerprojectlinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-dist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-consumerlinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="power-law-tests?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="friends-long-forg">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-hatch-task-prob">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="maxTicks">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-long-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recommend-dist">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="product-repulsion-prob">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="hide-commonertasklinks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="task-commoner-attraction-prob">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="contrib-recent-forg">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-total-contrib">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-long-forg">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-products">
+      <value value="&quot;few&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-repulsion-prob">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pl-calc-every-ticks">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-repulsion-prob">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="consume-dist">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="leave-prob">
+      <value value="2.0E-4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-dist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="commoner-task-attraction-prob">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prop-project-recent-contrib">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-task-friends">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-find-level">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-projects">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="project-long-forg">
+      <value value="14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-friend">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="find-product-dist">
+      <value value="1"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
