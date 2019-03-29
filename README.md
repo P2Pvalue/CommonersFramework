@@ -94,7 +94,7 @@ Then, generate the experiments configuration running
 Rscript generateExperiments.R
 ```
 
-After, run the experiments. For this, set  `PATH_TO_NETLOGO_JAR`, `PATH_TO_NETLOGO_HEADLESS` and `PATH_TO_NETLOGO_EXTENSIONS` as environment variables pointing to your Netlogo files, e.g.`export PATH_TO_NETLOGO_JAR=/opt/NetLogo 6.0.4/app/netlogo-6.0.4.jar `. Then, run the following command:
+After, run the experiments. For this, set  `PATH_TO_NETLOGO_JAR`, `PATH_TO_NETLOGO_HEADLESS` and `PATH_TO_NETLOGO_EXTENSIONS` as environment variables pointing to your Netlogo files, e.g.`export PATH_TO_NETLOGO_JAR=/opt/NetLogo\ 6.0.4/app/netlogo-6.0.4.jar`, `export PATH_TO_NETLOGO_HEADLESS=/opt/NetLogo\ 6.0.4/netlogo-headless.sh` and `export PATH_TO_NETLOGO_EXTENSIONS=/opt/NetLogo\ 6.0.4/app/extensions`. Then, run the following command:
 
 ``` shell
 ./runExperiments.bash
