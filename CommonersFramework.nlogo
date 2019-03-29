@@ -856,7 +856,6 @@ to project-death
      ]
   ]
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 205
@@ -1924,7 +1923,7 @@ SWITCH
 493
 power-law-tests?
 power-law-tests?
-1
+0
 1
 -1000
 
@@ -1937,7 +1936,7 @@ pl-calc-every-ticks
 pl-calc-every-ticks
 5
 100
-20.0
+50.0
 5
 1
 NIL
@@ -1952,7 +1951,7 @@ maxTicks
 maxTicks
 0
 5000
-50.0
+500.0
 50
 1
 NIL
